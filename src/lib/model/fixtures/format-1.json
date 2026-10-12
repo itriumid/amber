@@ -1,0 +1,75 @@
+{
+	"format": 1,
+	"records": [
+		{
+			"identifier": "cat-travel",
+			"kind": "category",
+			"fields": {
+				"name": { "value": "Travel", "stamp": "0000ll7bk.0000.fixture" },
+				"parentIdentifier": { "value": null, "stamp": "0000ll7bk.0000.fixture" },
+				"color": { "value": "teal", "stamp": "0000ll7bk.0000.fixture" },
+				"keepDone": { "value": true, "stamp": "0000ll7bk.0000.fixture" },
+				"order": { "value": "V", "stamp": "0000ll7bk.0000.fixture" },
+				"deleted": { "value": false, "stamp": "0000ll7bk.0000.fixture" }
+			}
+		},
+		{
+			"identifier": "cat-japan",
+			"kind": "category",
+			"fields": {
+				"name": { "value": "Japan", "stamp": "0000ll7bk.0001.fixture" },
+				"parentIdentifier": { "value": "cat-travel", "stamp": "0000ll7bk.0001.fixture" },
+				"color": { "value": null, "stamp": "0000ll7bk.0001.fixture" },
+				"keepDone": { "value": true, "stamp": "0000ll7bk.0001.fixture" },
+				"order": { "value": "V", "stamp": "0000ll7bk.0001.fixture" },
+				"deleted": { "value": false, "stamp": "0000ll7bk.0001.fixture" }
+			}
+		},
+		{
+			"identifier": "tag-someday",
+			"kind": "tag",
+			"fields": {
+				"name": { "value": "someday", "stamp": "0000ll7bk.0002.fixture" },
+				"color": { "value": "lavender", "stamp": "0000ll7bk.0002.fixture" },
+				"deleted": { "value": false, "stamp": "0000ll7bk.0002.fixture" }
+			}
+		},
+		{
+			"identifier": "task-fuji",
+			"kind": "task",
+			"fields": {
+				"title": { "value": "Climb Mount Fuji", "stamp": "0000ll7bk.0003.fixture" },
+				"notes": {
+					"value": "July or August, from the Yoshida trail.",
+					"stamp": "0000ll7bk.0003.fixture"
+				},
+				"done": { "value": true, "stamp": "0000ll7bm.0000.fixture" },
+				"doneAt": { "value": 1790000000000, "stamp": "0000ll7bm.0000.fixture" },
+				"categoryIdentifier": { "value": "cat-japan", "stamp": "0000ll7bk.0003.fixture" },
+				"order": { "value": "V", "stamp": "0000ll7bk.0003.fixture" },
+				"deleted": { "value": false, "stamp": "0000ll7bk.0003.fixture" }
+			}
+		},
+		{
+			"identifier": "step-boots",
+			"kind": "step",
+			"fields": {
+				"taskIdentifier": { "value": "task-fuji", "stamp": "0000ll7bk.0004.fixture" },
+				"text": { "value": "Buy hiking boots", "stamp": "0000ll7bk.0004.fixture" },
+				"done": { "value": true, "stamp": "0000ll7bk.0004.fixture" },
+				"order": { "value": "V", "stamp": "0000ll7bk.0004.fixture" },
+				"deleted": { "value": false, "stamp": "0000ll7bk.0004.fixture" }
+			}
+		},
+		{
+			"identifier": "task-fuji.tag-someday",
+			"kind": "tagging",
+			"fields": {
+				"taskIdentifier": { "value": "task-fuji", "stamp": "0000ll7bk.0005.fixture" },
+				"tagIdentifier": { "value": "tag-someday", "stamp": "0000ll7bk.0005.fixture" },
+				"on": { "value": true, "stamp": "0000ll7bk.0005.fixture" },
+				"deleted": { "value": false, "stamp": "0000ll7bk.0005.fixture" }
+			}
+		}
+	]
+}
