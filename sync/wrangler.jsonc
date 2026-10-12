@@ -1,0 +1,19 @@
+/**
+ * Amber's sync mailbox: a Worker with a Durable Object per mailbox. It has no address of its own
+ * (no workers.dev, no route, no preview URLs): only Amber's site reaches it, through a service
+ * binding, at amber.itrium.id/api/. https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "../node_modules/wrangler/config-schema.json",
+	"name": "itrium-amber-sync",
+	"main": "index.ts",
+	"compatibility_date": "2026-10-12",
+	"workers_dev": false,
+	"preview_urls": false,
+	"durable_objects": {
+		"bindings": [{ "name": "MAILBOX", "class_name": "Mailbox" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Mailbox"] }],
+	// No logs of requests are kept: not who synced, not when.
+	"observability": { "enabled": false }
+}
