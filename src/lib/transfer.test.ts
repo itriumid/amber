@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { addCategory, addStep, addTask, deleteTask, setTitle } from './model/actions';
 import { FORMAT_VERSION } from './model/format';
 import { merge, restore, undo, type Records } from './model/list';
+import { LINK_PREFIX } from './links';
 import { fresh } from './model/testing';
 import {
 	fileName,
 	isNothing,
-	LINK_PREFIX,
 	previewMerge,
 	previewRestore,
 	readFile,

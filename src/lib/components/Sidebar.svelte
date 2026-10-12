@@ -5,6 +5,7 @@
 	import { addCategory } from '#lib/model/actions.js';
 	import { categoryTree, tags as allTags, value, LIMITS } from '#lib/model/list.js';
 	import { field } from '#lib/styles.js';
+	import { install } from '#lib/install.svelte.js';
 	import { openCount, type View } from '#lib/views.js';
 	import Icon from './Icon.svelte';
 
@@ -13,13 +14,15 @@
 		onselect,
 		oneditcategory,
 		onedittag,
-		onbackup
+		onbackup,
+		oninstall
 	}: {
 		view: View;
 		onselect: (view: View) => void;
 		oneditcategory: (identifier: string) => void;
 		onedittag: (identifier: string) => void;
 		onbackup: () => void;
+		oninstall: () => void;
 	} = $props();
 
 	const tree = $derived(categoryTree(amber.records));
@@ -35,6 +38,8 @@
 	const item =
 		'flex min-h-10 flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface motion-reduce:transition-none';
 	const current = 'bg-surface font-semibold';
+	const quiet =
+		'flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
 	const editButton =
 		'inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-surface hover:text-text';
 	// The sidebar is drawn twice (beside the list, and in the sheet on a phone), so its identifiers
@@ -172,11 +177,15 @@
 	{/if}
 </nav>
 
-<button
-	type="button"
-	class="mt-6 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none"
-	onclick={onbackup}
->
-	<Icon name="archive" />
-	Back up and move
-</button>
+<div class="mt-6 space-y-0.5">
+	{#if install.offered}
+		<button type="button" class={quiet} onclick={oninstall}>
+			<Icon name="install" />
+			Install Amber
+		</button>
+	{/if}
+	<button type="button" class={quiet} onclick={onbackup}>
+		<Icon name="archive" />
+		Back up and move
+	</button>
+</div>

@@ -331,3 +331,66 @@ test('has no accessibility problems axe can find in the backup sheet', async ({ 
 	await backup(page);
 	expect(await axeViolations(page)).toEqual([]);
 });
+
+test('opens and keeps working with no connection, once it has been opened', async ({
+	page,
+	context
+}) => {
+	await page.evaluate(() => navigator.serviceWorker.ready);
+	// The first visit installs the worker; from the next one, it serves Amber.
+	await page.reload();
+	await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+	await context.setOffline(true);
+	await page.reload();
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	await addTask(page, 'Written offline');
+	await page.reload();
+	await expect(task(page, 'Written offline')).toBeVisible();
+	await context.setOffline(false);
+});
+
+test('brings in a list from a pasted link', async ({ page, browser }) => {
+	await addTask(page, 'From Safari');
+	let sheet = await backup(page);
+	await sheet.getByRole('button', { name: 'Make a link' }).click();
+	const link = await sheet.getByLabel('Link to the list').inputValue();
+
+	const other = await (await browser.newContext()).newPage();
+	const otherProblems = watchProblems(other);
+	await other.goto('/');
+	await expect(other.getByLabel('New task')).toBeEnabled();
+	sheet = await backup(other);
+	await sheet.getByLabel('Or paste a link').fill('not a link');
+	await sheet.getByRole('button', { name: 'Open', exact: true }).click();
+	await expect(sheet.getByRole('alert')).toHaveText("That isn't a link to a list from Amber.");
+	await sheet.getByLabel('Or paste a link').fill(`Here it is: ${link} `);
+	await sheet.getByRole('button', { name: 'Open', exact: true }).click();
+	const bringIn = other.getByRole('dialog', { name: 'Bring in a list' });
+	await bringIn.getByRole('button', { name: 'Bring it in' }).click();
+	await expect(task(other, 'From Safari')).toBeVisible();
+	expect(otherProblems).toEqual([]);
+	await other.context().close();
+});
+
+test('shows how to install in Safari on an iPhone, and how to bring the list along', async ({
+	browser
+}) => {
+	const phone = await (
+		await browser.newContext({
+			userAgent:
+				'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+			viewport: { width: 390, height: 844 },
+			hasTouch: true,
+			isMobile: true
+		})
+	).newPage();
+	await phone.goto('/');
+	await expect(phone.getByLabel('New task')).toBeEnabled();
+	await phone.getByRole('button', { name: 'Show lists' }).click();
+	await phone.getByRole('button', { name: 'Install Amber' }).click();
+	const steps = phone.getByRole('dialog', { name: 'Install Amber' });
+	await expect(steps.getByText('Add to Home Screen')).toBeVisible();
+	await steps.getByRole('button', { name: 'Back up and move' }).click();
+	await expect(phone.getByRole('dialog', { name: 'Back up and move' })).toBeVisible();
+	await phone.context().close();
+});

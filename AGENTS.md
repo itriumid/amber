@@ -77,6 +77,14 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   Bringing a list in always merges, shows a preview first, keeps a copy before, and can be undone.
   Putting a copy back is new changes (`restore`), never an overwrite. Copies are kept daily (7) and
   before risky actions (10), in `src/lib/storage.ts`.
+- **Offline comes from `src/service-worker/index.ts`.** It keeps this version's page, scripts,
+  styles and static files, and serves them first. A new version waits until the page asks
+  (`src/lib/updates.svelte.ts`, the Update banner) or no tab is open: never skip waiting on
+  install, or code would change under a list being edited, possibly to a newer data format. The
+  worker has its own `tsconfig.json`; `pnpm check` type-checks it too.
+- **Installing** is in `src/lib/install.svelte.ts`: Chromium's prompt when it fires, steps for
+  Safari otherwise. On Apple devices an installed Amber has its own storage and links open in
+  Safari, so lists come across by pasting a link in Back up and move.
 - **Records that get copied stay raw.** `structuredClone` can't copy a `$state` proxy: pass
   `$state.snapshot(amber.records)` to anything that copies, and hold read lists in `$state.raw`.
   `src/hooks.client.ts` logs errors SvelteKit catches while rendering, so the browser tests, which

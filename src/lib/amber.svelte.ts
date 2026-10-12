@@ -3,6 +3,7 @@
 
 import { prefersReducedMotion } from 'svelte/motion';
 import { Clock } from './model/clock';
+import { updates } from './updates.svelte';
 import {
 	merge,
 	restore,
@@ -62,10 +63,11 @@ class Amber {
 				keepDailySnapshot(opened.records).catch(() => {
 					// A missed copy isn't worth interrupting anyone for; tomorrow's will be kept.
 				});
-			if (opened.readOnly)
+			if (opened.readOnly) {
 				this.problem =
-					'This list was saved by a newer version of Amber. Reload to update; until then it can be read but not changed.';
-			else if (opened.unreadable)
+					'This list was saved by a newer version of Amber, so it can be read but not changed until Amber updates.';
+				updates.check();
+			} else if (opened.unreadable)
 				this.problem = `${opened.unreadable} saved items couldn't be read. They're kept as they were, not deleted.`;
 		} catch (error) {
 			this.problem = `Amber couldn't open its storage in this browser: ${error instanceof Error ? error.message : error}`;

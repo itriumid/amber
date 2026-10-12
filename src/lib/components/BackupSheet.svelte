@@ -2,6 +2,7 @@
      this device keeps by itself. Nothing here leaves the browser unless someone takes it. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
+	import { isLink, LINK_PREFIX } from '#lib/links.js';
 	import { listSnapshots, type Snapshot } from '#lib/storage.js';
 	import { field, label, smallButton } from '#lib/styles.js';
 	import {
@@ -19,8 +20,15 @@
 	let {
 		open,
 		onclose,
-		onfile
-	}: { open: boolean; onclose: () => void; onfile: (text: string) => void } = $props();
+		onfile,
+		onlink
+	}: {
+		open: boolean;
+		onclose: () => void;
+		onfile: (text: string) => void;
+		/** A link pasted in: on Apple devices, how a list gets from Safari into an installed Amber. */
+		onlink: (hash: string) => void;
+	} = $props();
 
 	const prefix = $props.id();
 	let passphrase = $state('');
@@ -32,6 +40,8 @@
 	let snapshots = $state.raw<Snapshot[]>([]);
 	let confirming = $state<number>();
 	let fileInput: HTMLInputElement | undefined = $state();
+	let pasted = $state('');
+	let pasteProblem = $state<string>();
 
 	const heading = 'mb-1 text-base font-semibold';
 	const hint = 'text-sm text-muted';
@@ -109,6 +119,20 @@
 		const text = await chosen.text();
 		if (fileInput) fileInput.value = '';
 		onfile(text);
+	}
+
+	function openLink(event: SubmitEvent) {
+		event.preventDefault();
+		// Anything around the link (a message it came in, a stray space) is left behind.
+		const start = Math.max(pasted.indexOf(LINK_PREFIX.open), pasted.indexOf(LINK_PREFIX.locked));
+		const hash = start === -1 ? '' : pasted.slice(start).trim().split(/\s/)[0];
+		if (!isLink(hash)) {
+			pasteProblem = "That isn't a link to a list from Amber.";
+			return;
+		}
+		pasted = '';
+		pasteProblem = undefined;
+		onlink(hash);
 	}
 
 	async function putBack(snapshot: Snapshot) {
@@ -210,6 +234,28 @@
 				onchange={openFile}
 			/>
 		</label>
+		<form class="mt-4" onsubmit={openLink}>
+			<label for="{prefix}-paste" class={label}>Or paste a link</label>
+			<div class="flex gap-2">
+				<input
+					id="{prefix}-paste"
+					class="{field} min-w-0"
+					bind:value={pasted}
+					oninput={() => (pasteProblem = undefined)}
+					autocomplete="off"
+					aria-invalid={!!pasteProblem}
+					aria-describedby={pasteProblem ? `${prefix}-paste-problem` : undefined}
+				/>
+				<button
+					type="submit"
+					class="{smallButton} shrink-0"
+					disabled={!pasted.trim() || amber.readOnly}>Open</button
+				>
+			</div>
+			{#if pasteProblem}
+				<p id="{prefix}-paste-problem" class="mt-1.5 text-sm" role="alert">{pasteProblem}</p>
+			{/if}
+		</form>
 	</section>
 
 	<section aria-labelledby="{prefix}-copies">

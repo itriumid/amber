@@ -12,6 +12,8 @@ a bucket list, anything you want to keep track of.
 - **Back up and move:** download the list as a file or make a link, optionally locked with a
   passphrase, and bring it in on another device. Bringing a list in merges it, after showing what
   would change. Amber also keeps copies on the device each day, and any of them can be put back.
+- **Works offline,** and installs to the home screen or the dock. Updates wait until you choose
+  them.
 - **Undo** for everything.
 
 Your lists stay on your device, and nobody else can read them. There's no account, no cookies and
