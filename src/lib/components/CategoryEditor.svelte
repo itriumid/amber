@@ -117,7 +117,7 @@
 				type="button"
 				class="{secondaryButton} ml-auto"
 				onclick={() => {
-					amber.act(`Deleted ${value(category, 'name')}. Its tasks are kept`, (context) =>
+					amber.act(`Deleted: ${value(category, 'name')}, tasks kept`, (context) =>
 						deleteCategory(context, category)
 					);
 					if (parent) onopen(parent.identifier);
