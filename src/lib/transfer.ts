@@ -11,6 +11,7 @@ import {
 	decompressFromEncodedURIComponent,
 	decompressFromUint8Array
 } from 'lz-string';
+import { LINK_PREFIX } from './links';
 import { Clock } from './model/clock';
 import { FORMAT_VERSION, migrate, readEntity } from './model/format';
 import { merge, restore, type Change, type Entity, type Kind, type Records } from './model/list';
@@ -38,7 +39,6 @@ export type Reading =
 
 /** Links longer than this are refused: past it, chat applications and browsers start cutting. */
 export const LINK_LIMIT = 60_000;
-export const LINK_PREFIX = { open: '#list=', locked: '#locked=' } as const;
 
 /** The work it takes to try one passphrase: OWASP's 2023 advice for PBKDF2 with SHA-256. */
 const ITERATIONS = 600_000;
@@ -203,10 +203,6 @@ export async function toLink(records: Records, passphrase?: string): Promise<str
 	joined.set(iv, salt.length);
 	joined.set(data, salt.length + iv.length);
 	return LINK_PREFIX.locked + bytesToBase64Url(joined);
-}
-
-export function isLink(hash: string): boolean {
-	return hash.startsWith(LINK_PREFIX.open) || hash.startsWith(LINK_PREFIX.locked);
 }
 
 export async function readLink(hash: string, passphrase?: string): Promise<Reading> {

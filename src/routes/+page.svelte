@@ -4,8 +4,6 @@
 	import { fade, slide } from 'svelte/transition';
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT, EDGE } from '#lib/colors.js';
-	import BackupSheet from '#lib/components/BackupSheet.svelte';
-	import BringInSheet, { type Source } from '#lib/components/BringInSheet.svelte';
 	import CategoryEditor from '#lib/components/CategoryEditor.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
@@ -28,8 +26,10 @@
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field } from '#lib/styles.js';
+	import { install, type Way } from '#lib/install.svelte.js';
+	import { updates } from '#lib/updates.svelte.js';
 	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
-	import { isLink } from '#lib/transfer.js';
+	import { isLink, type Source } from '#lib/links.js';
 	import { foundCount, sectionsFor, type View } from '#lib/views.js';
 
 	let view = $state<View>({ kind: 'all' });
@@ -39,6 +39,16 @@
 	let listsOpen = $state(false);
 	let backupOpen = $state(false);
 	let bringing = $state<Source>();
+	let installSteps = $state<Way>();
+	// The sheets for backing up, bringing in and installing load the first time they're opened:
+	// most visits never need them, or the code they bring (compression, encryption). Once loaded
+	// they stay, so closing one returns focus where it was, as a dialog should.
+	let loaded = $state({ backup: false, bringIn: false, install: false });
+	$effect(() => {
+		if (backupOpen) loaded.backup = true;
+		if (bringing) loaded.bringIn = true;
+		if (installSteps) loaded.install = true;
+	});
 	let newTask = $state('');
 	let quickAdd: HTMLInputElement | undefined = $state();
 	let query = $state('');
@@ -47,7 +57,15 @@
 
 	onMount(() => {
 		void amber.open();
+		updates.watch();
+		install.watch();
 	});
+
+	function offerInstall() {
+		listsOpen = false;
+		if (install.offered === 'prompt') void install.ask();
+		else installSteps = install.offered;
+	}
 
 	// A link to a list carries it after the `#`. It's taken from the address at once, so it isn't
 	// left in the history or bookmarked by accident, and then offered to bring in.
@@ -212,6 +230,7 @@
 					oneditcategory={(identifier) => (openCategory = identifier)}
 					onedittag={(identifier) => (openTag = identifier)}
 					onbackup={() => (backupOpen = true)}
+					oninstall={offerInstall}
 				/>
 			{/if}
 		</aside>
@@ -228,6 +247,23 @@
 					>
 						<Icon name="edit" />
 					</button>
+				{/if}
+			</div>
+
+			<!-- Always there, so screen readers hear the offer when it appears. -->
+			<div role="status">
+				{#if updates.ready}
+					<div
+						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface p-3 text-sm"
+						transition:slide={{ duration }}
+					>
+						<p>A new version of Amber is ready.</p>
+						<button
+							type="button"
+							class="min-h-9 rounded-full bg-accent px-4 font-semibold text-on-accent hover:opacity-85"
+							onclick={() => updates.apply()}>Update</button
+						>
+					</div>
 				{/if}
 			</div>
 
@@ -307,6 +343,12 @@
 								: ` in ${heading}`}.
 						{:else if view.kind === 'all'}
 							Nothing here yet. Add your first task above.
+							{#if install.installed && install.apple}
+								<span class="mt-2 block text-sm">
+									Have a list in Safari? Make a link there in Back up and move, and paste it in
+									here.
+								</span>
+							{/if}
 						{:else}
 							Nothing here yet.
 						{/if}
@@ -400,6 +442,7 @@
 				listsOpen = false;
 				backupOpen = true;
 			}}
+			oninstall={offerInstall}
 		/>
 	{/if}
 </Sheet>
@@ -411,13 +454,37 @@
 	onopen={(identifier) => (view = { kind: 'category', identifier })}
 />
 <TagEditor identifier={openTag} onclose={() => (openTag = undefined)} />
-<BackupSheet
-	open={backupOpen}
-	onclose={() => (backupOpen = false)}
-	onfile={(file) => {
-		backupOpen = false;
-		bringing = { file };
-	}}
-/>
-<BringInSheet source={bringing} onclose={() => (bringing = undefined)} />
+{#if loaded.backup}
+	{#await import('#lib/components/BackupSheet.svelte') then { default: BackupSheet }}
+		<BackupSheet
+			open={backupOpen}
+			onclose={() => (backupOpen = false)}
+			onfile={(file) => {
+				backupOpen = false;
+				bringing = { file };
+			}}
+			onlink={(link) => {
+				backupOpen = false;
+				bringing = { link };
+			}}
+		/>
+	{/await}
+{/if}
+{#if loaded.install}
+	{#await import('#lib/components/InstallSheet.svelte') then { default: InstallSheet }}
+		<InstallSheet
+			way={installSteps}
+			onclose={() => (installSteps = undefined)}
+			onbackup={() => {
+				installSteps = undefined;
+				backupOpen = true;
+			}}
+		/>
+	{/await}
+{/if}
+{#if loaded.bringIn}
+	{#await import('#lib/components/BringInSheet.svelte') then { default: BringInSheet }}
+		<BringInSheet source={bringing} onclose={() => (bringing = undefined)} />
+	{/await}
+{/if}
 <Notice />

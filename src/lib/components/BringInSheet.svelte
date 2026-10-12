@@ -1,11 +1,9 @@
 <!-- A list arriving from a file or a link: unlocked if it needs a passphrase, then shown as what it
      would change, and only merged in when asked. -->
-<script lang="ts" module>
-	export type Source = { file: string } | { link: string };
-</script>
-
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
+	import type { Source } from '#lib/links.js';
+	import { updates } from '#lib/updates.svelte.js';
 	import { field, label, smallButton } from '#lib/styles.js';
 	import {
 		isNothing,
@@ -89,9 +87,11 @@
 		</form>
 	{:else if reading.kind === 'newer'}
 		<p class="text-sm">
-			This list was made by a newer version of Amber. Reload this page to update Amber, then open it
-			again.
+			This list was made by a newer version of Amber. Update Amber, then open it again.
 		</p>
+		<button type="button" class="{smallButton} mt-4" onclick={() => updates.apply()}
+			>Update Amber</button
+		>
 	{:else if reading.kind === 'not-amber'}
 		<p class="text-sm">This isn't a list from Amber, or part of it is missing.</p>
 	{:else if preview}
@@ -111,9 +111,7 @@
 			</p>
 		{/if}
 		{#if amber.readOnly}
-			<p class="mt-3 text-sm">
-				Your list is read-only until Amber is updated: reload the page first.
-			</p>
+			<p class="mt-3 text-sm">Your list can't be changed until Amber is updated.</p>
 		{/if}
 		<div class="mt-5 flex gap-2">
 			{#if !isNothing(preview)}
