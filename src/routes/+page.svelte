@@ -4,6 +4,8 @@
 	import { fade, slide } from 'svelte/transition';
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT, EDGE } from '#lib/colors.js';
+	import BackupSheet from '#lib/components/BackupSheet.svelte';
+	import BringInSheet, { type Source } from '#lib/components/BringInSheet.svelte';
 	import CategoryEditor from '#lib/components/CategoryEditor.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
@@ -27,6 +29,7 @@
 	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field } from '#lib/styles.js';
 	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
+	import { isLink } from '#lib/transfer.js';
 	import { foundCount, sectionsFor, type View } from '#lib/views.js';
 
 	let view = $state<View>({ kind: 'all' });
@@ -34,6 +37,8 @@
 	let openCategory = $state<string | undefined>();
 	let openTag = $state<string | undefined>();
 	let listsOpen = $state(false);
+	let backupOpen = $state(false);
+	let bringing = $state<Source>();
 	let newTask = $state('');
 	let quickAdd: HTMLInputElement | undefined = $state();
 	let query = $state('');
@@ -42,6 +47,18 @@
 
 	onMount(() => {
 		void amber.open();
+	});
+
+	// A link to a list carries it after the `#`. It's taken from the address at once, so it isn't
+	// left in the history or bookmarked by accident, and then offered to bring in.
+	function takeLink() {
+		if (!isLink(location.hash)) return;
+		bringing = { link: location.hash };
+		history.replaceState(history.state, '', location.pathname + location.search);
+	}
+
+	$effect(() => {
+		if (amber.ready) takeLink();
 	});
 
 	// A place that's been deleted (on this device, or by an undo) falls back to everything.
@@ -124,7 +141,7 @@
 	const openDetails = (task: Task) => (openTask = task.identifier);
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} onhashchange={() => amber.ready && takeLink()} />
 
 <Seo title={TITLE} description={DESCRIPTION} path="/" />
 
@@ -194,6 +211,7 @@
 					onselect={select}
 					oneditcategory={(identifier) => (openCategory = identifier)}
 					onedittag={(identifier) => (openTag = identifier)}
+					onbackup={() => (backupOpen = true)}
 				/>
 			{/if}
 		</aside>
@@ -378,6 +396,10 @@
 				listsOpen = false;
 				openTag = identifier;
 			}}
+			onbackup={() => {
+				listsOpen = false;
+				backupOpen = true;
+			}}
 		/>
 	{/if}
 </Sheet>
@@ -389,4 +411,13 @@
 	onopen={(identifier) => (view = { kind: 'category', identifier })}
 />
 <TagEditor identifier={openTag} onclose={() => (openTag = undefined)} />
+<BackupSheet
+	open={backupOpen}
+	onclose={() => (backupOpen = false)}
+	onfile={(file) => {
+		backupOpen = false;
+		bringing = { file };
+	}}
+/>
+<BringInSheet source={bringing} onclose={() => (bringing = undefined)} />
 <Notice />

@@ -12,12 +12,14 @@
 		view,
 		onselect,
 		oneditcategory,
-		onedittag
+		onedittag,
+		onbackup
 	}: {
 		view: View;
 		onselect: (view: View) => void;
 		oneditcategory: (identifier: string) => void;
 		onedittag: (identifier: string) => void;
+		onbackup: () => void;
 	} = $props();
 
 	const tree = $derived(categoryTree(amber.records));
@@ -169,3 +171,12 @@
 		</section>
 	{/if}
 </nav>
+
+<button
+	type="button"
+	class="mt-6 flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none"
+	onclick={onbackup}
+>
+	<Icon name="archive" />
+	Back up and move
+</button>

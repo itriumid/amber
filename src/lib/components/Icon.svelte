@@ -15,7 +15,9 @@
 		promote: 'M12 19V5M6 11l6-6 6 6',
 		tag: 'M4 4h7l9 9-7 7-9-9V4zM8 8h.01',
 		check: 'M5 12l5 5L19 7',
-		search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4'
+		search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
+		archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
+		lock: 'M6 11h12v9H6zM8 11V8a4 4 0 018 0v3'
 	} as const;
 
 	let { name, class: className = 'size-4' }: { name: keyof typeof PATHS; class?: string } =
