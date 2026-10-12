@@ -107,11 +107,89 @@ export async function writeRecords(records: Entity[]) {
 	await done(transaction);
 }
 
-export async function keepSnapshot(reason: string, records: unknown[], format = FORMAT_VERSION) {
+/** Copies kept of each sort: the daily ones go first, since there's always a newer one. */
+const KEEP = { daily: 7, other: 10 };
+/** A day's copy is skipped when one was kept less than this long ago. */
+const DAILY_GAP = 20 * 60 * 60 * 1000;
+
+interface StoredSnapshot {
+	reason: string;
+	takenAt: number;
+	format: number;
+	daily?: boolean;
+	records: unknown[];
+}
+
+export interface Snapshot {
+	key: number;
+	reason: string;
+	takenAt: number;
+	/** Tasks in it that weren't deleted, to tell copies apart. */
+	tasks: number;
+	records: Entity[];
+}
+
+export async function keepSnapshot(
+	reason: string,
+	records: unknown[],
+	format = FORMAT_VERSION,
+	daily = false
+) {
 	const opened = await database();
 	const transaction = opened.transaction('snapshots', 'readwrite');
-	transaction.objectStore('snapshots').add({ reason, takenAt: Date.now(), format, records });
+	const store = transaction.objectStore('snapshots');
+	const stored: StoredSnapshot = { reason, takenAt: Date.now(), format, daily, records };
+	store.add(stored);
+	// Oldest first, so the newest of each sort are the ones kept.
+	const [keys, all] = await Promise.all([
+		request(store.getAllKeys()),
+		request(store.getAll()) as Promise<StoredSnapshot[]>
+	]);
+	const seen = { daily: 0, other: 0 };
+	for (let index = all.length - 1; index >= 0; index--) {
+		const sort = all[index].daily ? 'daily' : 'other';
+		if (++seen[sort] > KEEP[sort]) store.delete(keys[index]);
+	}
 	await done(transaction);
+}
+
+/** Keeps the day's copy, unless one was kept recently. */
+export async function keepDailySnapshot(records: unknown[]) {
+	if (!records.length) return;
+	const opened = await database();
+	const cursor = await request(
+		opened.transaction('snapshots', 'readonly').objectStore('snapshots').openCursor(null, 'prev')
+	);
+	const newest = cursor?.value as StoredSnapshot | undefined;
+	if (newest && Date.now() - newest.takenAt < DAILY_GAP) return;
+	await keepSnapshot('Daily copy', records, FORMAT_VERSION, true);
+}
+
+/** Every copy kept on this device, newest first, in this format. */
+export async function listSnapshots(): Promise<Snapshot[]> {
+	const opened = await database();
+	const store = opened.transaction('snapshots', 'readonly').objectStore('snapshots');
+	const [keys, all] = await Promise.all([
+		request(store.getAllKeys()),
+		request(store.getAll()) as Promise<StoredSnapshot[]>
+	]);
+	const snapshots: Snapshot[] = [];
+	all.forEach((stored, index) => {
+		// A copy from a newer format can't be read here; it stays stored for that newer Amber.
+		if (stored.format > FORMAT_VERSION) return;
+		const records = migrate(stored.records, stored.format)
+			.map(readEntity)
+			.filter((entity): entity is Entity => !!entity);
+		snapshots.push({
+			key: keys[index] as number,
+			reason: stored.reason,
+			takenAt: stored.takenAt,
+			tasks: records.filter((record) => record.kind === 'task' && !record.fields.deleted.value)
+				.length,
+			records
+		});
+	});
+	return snapshots.reverse();
 }
 
 /** Asks the browser to keep Amber's storage even when space runs low. Whether it does is up to it. */

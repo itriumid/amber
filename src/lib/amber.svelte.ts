@@ -4,13 +4,22 @@
 import { prefersReducedMotion } from 'svelte/motion';
 import { Clock } from './model/clock';
 import {
+	merge,
+	restore,
 	undo as undoChanges,
 	type Change,
 	type Context,
 	type Entity,
 	type Records
 } from './model/list';
-import { askToKeepStorage, openList, writeRecords } from './storage';
+import {
+	askToKeepStorage,
+	keepDailySnapshot,
+	keepSnapshot,
+	openList,
+	writeRecords,
+	type Snapshot
+} from './storage';
 
 export interface Undoable {
 	/** What happened, for the message that offers to undo it: "Task deleted". */
@@ -49,6 +58,10 @@ class Amber {
 			}
 			this.records = records;
 			this.readOnly = opened.readOnly;
+			if (!opened.readOnly)
+				keepDailySnapshot(opened.records).catch(() => {
+					// A missed copy isn't worth interrupting anyone for; tomorrow's will be kept.
+				});
 			if (opened.readOnly)
 				this.problem =
 					'This list was saved by a newer version of Amber. Reload to update; until then it can be read but not changed.';
@@ -83,6 +96,20 @@ class Amber {
 			void askToKeepStorage();
 		}
 		return result;
+	}
+
+	/** Brings in records from a file or link, after keeping a copy of the list as it was. */
+	async mergeIn(incoming: Entity[], message: string) {
+		if (this.readOnly) return;
+		await keepSnapshot('Before bringing in a list', Object.values($state.snapshot(this.records)));
+		this.act(message, (context) => merge(context, incoming).changes);
+	}
+
+	/** Puts the list back as a copy had it, after keeping a copy of the list as it is now. */
+	async restoreSnapshot(snapshot: Snapshot) {
+		if (this.readOnly) return;
+		await keepSnapshot('Before putting back a copy', Object.values($state.snapshot(this.records)));
+		this.act('Copy put back', (context) => restore(context, snapshot.records));
 	}
 
 	undo() {
