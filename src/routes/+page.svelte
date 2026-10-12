@@ -244,7 +244,8 @@
 		</main>
 	</div>
 
-	<footer class="mt-auto border-t border-border py-8 text-sm text-muted">
+	<!-- Room at the bottom so the message with Undo never covers the footer's link. -->
+	<footer class="mt-auto border-t border-border pt-8 pb-24 text-sm text-muted">
 		<p class="font-medium text-text">{PROMISE}</p>
 		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE}</p>
 		<p class="mt-4">
