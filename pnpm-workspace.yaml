@@ -1,0 +1,5 @@
+# Install scripts stay off until someone decides otherwise. esbuild's only checks its binary, and
+# workerd's downloads the local Workers runtime, which `pnpm preview` (wrangler dev) needs.
+allowBuilds:
+  esbuild: false
+  workerd: false

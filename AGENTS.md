@@ -54,13 +54,81 @@ reopened — and skip it otherwise.
 
 ## This repository
 
-<!--
-  Repository-specific instructions go here and are owned by this repository. Nothing syncs
-  this file back to the handbook, so edit freely. Good things to put here:
-    - what this project is, and its stack
-    - build, test and lint commands, and which of them to run before calling a change done
-    - known gotchas specific to this codebase
-  Anything that would apply to every repository belongs in the handbook instead.
--->
+Amber, Itrium's lists, at amber.itrium.id: one prerendered page (`/`), SvelteKit 3 with
+TypeScript and Tailwind CSS v4, on Cloudflare Workers through `@sveltejs/adapter-cloudflare`.
+Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
 
-_To be filled in._
+- **Never lose a user's data.** This outranks every other rule here.
+  - The saved format is versioned in `src/lib/model/format.ts`. Changing what is saved means a
+    new `FORMAT_VERSION`, a migration added to `MIGRATIONS` (never edit or remove one), and a new
+    permanent fixture in `src/lib/model/fixtures/` (never edit an old one). The format tests must
+    read every fixture.
+  - Data from a newer format opens read-only and is never written back. Unknown fields are kept,
+    in `readEntity` and in `merge`.
+  - `src/lib/storage.ts` keeps a snapshot before upgrading. Writes start in the same task and are
+    committed at once, so a reload right after a change keeps it; the browser tests reload to
+    check.
+- **Records are merged, never overwritten.** Every field is a register stamped by the hybrid
+  logical clock (`src/lib/model/clock.ts`); deleting sets a flag. Actions in
+  `src/lib/model/actions.ts` return the changes they made, and `amber.act()` saves them and
+  offers Undo. Order uses fractional keys (`src/lib/model/order.ts`).
+- **Nothing leaves the browser.** No network requests, no cookies, no analytics, nothing loaded
+  from another domain. The Content-Security-Policy in `vite.config.ts` and `_headers` enforces
+  it, and the footer's promise has to stay true. Sync (planned) will be end-to-end encrypted and
+  opt-in; until then, don't add a connection.
+- **Cloudflare must not add its analytics.** `_headers` sends `Cache-Control: … no-transform`;
+  `src/headers.test.ts` guards it.
+- **Inline styles and `data:` URLs are blocked.** Use Tailwind classes, and keep
+  `build.assetsInlineLimit: 0`. The one allowed inline style is SvelteKit's route announcer, by
+  hash; `src/csp.test.ts` fails when a SvelteKit update changes it.
+- **No abbreviations in names:** `identifier`, not `id`; `records`, not `doc`. Only platform
+  names (`IDBRequest`, the HTML `id` attribute) keep theirs.
+- **Element identifiers must be unique per instance.** The sidebar is drawn twice (beside the
+  list, and in a sheet on a phone), so components that can repeat use `$props.id()`.
+- **Level AA of the Web Content Accessibility Guidelines 2.2**, per
+  `.handbook/conventions/rules/engineering.md`. The browser tests run axe on a list and on an
+  open dialog. Every action works from the keyboard (Alt with an arrow moves a task, N focuses
+  quick add, Ctrl or ⌘ with Z undoes), dialogs are native `<dialog>`, and motion respects
+  reduced motion.
+- **Colors come from the tokens in `src/app.css`.** Rhodonite only. The category colors
+  (`--cat-*`) reach 4.5:1 on both surfaces in both modes; pink isn't one, because pink marks the
+  primary action and focus.
+- **The copy is public, in Itrium's voice.** The text lives in `src/lib/content.ts`; read
+  `.handbook/conventions/reference/brand.md` first, and show any wording change to the user
+  before committing it.
+- **`static/.well-known/security.txt` expires.** A test fails a month before its `Expires` date.
+- **Brand files** (`src/lib/*.svg`, the icons and `og-image.png` in `static/`) are copies from
+  `~/Itrium/Assets`. Regenerate them there, never edit them here.
+- **SvelteKit 3:** configuration is passed to `sveltekit()` in `vite.config.ts` (there's no
+  `svelte.config.js`), and `#lib` replaces `$lib`.
+
+### Commands
+
+| What          | Command             |
+| ------------- | ------------------- |
+| Install       | `pnpm install`      |
+| Dev server    | `pnpm dev`          |
+| Type-check    | `pnpm check`        |
+| Lint          | `pnpm lint`         |
+| Format        | `pnpm format`       |
+| Test          | `pnpm test`         |
+| Browser tests | `pnpm test:browser` |
+| Build         | `pnpm build`        |
+| Preview       | `pnpm preview`      |
+
+Before calling a change done, run `pnpm check`, `pnpm lint`, `pnpm test`, `pnpm build` and
+`pnpm test:browser`. The browser tests build the site themselves, run on a desktop and a phone
+screen, and fail on any console error, which is where a Content-Security-Policy violation shows.
+
+### Environment gotchas
+
+- Node is lazy-loaded through shell functions in the owner's zsh setup. If `node` or `pnpm`
+  resolves to a function instead of a binary, run
+  `unfunction node npm npx pnpm; . "$HOME/.nvm/nvm.sh"`.
+- Playwright reuses a server already on port 4173 outside CI. Stop a leftover `pnpm preview`
+  there first, or the tests run against an old build.
+- Svelte skips writing `checked` when it equals the last value it wrote, which goes stale when a
+  row is brought back mid-transition; `Check.svelte` writes it through an attachment.
+- `pnpm-workspace.yaml` keeps esbuild's and workerd's install scripts off, so `wrangler dev`
+  doesn't run locally; `pnpm preview` serves the build instead, but ignores `_headers`.
+- TypeScript stays on 6.x until typescript-eslint, svelte-check and SvelteKit support 7.

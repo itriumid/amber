@@ -1,0 +1,6 @@
+# Package managers
+pnpm-lock.yaml
+
+# Brand files, copied from the assets as they are
+/static/
+src/lib/*.svg

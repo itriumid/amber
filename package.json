@@ -1,0 +1,55 @@
+{
+	"name": "amber",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"test": "vitest --run",
+		"test:browser": "playwright test",
+		"cf-typegen": "wrangler types ./src/worker-configuration.d.ts"
+	},
+	"packageManager": "pnpm@12.5.1",
+	"engines": {
+		"node": ">=24"
+	},
+	"devDependencies": {
+		"@axe-core/playwright": "^4.13.0",
+		"@eslint/compat": "^2.1.1",
+		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.64.0",
+		"@sveltejs/adapter-cloudflare": "^8.0.0",
+		"@sveltejs/kit": "^3.0.1",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@tailwindcss/vite": "^4.3.3",
+		"@types/node": "^26.6.5",
+		"eslint": "^10.12.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.23.1",
+		"globals": "^17.13.0",
+		"prettier": "^3.9.10",
+		"prettier-plugin-svelte": "^4.1.1",
+		"prettier-plugin-tailwindcss": "^0.8.1",
+		"svelte": "^5.57.2",
+		"svelte-check": "^4.7.6",
+		"tailwindcss": "^4.3.3",
+		"typescript": "~6.0.3",
+		"typescript-eslint": "^8.71.1",
+		"vite": "^8.3.4",
+		"vitest": "^5.0.3",
+		"wrangler": "^4.149.0"
+	},
+	"dependencies": {
+		"lz-string": "^1.5.0"
+	}
+}
