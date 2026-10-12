@@ -6,6 +6,8 @@
 	import { DOT } from '#lib/colors.js';
 	import { categoryLabel, moveTask, setDone } from '#lib/model/actions.js';
 	import { stepsOf, tagsOf, value, type Task } from '#lib/model/list.js';
+	import { tick } from 'svelte';
+	import { isShown } from '#lib/focus.js';
 	import { highlight } from '#lib/search.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
@@ -46,10 +48,27 @@
 		);
 	}
 
-	function toggle(checked: boolean) {
+	let row: HTMLDivElement | undefined = $state();
+
+	async function toggle(checked: boolean) {
+		// Held here: Svelte clears `row` as soon as this row starts to leave.
+		const self = row;
+		const item = self?.closest('li');
+		const neighbors = [item?.nextElementSibling, item?.previousElementSibling];
 		amber.act(checked ? `Done: ${title}` : `Not done: ${title}`, (context) =>
 			setDone(context, task, checked)
 		);
+		await tick();
+		// Ticking can move the task (into Done, or back out). Focus follows it when it can still be
+		// seen, and otherwise stays where the task was, on its neighbor, instead of being lost.
+		const moved = [...document.querySelectorAll<HTMLElement>('[data-task]')].find(
+			(other) => other !== self && other.dataset.task === task.identifier
+		);
+		if (!moved) return;
+		const checkbox = (place: Element | null | undefined) =>
+			place?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		const target = [moved, ...neighbors].map(checkbox).find(isShown);
+		(target ?? document.getElementById('quick-add'))?.focus();
 	}
 
 	function onkeydown(event: KeyboardEvent) {
@@ -61,55 +80,61 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="group flex items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface"
+	bind:this={row}
+	data-task={task.identifier}
+	class="group flex flex-wrap items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface"
 	{onkeydown}
 >
-	<div class="pt-0.5">
-		<Check
-			checked={done}
-			label={done ? `Mark not done: ${title}` : `Mark done: ${title}`}
-			onchange={toggle}
-		/>
-	</div>
-	<div class="min-w-0 flex-1">
-		<button
-			type="button"
-			class="block w-full rounded-md text-left text-base leading-7 break-words {done
-				? 'text-muted line-through decoration-1'
-				: ''}"
-			onclick={() => onopen(task)}
-		>
-			{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
-						class="rounded-sm bg-accent text-on-accent">{piece.text}</mark
-					>{:else}{piece.text}{/if}{/each}<span class="sr-only">. Open details</span>
-		</button>
-		{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
-			<div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-				{#if done && doneAt}<span>Done {dateFormat.format(doneAt)}</span>{/if}
-				{#if category}<span>{category}</span>{/if}
-				{#each tags as tag (tag.identifier)}
-					{@const color = value(tag, 'color')}
-					<span class="inline-flex items-center gap-1">
-						{#if color}<span class="size-2 rounded-full {DOT[color]}" aria-hidden="true"
-							></span>{/if}#{value(tag, 'name')}
-					</span>
-				{/each}
-				{#if steps.length}
-					<span class="inline-flex items-center gap-1"
-						><Icon name="steps" class="size-3.5" />{stepsDone}/{steps.length}<span class="sr-only">
-							steps done</span
-						></span
-					>
-				{/if}
-				{#if hasNotes}<span class="inline-flex items-center gap-1"
-						><Icon name="notes" class="size-3.5" /><span class="sr-only">Has notes</span></span
-					>{/if}
-			</div>
-		{/if}
+	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead. -->
+	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
+		<div class="pt-0.5">
+			<Check
+				checked={done}
+				label={done ? `Mark not done: ${title}` : `Mark done: ${title}`}
+				onchange={toggle}
+			/>
+		</div>
+		<div class="min-w-0 flex-1">
+			<button
+				type="button"
+				class="block w-full rounded-md text-left text-base leading-7 break-words {done
+					? 'text-muted line-through decoration-1'
+					: ''}"
+				aria-describedby="task-open-hint"
+				onclick={() => onopen(task)}
+			>
+				{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
+							class="rounded-sm bg-accent text-on-accent">{piece.text}</mark
+						>{:else}{piece.text}{/if}{/each}
+			</button>
+			{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
+				<div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+					{#if done && doneAt}<span>Done {dateFormat.format(doneAt)}</span>{/if}
+					{#if category}<span>{category}</span>{/if}
+					{#each tags as tag (tag.identifier)}
+						{@const color = value(tag, 'color')}
+						<span class="inline-flex items-center gap-1">
+							{#if color}<span class="size-2 rounded-full {DOT[color]}" aria-hidden="true"
+								></span>{/if}#{value(tag, 'name')}
+						</span>
+					{/each}
+					{#if steps.length}
+						<span class="inline-flex items-center gap-1"
+							><Icon name="steps" class="size-3.5" /><span aria-hidden="true"
+								>{stepsDone}/{steps.length}</span
+							><span class="sr-only">{stepsDone} of {steps.length} steps done</span></span
+						>
+					{/if}
+					{#if hasNotes}<span class="inline-flex items-center gap-1"
+							><Icon name="notes" class="size-3.5" /><span class="sr-only">Has notes</span></span
+						>{/if}
+				</div>
+			{/if}
+		</div>
 	</div>
 	{#if movable}
 		<div
-			class="flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100"
+			class="ml-auto flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100"
 		>
 			<button
 				type="button"

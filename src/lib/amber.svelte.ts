@@ -120,7 +120,7 @@ class Amber {
 		this.history = this.history.slice(0, -1);
 		const changes = undoChanges({ records: this.records, clock: this.clock }, last.changes);
 		this.save(changes);
-		this.notice = { message: `Undone: ${last.message.toLocaleLowerCase()}`, changes: [] };
+		this.notice = { message: `Undone: “${last.message}”`, changes: [] };
 	}
 
 	private save(changes: Change[]) {
@@ -129,7 +129,7 @@ class Amber {
 			.map((identifier) => $state.snapshot(this.records[identifier]) as Entity)
 			.filter(Boolean);
 		writeRecords(records).catch((error) => {
-			this.problem = `The last change couldn't be saved: ${error instanceof Error ? error.message : error}. Export your list to keep a copy.`;
+			this.problem = `The last change couldn't be saved: ${error instanceof Error ? error.message : error}. Download a copy from Back up and move to keep it safe.`;
 		});
 	}
 }

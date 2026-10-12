@@ -43,7 +43,7 @@
 				type="button"
 				class="{secondaryButton} w-full"
 				onclick={() => {
-					amber.act(`Deleted #${value(tag, 'name')}`, (context) => deleteTag(context, tag));
+					amber.act(`Deleted: #${value(tag, 'name')}`, (context) => deleteTag(context, tag));
 					onclose();
 				}}
 			>

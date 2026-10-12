@@ -8,7 +8,7 @@ export const SOURCE_URL = 'https://github.com/itriumid/amber';
 
 export const TITLE = 'Amber: lists that stay on your device';
 export const DESCRIPTION =
-	'Amber is a free todo and bucket list. Your lists stay on your device, and nobody else can read them. No account, and it works offline.';
+	'Amber is a free to-do and bucket list. Your lists stay on your device, and nobody else can read them. No account, and it works offline.';
 
 export const PROMISE = 'Your lists stay on your device, and nobody else can read them.';
 export const PROMISE_DETAIL = 'No account, and it works offline.';

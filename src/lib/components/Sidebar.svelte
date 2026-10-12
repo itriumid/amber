@@ -57,8 +57,8 @@
 	>
 		{#if color}<span class="size-2.5 shrink-0 rounded-full {color}" aria-hidden="true"></span>{/if}
 		<span class="min-w-0 flex-1 truncate">{name}</span>
-		{#if count}<span class="text-xs text-muted tabular-nums"
-				>{count}<span class="sr-only"> to do</span></span
+		{#if count}<span class="text-xs text-muted tabular-nums" aria-hidden="true">{count}</span><span
+				class="sr-only">{count} to do</span
 			>{/if}
 	</button>
 {/snippet}

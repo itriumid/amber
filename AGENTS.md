@@ -111,6 +111,17 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   open dialog. Every action works from the keyboard (Alt with an arrow moves a task, N focuses
   quick add, / focuses search, Ctrl or ⌘ with Z undoes), dialogs are native `<dialog>`, and motion respects
   reduced motion.
+- **Focus never falls to the top of the page.** When the element holding it goes away (a ticked
+  task moving to Done, a deleted task's dialog closing), `src/lib/focus.ts` puts it somewhere
+  sensible: the task where it moved to, its neighbor, or quick add. Test visibility with
+  `isShown` (`checkVisibility()`), not `offsetParent`: Chrome hides the inside of a closed
+  `<details>` with `content-visibility`, which `offsetParent` misses.
+- **Hidden text reads as its own piece.** A visually hidden span after visible text is spoken
+  without the space between them ("1to do"), so hide the visible part (`aria-hidden`) and say the
+  whole thing in the hidden one. Hints go in `aria-describedby`, not in the name.
+- **Large text wraps; it doesn't squeeze.** Rows and bars use `flex-wrap` with minimum sizes in
+  `rem`, so at 200% text the move buttons, the Add button and the search field move to a line of
+  their own instead of crushing the words.
 - **Colors come from the tokens in `src/app.css`.** Rhodonite only. The category colors
   (`--cat-*`) reach 4.5:1 on both surfaces in both modes; pink isn't one, because pink marks the
   primary action and focus.
