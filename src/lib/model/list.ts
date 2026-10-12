@@ -269,14 +269,19 @@ export interface MergeSummary {
 	added: number;
 	updated: number;
 	deleted: number;
+	/** What the merge changed, as an action's changes are, so it can be undone like one. */
+	changes: Change[];
 }
+
+const valuesOf = (fields: Record<string, Register<unknown>>, names = Object.keys(fields)) =>
+	Object.fromEntries(names.map((name) => [name, fields[name].value]));
 
 /**
  * Brings records from another copy of the list into this one, field by field: the later stamp wins.
  * Merging the same records twice changes nothing, and the order they arrive in doesn't matter.
  */
 export function merge(context: Context, incoming: Entity[]): MergeSummary {
-	const summary: MergeSummary = { added: 0, updated: 0, deleted: 0 };
+	const summary: MergeSummary = { added: 0, updated: 0, deleted: 0, changes: [] };
 	for (const theirs of incoming) {
 		for (const register of Object.values(theirs.fields as Record<string, Register<unknown>>)) {
 			context.clock.observe(register.stamp);
@@ -284,21 +289,33 @@ export function merge(context: Context, incoming: Entity[]): MergeSummary {
 		const ours = context.records[theirs.identifier];
 		if (!ours) {
 			context.records[theirs.identifier] = structuredClone(theirs);
-			if (!(theirs.fields as Record<string, Register<unknown>>).deleted?.value) summary.added++;
+			const fields = theirs.fields as Record<string, Register<unknown>>;
+			if (!fields.deleted?.value) summary.added++;
+			summary.changes.push({
+				identifier: theirs.identifier,
+				before: {},
+				after: valuesOf(fields),
+				created: true
+			});
 			continue;
 		}
 		if (ours.kind !== theirs.kind) continue;
 		const mine = ours.fields as Record<string, Register<unknown>>;
 		const other = theirs.fields as Record<string, Register<unknown>>;
-		let changed = false;
+		const before: Record<string, unknown> = {};
+		const after: Record<string, unknown> = {};
 		const wasDeleted = mine.deleted?.value === true;
 		for (const [field, register] of Object.entries(other)) {
 			if (!(field in mine) || register.stamp > mine[field].stamp) {
+				if (field in mine && mine[field].value !== register.value) {
+					before[field] = mine[field].value;
+					after[field] = register.value;
+				}
 				mine[field] = { ...register };
-				changed = true;
 			}
 		}
-		if (!changed) continue;
+		if (!Object.keys(after).length) continue;
+		summary.changes.push({ identifier: theirs.identifier, before, after, created: false });
 		if (!wasDeleted && mine.deleted?.value === true) summary.deleted++;
 		else summary.updated++;
 	}
@@ -331,4 +348,28 @@ export function stepKey<T extends { identifier: string; fields: { order: Registe
 	const highKey = high ? high.fields.order.value : null;
 	if (lowKey !== null && highKey !== null && lowKey >= highKey) return undefined;
 	return keyBetween(lowKey, highKey);
+}
+
+/**
+ * Puts the list back the way a snapshot had it, as new changes: everything since is overwritten or
+ * deleted, and it can be undone like any action. Nothing is erased, so a device that syncs later
+ * gets the same result.
+ */
+export function restore(context: Context, snapshot: Entity[]): Change[] {
+	const then = new Map(snapshot.map((entity) => [entity.identifier, entity]));
+	const changes: Change[] = [];
+	for (const entity of Object.values(context.records)) {
+		const old = then.get(entity.identifier);
+		const values = old
+			? valuesOf(old.fields as Record<string, Register<unknown>>)
+			: { deleted: true };
+		const change = update(context, entity, values as never);
+		if (change) changes.push(change);
+	}
+	for (const old of snapshot) {
+		if (context.records[old.identifier]) continue;
+		const fields = old.fields as Record<string, Register<unknown>>;
+		changes.push(create(context, old.kind, valuesOf(fields) as never, old.identifier).change);
+	}
+	return changes;
 }
