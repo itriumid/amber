@@ -4,10 +4,7 @@
 // time is up.
 
 import { DurableObject } from 'cloudflare:workers';
-import { handle, NAME } from './mailbox';
-
-/** `/api/mailboxes/<name>` and `/api/mailboxes/<name>/<part>`. */
-const ADDRESS = /^\/api\/mailboxes\/([^/]+)(?:\/(list|reply))?$/;
+import { ADDRESS, handle, NAME } from './mailbox';
 
 export class Mailbox extends DurableObject<Env> {
 	async fetch(request: Request): Promise<Response> {

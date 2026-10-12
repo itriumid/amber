@@ -101,7 +101,7 @@ async function unlock(
 
 /* ─── Contents ─── */
 
-function contents(records: Records): Contents {
+export function contents(records: Records): Contents {
 	return {
 		amber: 1,
 		format: FORMAT_VERSION,
@@ -114,7 +114,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Checks what a file or link held, and brings older formats up to this one. */
-function readContents(value: unknown): Reading {
+export function readContents(value: unknown): Reading {
 	if (!isObject(value) || value.amber !== 1 || !Array.isArray(value.records))
 		return { kind: 'not-amber' };
 	const format = value.format;
@@ -132,7 +132,7 @@ function readContents(value: unknown): Reading {
 	};
 }
 
-function parseJson(text: string): unknown {
+export function parseJson(text: string): unknown {
 	try {
 		return JSON.parse(text);
 	} catch {

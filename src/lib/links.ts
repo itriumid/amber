@@ -10,3 +10,6 @@ export function isLink(hash: string): boolean {
 
 /** Where a list being brought in comes from. */
 export type Source = { file: string } | { link: string };
+
+/** A link to join a sync: `#sync=` and the code. The code never reaches a server either. */
+export const SYNC_PREFIX = '#sync=';

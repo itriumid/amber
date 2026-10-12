@@ -92,8 +92,12 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   is named by a hash of the code. The rules are in `sync/mailbox.ts`, apart from Cloudflare and
   tested in Node; `sync/index.ts` is only the Worker and the Durable Object around them. The
   Worker has no address of its own (no workers.dev, route or preview URLs); Amber's site reaches
-  it at `/api/` through a service binding. `pnpm check` type-checks it against Cloudflare's runtime
-  types, which `wrangler types` writes to `sync/worker-configuration.d.ts` (not committed).
+  it at `/api/` through a service binding (`SYNC` in `wrangler.jsonc`, forwarded by
+  `src/hooks.server.ts`). The client half is `src/lib/sync.ts`: a 16-character code (80 bits)
+  goes through HKDF to the mailbox name and an AES-GCM key, each part is locked to its place
+  (`list` or `reply`), and the device that started asks for the reply every few seconds.
+  `pnpm check` type-checks the Worker against Cloudflare's runtime types, which `wrangler types`
+  writes to `sync/worker-configuration.d.ts` (not committed).
 - **Records that get copied stay raw.** `structuredClone` can't copy a `$state` proxy: pass
   `$state.snapshot(amber.records)` to anything that copies, and hold read lists in `$state.raw`.
   `src/hooks.client.ts` logs errors SvelteKit catches while rendering, so the browser tests, which
@@ -102,10 +106,11 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   logical clock (`src/lib/model/clock.ts`); deleting sets a flag. Actions in
   `src/lib/model/actions.ts` return the changes they made, and `amber.act()` saves them and
   offers Undo. Order uses fractional keys (`src/lib/model/order.ts`).
-- **Nothing leaves the browser.** No network requests, no cookies, no analytics, nothing loaded
-  from another domain. The Content-Security-Policy in `vite.config.ts` and `_headers` enforces
-  it, and the footer's promise has to stay true. Sync (planned) will be end-to-end encrypted and
-  opt-in; until then, don't add a connection.
+- **Nothing leaves the browser unencrypted.** No cookies, no analytics, nothing loaded from
+  another domain, and no network requests except sync's, which someone starts themselves and which
+  carry only what `src/lib/sync.ts` encrypted with a key from the code. The
+  Content-Security-Policy in `vite.config.ts` and `_headers` keeps every connection on Amber's own
+  site, and the footer's promise has to stay true. Don't add another connection.
 - **Cloudflare must not add its analytics.** `_headers` sends `Cache-Control: … no-transform`;
   `src/headers.test.ts` guards it.
 - **Inline styles and `data:` URLs are blocked.** Use Tailwind classes, and keep

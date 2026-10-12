@@ -14,4 +14,6 @@ export const PROMISE = 'Your lists stay on your device, and nobody else can read
 export const PROMISE_DETAIL = 'No account, and it works offline.';
 export const STORAGE_NOTE =
 	'Your lists live in this browser. Clearing its data for this site deletes them, so keep a copy of anything that matters.';
+export const SYNC_NOTE =
+	'Syncing with another device passes an encrypted copy through our server for a few minutes, and only your devices can open it.';
 export const FOOTNOTE = 'Made by Itrium.';

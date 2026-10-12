@@ -18,7 +18,8 @@
 		search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
 		archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
 		lock: 'M6 11h12v9H6zM8 11V8a4 4 0 018 0v3',
-		install: 'M12 4v11M7 10l5 5 5-5M5 20h14'
+		install: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+		sync: 'M20 11a8 8 0 00-14.3-4.9L4 8M4 3v5h5M4 13a8 8 0 0014.3 4.9L20 16M20 21v-5h-5'
 	} as const;
 
 	let { name, class: className = 'size-4' }: { name: keyof typeof PATHS; class?: string } =

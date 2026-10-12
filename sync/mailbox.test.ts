@@ -1,22 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { handle, LIFETIME, LIMIT, NAME, type Storage } from './mailbox';
-
-/** Storage kept in memory, standing in for a Durable Object's. */
-function memory() {
-	let data = new Map<string, unknown>();
-	let alarm: number | undefined;
-	const storage: Storage = {
-		get: async <T>(key: string) => structuredClone(data.get(key)) as T | undefined,
-		put: async (key, value) => void data.set(key, structuredClone(value)),
-		deleteAll: async () => {
-			data = new Map();
-		},
-		setAlarm: async (time) => {
-			alarm = time;
-		}
-	};
-	return { storage, alarm: () => alarm, isEmpty: () => data.size === 0 };
-}
+import { memory } from './testing';
 
 const request = (method: string, body?: string | Uint8Array) =>
 	new Request('https://amber.itrium.id/', { method, body });

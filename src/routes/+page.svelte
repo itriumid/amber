@@ -21,6 +21,7 @@
 		PROMISE_DETAIL,
 		SOURCE_URL,
 		STORAGE_NOTE,
+		SYNC_NOTE,
 		TITLE
 	} from '#lib/content.js';
 	import { addTask, tagByName } from '#lib/model/actions.js';
@@ -29,7 +30,7 @@
 	import { install, type Way } from '#lib/install.svelte.js';
 	import { updates } from '#lib/updates.svelte.js';
 	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
-	import { isLink, type Source } from '#lib/links.js';
+	import { isLink, SYNC_PREFIX, type Source } from '#lib/links.js';
 	import { foundCount, sectionsFor, type View } from '#lib/views.js';
 
 	let view = $state<View>({ kind: 'all' });
@@ -38,13 +39,16 @@
 	let openTag = $state<string | undefined>();
 	let listsOpen = $state(false);
 	let backupOpen = $state(false);
+	let syncOpen = $state(false);
+	let syncCode = $state<string>();
 	let bringing = $state<Source>();
 	let installSteps = $state<Way>();
-	// The sheets for backing up, bringing in and installing load the first time they're opened:
+	// The sheets for syncing, backing up, bringing in and installing load the first time they're opened:
 	// most visits never need them, or the code they bring (compression, encryption). Once loaded
 	// they stay, so closing one returns focus where it was, as a dialog should.
-	let loaded = $state({ backup: false, bringIn: false, install: false });
+	let loaded = $state({ sync: false, backup: false, bringIn: false, install: false });
 	$effect(() => {
+		if (syncOpen) loaded.sync = true;
 		if (backupOpen) loaded.backup = true;
 		if (bringing) loaded.bringIn = true;
 		if (installSteps) loaded.install = true;
@@ -61,17 +65,28 @@
 		install.watch();
 	});
 
+	function openSync() {
+		listsOpen = false;
+		syncCode = undefined;
+		syncOpen = true;
+	}
+
 	function offerInstall() {
 		listsOpen = false;
 		if (install.offered === 'prompt') void install.ask();
 		else installSteps = install.offered;
 	}
 
-	// A link to a list carries it after the `#`. It's taken from the address at once, so it isn't
-	// left in the history or bookmarked by accident, and then offered to bring in.
+	// A link to a list carries it after the `#`, and a link to sync carries a code. Either is taken
+	// from the address at once, so it isn't left in the history or bookmarked by accident; then the
+	// list is offered to bring in, or the sync starts.
 	function takeLink() {
-		if (!isLink(location.hash)) return;
-		bringing = { link: location.hash };
+		const hash = location.hash;
+		if (isLink(hash)) bringing = { link: hash };
+		else if (hash.startsWith(SYNC_PREFIX)) {
+			syncCode = hash.slice(SYNC_PREFIX.length);
+			syncOpen = true;
+		} else return;
 		history.replaceState(history.state, '', location.pathname + location.search);
 	}
 
@@ -231,6 +246,7 @@
 					oneditcategory={(identifier) => (openCategory = identifier)}
 					onedittag={(identifier) => (openTag = identifier)}
 					onbackup={() => (backupOpen = true)}
+					onsync={openSync}
 					oninstall={offerInstall}
 				/>
 			{/if}
@@ -422,6 +438,7 @@
 	<footer class="mt-auto border-t border-border pt-8 pb-24 text-sm text-muted">
 		<p class="font-medium text-text">{PROMISE}</p>
 		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE}</p>
+		<p class="mt-1">{SYNC_NOTE}</p>
 		<p class="mt-4">
 			{FOOTNOTE}
 			<a href={SOURCE_URL} rel="external" class="underline underline-offset-4 hover:text-text"
@@ -448,6 +465,7 @@
 				listsOpen = false;
 				backupOpen = true;
 			}}
+			onsync={openSync}
 			oninstall={offerInstall}
 		/>
 	{/if}
@@ -460,6 +478,11 @@
 	onopen={(identifier) => (view = { kind: 'category', identifier })}
 />
 <TagEditor identifier={openTag} onclose={() => (openTag = undefined)} />
+{#if loaded.sync}
+	{#await import('#lib/components/SyncSheet.svelte') then { default: SyncSheet }}
+		<SyncSheet open={syncOpen} code={syncCode} onclose={() => (syncOpen = false)} />
+	{/await}
+{/if}
 {#if loaded.backup}
 	{#await import('#lib/components/BackupSheet.svelte') then { default: BackupSheet }}
 		<BackupSheet

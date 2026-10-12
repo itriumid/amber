@@ -10,8 +10,9 @@ export default defineConfig({
 			adapter: adapter(),
 			// Every page is prerendered, so the policy goes out in a <meta> tag on each page, with a
 			// hash for the one inline script SvelteKit starts the page with. Scripts from anywhere
-			// else, and every connection out of the page, are blocked: lists live on the device and
-			// nothing leaves it. `frame-ancestors` can't go in a <meta> tag; it's in `_headers`.
+			// else, and every connection to another site, are blocked: lists live on the device, and
+			// the only thing that leaves it is an encrypted copy, to Amber's own sync mailboxes.
+			// `frame-ancestors` can't go in a <meta> tag; it's in `_headers`.
 			csp: {
 				mode: 'hash',
 				directives: {
