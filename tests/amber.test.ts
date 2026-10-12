@@ -25,6 +25,10 @@ async function axeViolations(page: Page) {
 	);
 }
 
+test.afterEach(() => {
+	expect(problems).toEqual([]);
+});
+
 async function addTask(page: Page, text: string) {
 	await page.getByLabel('New task').fill(text);
 	await page.getByLabel('New task').press('Enter');
@@ -42,13 +46,16 @@ async function lists(page: Page) {
 	return page.getByRole('navigation', { name: 'Lists' }).last();
 }
 
+// Every test fails on a script error or anything the security policy blocked, not only the ones
+// that look for it.
+let problems: string[] = [];
 test.beforeEach(async ({ page }) => {
+	problems = watchProblems(page);
 	await page.goto('/');
 	await expect(page.getByLabel('New task')).toBeEnabled();
 });
 
 test('adds tasks with tags, and keeps them after a reload', async ({ page }) => {
-	const problems = watchProblems(page);
 	await addTask(page, 'Buy oat milk #errands #weekend');
 	await addTask(page, 'Call the bank');
 	await expect(task(page, 'Buy oat milk')).toBeVisible();
@@ -57,7 +64,6 @@ test('adds tasks with tags, and keeps them after a reload', async ({ page }) => 
 	await expect(task(page, 'Call the bank')).toBeVisible();
 	const sidebar = await lists(page);
 	await expect(sidebar.getByRole('button', { name: /^#weekend/ })).toBeVisible();
-	expect(problems).toEqual([]);
 });
 
 test('ticks a task done, tucks it away, and undoes it', async ({ page }) => {
@@ -205,4 +211,123 @@ test('focuses search with the slash key', async ({ page }) => {
 	await page.getByRole('heading', { level: 1 }).click();
 	await page.keyboard.press('/');
 	await expect(page.getByRole('searchbox', { name: 'Search tasks' })).toBeFocused();
+});
+
+/** The "Back up and move" sheet, from the sidebar. */
+async function backup(page: Page) {
+	const sidebar = await lists(page);
+	await sidebar.page().getByRole('button', { name: 'Back up and move' }).last().click();
+	return page.getByRole('dialog', { name: 'Back up and move' });
+}
+
+test('moves a list to another device with a file, and the move can be undone', async ({
+	page,
+	browser
+}) => {
+	await addTask(page, 'Climb Rinjani #travel');
+	await addTask(page, 'Renew passport');
+	const sheet = await backup(page);
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		sheet.getByRole('button', { name: 'Download a file' }).click()
+	]);
+	expect(download.suggestedFilename()).toMatch(/^amber-\d{4}-\d{2}-\d{2}\.json$/);
+	const file = await download.path();
+
+	const other = await (await browser.newContext()).newPage();
+	const otherProblems = watchProblems(other);
+	await other.goto('/');
+	await expect(other.getByLabel('New task')).toBeEnabled();
+	await addTask(other, 'Already here');
+	const otherSheet = await backup(other);
+	await otherSheet.getByLabel('Open a file').setInputFiles(file);
+	const bringIn = other.getByRole('dialog', { name: 'Bring in a list' });
+	await expect(bringIn.getByText('Adds 2 tasks and 1 tag.')).toBeVisible();
+	await bringIn.getByRole('button', { name: 'Bring it in' }).click();
+	await expect(task(other, 'Climb Rinjani')).toBeVisible();
+	await expect(task(other, 'Already here')).toBeVisible();
+
+	await other.getByRole('button', { name: 'Undo' }).click();
+	await expect(task(other, 'Climb Rinjani')).toHaveCount(0);
+	await expect(task(other, 'Already here')).toBeVisible();
+	expect(otherProblems).toEqual([]);
+	await other.context().close();
+});
+
+test('moves a list with a link locked by a passphrase', async ({ page, browser }) => {
+	await addTask(page, 'Secret plan');
+	const sheet = await backup(page);
+	await sheet.getByLabel(/Passphrase/).fill('kopi susu');
+	await sheet.getByRole('button', { name: 'Make a link' }).click();
+	const link = await sheet.getByLabel('Link to the list').inputValue();
+	expect(link).toContain('#locked=');
+	expect(link).not.toContain('Secret');
+
+	const other = await (await browser.newContext()).newPage();
+	const otherProblems = watchProblems(other);
+	await other.goto(link);
+	const bringIn = other.getByRole('dialog', { name: 'Bring in a list' });
+	await expect(bringIn.getByText('This list is locked with a passphrase.')).toBeVisible();
+	expect(new URL(other.url()).hash).toBe('');
+	await bringIn.getByLabel('Passphrase').fill('kopi');
+	await bringIn.getByRole('button', { name: 'Unlock' }).click();
+	await expect(bringIn.getByRole('alert')).toContainText("doesn't open it");
+	await bringIn.getByLabel('Passphrase').fill('kopi susu');
+	await bringIn.getByRole('button', { name: 'Unlock' }).click();
+	await expect(bringIn.getByText('Adds 1 task.')).toBeVisible();
+	await bringIn.getByRole('button', { name: 'Bring it in' }).click();
+	await expect(task(other, 'Secret plan')).toBeVisible();
+	expect(otherProblems).toEqual([]);
+	await other.context().close();
+});
+
+test('puts back a copy kept before bringing in a list', async ({ page }) => {
+	await addTask(page, 'Mine');
+	const file = JSON.stringify({ amber: 1, format: 1, exportedAt: '', records: [] });
+	// An empty list changes nothing, so it's said, and nothing is kept or merged.
+	let sheet = await backup(page);
+	await sheet.getByLabel('Open a file').setInputFiles({
+		name: 'empty.json',
+		mimeType: 'application/json',
+		buffer: Buffer.from(file)
+	});
+	const bringIn = page.getByRole('dialog', { name: 'Bring in a list' });
+	await expect(bringIn.getByText('You already have everything in it.')).toBeVisible();
+	await bringIn.getByRole('button', { name: 'Close' }).last().click();
+
+	// A real one: a list from another device.
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		(await backup(page)).getByRole('button', { name: 'Download a file' }).click()
+	]);
+	const mine = await download.path();
+	await page
+		.getByRole('dialog', { name: 'Back up and move' })
+		.getByRole('button', { name: 'Close' })
+		.click();
+	// The same browser, emptied: as if the file were opened on a phone with a list of its own.
+	await page.evaluate(() => indexedDB.deleteDatabase('amber'));
+	await page.reload();
+	await addTask(page, 'From the phone');
+	sheet = await backup(page);
+	await sheet.getByLabel('Open a file').setInputFiles(mine);
+	await bringIn.getByRole('button', { name: 'Bring it in' }).click();
+	await expect(task(page, 'Mine')).toBeVisible();
+
+	sheet = await backup(page);
+	await expect(sheet.getByText('Before bringing in a list · 1 task')).toBeVisible();
+	await sheet
+		.getByRole('button', { name: /Put back the copy/ })
+		.first()
+		.click();
+	await expect(sheet.getByText('Deletes 1 task.')).toBeVisible();
+	await sheet.getByRole('button', { name: 'Put it back' }).click();
+	await expect(task(page, 'Mine')).toHaveCount(0);
+	await expect(task(page, 'From the phone')).toBeVisible();
+});
+
+test('has no accessibility problems axe can find in the backup sheet', async ({ page }) => {
+	await addTask(page, 'A task');
+	await backup(page);
+	expect(await axeViolations(page)).toEqual([]);
 });
