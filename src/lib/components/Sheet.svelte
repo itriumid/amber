@@ -3,6 +3,7 @@
      where it was. -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { rescueFocus } from '#lib/focus.js';
 	import Icon from './Icon.svelte';
 
 	let {
@@ -25,7 +26,12 @@
 	bind:this={dialog}
 	aria-labelledby={titleIdentifier}
 	class="m-0 mt-auto max-h-[92dvh] w-full max-w-none overflow-y-auto rounded-t-2xl border border-border bg-surface p-0 text-text shadow-2xl backdrop:bg-black/50 sm:mr-0 sm:ml-auto sm:h-dvh sm:max-h-dvh sm:max-w-md sm:rounded-none sm:rounded-l-2xl"
-	{onclose}
+	onclose={() => {
+		onclose();
+		// The browser puts focus back on whatever opened the dialog. If that's gone (a deleted task,
+		// a deleted category), focus would fall to the top of the page instead.
+		setTimeout(() => rescueFocus());
+	}}
 	onclick={(event) => {
 		// A click on the backdrop lands on the dialog itself.
 		if (event.target === dialog) onclose();

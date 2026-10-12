@@ -164,7 +164,8 @@
 <Seo title={TITLE} description={DESCRIPTION} path="/" />
 
 <div class="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 sm:px-6">
-	<header class="flex items-center justify-between gap-4 py-5">
+	<!-- Parts wrap onto a new line rather than squeeze, so large text stays readable. -->
+	<header class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-5">
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
@@ -176,7 +177,7 @@
 			</button>
 			<p class="text-xl font-bold tracking-tight">Amber</p>
 		</div>
-		<search class="ml-auto min-w-0 flex-1 sm:max-w-xs">
+		<search class="ml-auto min-w-0 flex-[1_1_10rem] sm:max-w-xs">
 			<label for="search" class="sr-only">Search tasks</label>
 			<div class="relative">
 				<Icon
@@ -235,7 +236,8 @@
 			{/if}
 		</aside>
 
-		<main id="main" class="min-w-0 pb-32">
+		<main id="main" class="min-w-0 pb-32 outline-none" tabindex="-1">
+			<p id="task-open-hint" hidden>Opens the task's details.</p>
 			<div class="flex items-center gap-3">
 				<h1 class="min-w-0 truncate text-3xl font-bold tracking-tight">{heading}</h1>
 				{#if view.kind === 'category'}
@@ -307,13 +309,14 @@
 			{:else}
 				<form class="mt-5" onsubmit={add}>
 					<label for="quick-add" class="sr-only">New task</label>
-					<div class="flex gap-2">
+					<div class="flex flex-wrap gap-2">
 						<input
 							id="quick-add"
 							bind:this={quickAdd}
 							bind:value={newTask}
-							class="{field} py-3 text-base"
-							placeholder="Add a task. #words become tags"
+							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
+							placeholder="Add a task"
+							aria-describedby="quick-add-hint"
 							maxlength={LIMITS.title + 200}
 							autocomplete="off"
 							disabled={!amber.ready || amber.readOnly}
@@ -326,6 +329,9 @@
 							<Icon name="plus" /> Add
 						</button>
 					</div>
+					<p id="quick-add-hint" class="mt-1.5 text-xs text-muted">
+						Words starting with # become tags: <span class="font-medium">#weekend</span>.
+					</p>
 				</form>
 			{/if}
 			<!-- Said aloud as results change; empty while not searching. -->
