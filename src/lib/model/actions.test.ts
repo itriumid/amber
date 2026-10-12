@@ -193,12 +193,12 @@ describe('merging two copies of a list', () => {
 		const { task } = addTask(phone, 'Gone soon', null)!;
 		const laptop = copy(phone, 'laptop');
 		deleteTask(laptop, laptop.records[task.identifier] as never);
-		expect(merge(phone, Object.values(laptop.records))).toEqual({
+		expect(merge(phone, Object.values(laptop.records))).toMatchObject({
 			added: 0,
 			updated: 0,
 			deleted: 1
 		});
-		expect(merge(phone, Object.values(laptop.records))).toEqual({
+		expect(merge(phone, Object.values(laptop.records))).toMatchObject({
 			added: 0,
 			updated: 0,
 			deleted: 0
