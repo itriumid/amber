@@ -1,0 +1,6 @@
+# How to report a security problem in anything Itrium makes: https://github.com/itriumid/.github/blob/main/SECURITY.md
+Contact: mailto:security@itrium.id
+Expires: 2027-09-26T00:00:00.000Z
+Preferred-Languages: en, id
+Canonical: https://amber.itrium.id/.well-known/security.txt
+Policy: https://github.com/itriumid/.github/blob/main/SECURITY.md

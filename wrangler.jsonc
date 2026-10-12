@@ -1,0 +1,22 @@
+/**
+ * Deploys to Cloudflare Workers. Every page is prerendered, so the Worker only serves static
+ * files. https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "itrium-amber",
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-10-12",
+	"compatibility_flags": ["nodejs_compat"],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
+	// Creates the DNS record for amber.itrium.id.
+	"routes": [{ "pattern": "amber.itrium.id", "custom_domain": true }],
+	// No logs of visitors' requests are kept.
+	"observability": { "enabled": false },
+	// Cloudflare builds each pull request's branch as a Preview (`wrangler preview`), which fails
+	// without this block. Previews keep no visitor logs either.
+	"previews": { "observability": { "enabled": false } }
+}
