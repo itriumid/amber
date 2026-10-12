@@ -36,7 +36,7 @@ async function addTask(page: Page, text: string) {
 
 /** A task's title, which opens its details. */
 const task = (page: Page, title: string) =>
-	page.getByRole('main').getByRole('button', { name: new RegExp(`^${title}\\W+Open details$`) });
+	page.getByRole('main').getByRole('button', { name: title, exact: true });
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 1000) < 768;
 
@@ -74,6 +74,7 @@ test('ticks a task done, tucks it away, and undoes it', async ({ page }) => {
 		'Done: Water the plants'
 	);
 	await page.getByRole('button', { name: 'Undo' }).click();
+	await expect(page.getByText('Undone: “Done: Water the plants”')).toBeVisible();
 	await expect(page.getByText('Done (1)')).toHaveCount(0);
 	await expect(
 		page.getByRole('checkbox', { name: 'Mark done: Water the plants' })
@@ -393,4 +394,69 @@ test('shows how to install in Safari on an iPhone, and how to bring the list alo
 	await steps.getByRole('button', { name: 'Back up and move' }).click();
 	await expect(phone.getByRole('dialog', { name: 'Back up and move' })).toBeVisible();
 	await phone.context().close();
+});
+
+test('keeps focus nearby when a ticked task moves away, and after deleting one', async ({
+	page
+}) => {
+	for (const title of ['First', 'Second', 'Third']) await addTask(page, title);
+	const second = page.getByRole('checkbox', { name: 'Mark done: Second' });
+	await second.focus();
+	await page.keyboard.press('Space');
+	// Second tucks away into Done; focus lands on the task that took its place.
+	await expect(page.getByRole('checkbox', { name: 'Mark done: Third' })).toBeFocused();
+
+	// Unticked from Done, the task comes back into the list, and focus goes with it.
+	await page.getByText('Done (1)').click();
+	await page.getByRole('checkbox', { name: 'Mark not done: Second' }).focus();
+	await page.keyboard.press('Space');
+	await expect(page.getByRole('checkbox', { name: 'Mark done: Second' })).toBeFocused();
+
+	// Deleting from the details: the title that opened them is gone, so focus goes to quick add.
+	await task(page, 'First').focus();
+	await page.keyboard.press('Enter');
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	await details.getByRole('button', { name: 'Delete task' }).click();
+	await expect(page.getByLabel('New task')).toBeFocused();
+});
+
+test('names counts and steps the way they should be heard', async ({ page }) => {
+	await addTask(page, 'Paint the bedroom');
+	const sidebar = await lists(page);
+	await expect(sidebar.getByRole('button', { name: 'All tasks 1 to do' })).toBeVisible();
+	if (isPhone(page)) await page.keyboard.press('Escape');
+	await task(page, 'Paint the bedroom').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	await details.getByLabel('New step').fill('Buy rollers');
+	await details.getByLabel('New step').press('Enter');
+	await details.getByRole('button', { name: 'Close' }).click();
+	await expect(page.getByRole('main').getByText('0 of 1 steps done')).toBeAttached();
+	await expect(task(page, 'Paint the bedroom')).toHaveAccessibleDescription(
+		"Opens the task's details."
+	);
+});
+
+test('moves nothing when reduced motion is asked for', async ({ browser }) => {
+	const page = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+	await page.goto('/');
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	const running = () =>
+		page.evaluate(() =>
+			document
+				.getAnimations()
+				.filter((animation) => {
+					const timing = animation.effect?.getComputedTiming();
+					return Number(timing?.duration ?? 0) > 0;
+				})
+				.map((animation) => (animation as CSSTransition).transitionProperty ?? animation.id)
+		);
+	await addTask(page, 'Calm task');
+	expect(await running()).toEqual([]);
+	// A click, not check(): without animation the row leaves at once, before check() can confirm.
+	await page.getByRole('checkbox', { name: 'Mark done: Calm task' }).click();
+	await expect(page.getByText('Done (1)')).toBeVisible();
+	expect(await running()).toEqual([]);
+	await page.getByText('Done (1)').click();
+	expect(await running()).toEqual([]);
+	await page.context().close();
 });
