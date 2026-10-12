@@ -85,7 +85,7 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
 - **Installing** is in `src/lib/install.svelte.ts`: Chromium's prompt when it fires, steps for
   Safari otherwise. On Apple devices an installed Amber has its own storage and links open in
   Safari, so lists come across by pasting a link in Back up and move.
-- **Sync is a mailbox, not storage** (`sync/`, its own Worker: `itrium-amber-sync`). One device
+- **Sync is a mailbox, not storage** (`sync/`, its own Worker: `itrium-amber-backend`). One device
   leaves its list, encrypted; the other merges it and leaves the result; the first takes that, and
   the mailbox empties. Nothing is kept: every mailbox empties after ten minutes, used or not
   (`LIFETIME`), and holds at most 1 MB (`LIMIT`). The server never sees a code or a key: a mailbox
