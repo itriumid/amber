@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { fade, slide } from 'svelte/transition';
 	import { amber } from '#lib/amber.svelte.js';
@@ -26,7 +26,8 @@
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field } from '#lib/styles.js';
-	import { sectionsFor, type View } from '#lib/views.js';
+	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
+	import { foundCount, sectionsFor, type View } from '#lib/views.js';
 
 	let view = $state<View>({ kind: 'all' });
 	let openTask = $state<string | undefined>();
@@ -35,6 +36,9 @@
 	let listsOpen = $state(false);
 	let newTask = $state('');
 	let quickAdd: HTMLInputElement | undefined = $state();
+	let query = $state('');
+	let status = $state<Status>('any');
+	let searchField: HTMLInputElement | undefined = $state();
 
 	onMount(() => {
 		void amber.open();
@@ -48,7 +52,19 @@
 		if (view.kind === 'tag' && !get(amber.records, view.identifier, 'tag')) view = { kind: 'all' };
 	});
 
-	const sections = $derived(amber.ready ? sectionsFor(amber.records, view) : []);
+	const search = $derived(parseSearch(query, status));
+	const searching = $derived(isSearching(search));
+	const sections = $derived(amber.ready ? sectionsFor(amber.records, view, search) : []);
+	const found = $derived(
+		searching ? sections.reduce((sum, section) => sum + section.shown.length, 0) : 0
+	);
+	// Matches the current place hides: offered as a way to search everything instead.
+	const elsewhere = $derived(
+		searching && view.kind !== 'all'
+			? foundCount(amber.records, { kind: 'all' }, search) - found
+			: 0
+	);
+	const tasksWord = (count: number) => (count === 1 ? 'task' : 'tasks');
 	const heading = $derived.by(() => {
 		if (view.kind === 'all') return 'All tasks';
 		if (view.kind === 'uncategorized') return 'No category';
@@ -96,7 +112,12 @@
 			amber.undo();
 		} else if (event.key === 'n' && !event.metaKey && !event.ctrlKey && !event.altKey) {
 			event.preventDefault();
-			quickAdd?.focus();
+			if (searching) query = '';
+			// Quick add is back once the search is cleared and the page has updated.
+			void tick().then(() => quickAdd?.focus());
+		} else if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+			event.preventDefault();
+			searchField?.focus();
 		}
 	}
 
@@ -120,10 +141,48 @@
 			</button>
 			<p class="text-xl font-bold tracking-tight">Amber</p>
 		</div>
+		<search class="ml-auto min-w-0 flex-1 sm:max-w-xs">
+			<label for="search" class="sr-only">Search tasks</label>
+			<div class="relative">
+				<Icon
+					name="search"
+					class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
+				/>
+				<input
+					id="search"
+					type="search"
+					bind:this={searchField}
+					bind:value={query}
+					class="{field} pr-10 pl-9 [&::-webkit-search-cancel-button]:appearance-none"
+					placeholder="Search"
+					autocomplete="off"
+					enterkeyhint="search"
+					disabled={!amber.ready}
+					onkeydown={(event) => {
+						if (event.key === 'Escape' && query) {
+							event.preventDefault();
+							query = '';
+						}
+					}}
+				/>
+				{#if query}
+					<button
+						type="button"
+						class="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-text"
+						aria-label="Clear search"
+						onclick={() => {
+							query = '';
+							searchField?.focus();
+						}}><Icon name="close" /></button
+					>
+				{/if}
+			</div>
+		</search>
 		<a
 			href={MAIN_SITE_URL}
 			rel="external"
-			class="text-sm text-muted transition-colors hover:text-text">by Itrium</a
+			class="hidden shrink-0 text-sm text-muted transition-colors hover:text-text sm:block"
+			>by Itrium</a
 		>
 	</header>
 
@@ -163,35 +222,76 @@
 				</p>
 			{/if}
 
-			<form class="mt-5" onsubmit={add}>
-				<label for="quick-add" class="sr-only">New task</label>
-				<div class="flex gap-2">
-					<input
-						id="quick-add"
-						bind:this={quickAdd}
-						bind:value={newTask}
-						class="{field} py-3 text-base"
-						placeholder="Add a task. #words become tags"
-						maxlength={LIMITS.title + 200}
-						autocomplete="off"
-						disabled={!amber.ready || amber.readOnly}
-					/>
-					<button
-						type="submit"
-						class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50"
-						disabled={!newTask.trim()}
-					>
-						<Icon name="plus" /> Add
-					</button>
+			{#if searching}
+				<div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+					<fieldset class="flex rounded-full border border-control-border p-0.5">
+						<legend class="sr-only">Show</legend>
+						{#each STATUSES as choice (choice.status)}
+							<label class="relative cursor-pointer">
+								<input
+									type="radio"
+									name="status"
+									value={choice.status}
+									bind:group={status}
+									class="peer sr-only"
+								/>
+								<span
+									class="peer-focus-visible:outline-focus flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 motion-reduce:transition-none"
+									>{choice.label}</span
+								>
+							</label>
+						{/each}
+					</fieldset>
+					{#if elsewhere > 0}
+						<button
+							type="button"
+							class="min-h-9 rounded-full px-3 text-sm underline underline-offset-4 hover:bg-surface"
+							onclick={() => select({ kind: 'all' })}>{elsewhere} more in all tasks</button
+						>
+					{/if}
 				</div>
-			</form>
+			{:else}
+				<form class="mt-5" onsubmit={add}>
+					<label for="quick-add" class="sr-only">New task</label>
+					<div class="flex gap-2">
+						<input
+							id="quick-add"
+							bind:this={quickAdd}
+							bind:value={newTask}
+							class="{field} py-3 text-base"
+							placeholder="Add a task. #words become tags"
+							maxlength={LIMITS.title + 200}
+							autocomplete="off"
+							disabled={!amber.ready || amber.readOnly}
+						/>
+						<button
+							type="submit"
+							class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50"
+							disabled={!newTask.trim()}
+						>
+							<Icon name="plus" /> Add
+						</button>
+					</div>
+				</form>
+			{/if}
+			<!-- Said aloud as results change; empty while not searching. -->
+			<p class="sr-only" role="status">
+				{searching ? `${found} ${tasksWord(found)} found` : ''}
+			</p>
 
 			{#if amber.ready}
 				{#if isEmpty}
 					<p class="mt-10 text-center text-muted" in:fade={{ duration }}>
-						{view.kind === 'all'
-							? 'Nothing here yet. Add your first task above.'
-							: 'Nothing here yet.'}
+						{#if searching}
+							No {status === 'any' ? '' : `${status} `}tasks match “{query.trim()}”{view.kind ===
+							'all'
+								? ''
+								: ` in ${heading}`}.
+						{:else if view.kind === 'all'}
+							Nothing here yet. Add your first task above.
+						{:else}
+							Nothing here yet.
+						{/if}
 					</p>
 				{/if}
 
@@ -209,11 +309,19 @@
 										aria-hidden="true"
 									></span>{/if}
 								{section.title}
+								{#if searching}<span class="font-normal text-muted">{section.shown.length}</span
+									>{/if}
 							</h2>
 							<ul>
 								{#each section.shown as task (task.identifier)}
 									<li animate:flip={{ duration }} transition:slide={{ duration }}>
-										<TaskRow {task} showCategory={view.kind === 'tag'} onopen={openDetails} />
+										<TaskRow
+											{task}
+											showCategory={view.kind === 'tag'}
+											words={search.words}
+											movable={!searching}
+											onopen={openDetails}
+										/>
 									</li>
 								{/each}
 							</ul>

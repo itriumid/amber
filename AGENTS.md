@@ -68,6 +68,9 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   - `src/lib/storage.ts` keeps a snapshot before upgrading. Writes start in the same task and are
     committed at once, so a reload right after a change keeps it; the browser tests reload to
     check.
+- **Search is in `src/lib/search.ts`,** apart from the page: words match titles, notes, steps, tags and
+  the category, ignoring case and accents; `#tags` and the status narrow it. `sectionsFor` takes a
+  search, so results keep the place's sections.
 - **Records are merged, never overwritten.** Every field is a register stamped by the hybrid
   logical clock (`src/lib/model/clock.ts`); deleting sets a flag. Actions in
   `src/lib/model/actions.ts` return the changes they made, and `amber.act()` saves them and
@@ -88,7 +91,7 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
 - **Level AA of the Web Content Accessibility Guidelines 2.2**, per
   `.handbook/conventions/rules/engineering.md`. The browser tests run axe on a list and on an
   open dialog. Every action works from the keyboard (Alt with an arrow moves a task, N focuses
-  quick add, Ctrl or ⌘ with Z undoes), dialogs are native `<dialog>`, and motion respects
+  quick add, / focuses search, Ctrl or ⌘ with Z undoes), dialogs are native `<dialog>`, and motion respects
   reduced motion.
 - **Colors come from the tokens in `src/app.css`.** Rhodonite only. The category colors
   (`--cat-*`) reach 4.5:1 on both surfaces in both modes; pink isn't one, because pink marks the

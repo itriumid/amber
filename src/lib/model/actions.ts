@@ -66,6 +66,15 @@ export function shownCategory(records: Records, task: Task): string | null {
 	return null;
 }
 
+/** The category a task shows in, as people read it: "Home › Kitchen". */
+export function categoryLabel(records: Records, task: Task): string | undefined {
+	const identifier = shownCategory(records, task);
+	const category = get(records, identifier, 'category');
+	if (!category) return undefined;
+	const parent = get(records, value(category, 'parentIdentifier'), 'category');
+	return parent ? `${value(parent, 'name')} › ${value(category, 'name')}` : value(category, 'name');
+}
+
 /** Tasks shown in a category, in order: its own and those of its deleted subcategories. */
 export function tasksShownIn(records: Records, categoryIdentifier: string | null): Task[] {
 	return alive(records, 'task')

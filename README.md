@@ -7,6 +7,8 @@ a bucket list, anything you want to keep track of.
 - **Steps** inside a task, when it needs them, and any step can become a task of its own.
 - **Your order:** move tasks with their buttons, or with Alt and the arrow keys.
 - **Bucket-list categories** keep done tasks in view, with the date they were done.
+- **Search** across titles, notes, steps, tags and categories, without caring about case or
+  accents. `#tags` and Open or Done narrow it.
 - **Undo** for everything.
 
 Your lists stay on your device, and nobody else can read them. There's no account, no cookies and
