@@ -85,6 +85,15 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
 - **Installing** is in `src/lib/install.svelte.ts`: Chromium's prompt when it fires, steps for
   Safari otherwise. On Apple devices an installed Amber has its own storage and links open in
   Safari, so lists come across by pasting a link in Back up and move.
+- **Sync is a mailbox, not storage** (`sync/`, its own Worker: `itrium-amber-sync`). One device
+  leaves its list, encrypted; the other merges it and leaves the result; the first takes that, and
+  the mailbox empties. Nothing is kept: every mailbox empties after ten minutes, used or not
+  (`LIFETIME`), and holds at most 1 MB (`LIMIT`). The server never sees a code or a key: a mailbox
+  is named by a hash of the code. The rules are in `sync/mailbox.ts`, apart from Cloudflare and
+  tested in Node; `sync/index.ts` is only the Worker and the Durable Object around them. The
+  Worker has no address of its own (no workers.dev, route or preview URLs); Amber's site reaches
+  it at `/api/` through a service binding. `pnpm check` type-checks it against Cloudflare's runtime
+  types, which `wrangler types` writes to `sync/worker-configuration.d.ts` (not committed).
 - **Records that get copied stay raw.** `structuredClone` can't copy a `$state` proxy: pass
   `$state.snapshot(amber.records)` to anything that copies, and hold read lists in `$state.raw`.
   `src/hooks.client.ts` logs errors SvelteKit catches while rendering, so the browser tests, which
