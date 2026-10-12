@@ -71,6 +71,16 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
 - **Search is in `src/lib/search.ts`,** apart from the page: words match titles, notes, steps, tags and
   the category, ignoring case and accents; `#tags` and the status narrow it. `sectionsFor` takes a
   search, so results keep the place's sections.
+- **Moving and copies are in `src/lib/transfer.ts`.** Files and links carry every record, deleted
+  ones too, with the format version; a passphrase locks them (AES-GCM, key from PBKDF2-SHA-256 at
+  600,000 iterations). Links keep the list after the `#` and are taken out of the address at once.
+  Bringing a list in always merges, shows a preview first, keeps a copy before, and can be undone.
+  Putting a copy back is new changes (`restore`), never an overwrite. Copies are kept daily (7) and
+  before risky actions (10), in `src/lib/storage.ts`.
+- **Records that get copied stay raw.** `structuredClone` can't copy a `$state` proxy: pass
+  `$state.snapshot(amber.records)` to anything that copies, and hold read lists in `$state.raw`.
+  `src/hooks.client.ts` logs errors SvelteKit catches while rendering, so the browser tests, which
+  fail on any console error, see them.
 - **Records are merged, never overwritten.** Every field is a register stamped by the hybrid
   logical clock (`src/lib/model/clock.ts`); deleting sets a flag. Actions in
   `src/lib/model/actions.ts` return the changes they made, and `amber.act()` saves them and
