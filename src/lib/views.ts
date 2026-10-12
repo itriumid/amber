@@ -1,7 +1,8 @@
 // What the list shows for each place in the sidebar, as sections of tasks.
 
-import { hasTag, shownCategory, tasksShownIn } from './model/actions';
+import { hasTag, tasksShownIn } from './model/actions';
 import { alive, categoryTree, get, value, type Color, type Records, type Task } from './model/list';
+import { isSearching, matches, type Search } from './search';
 
 export type View =
 	| { kind: 'all' }
@@ -44,9 +45,23 @@ function section(
 	};
 }
 
-export function sectionsFor(records: Records, view: View): Section[] {
+/**
+ * The sections a place shows. While searching, only matching tasks are in them, done ones in
+ * place (a search for done tasks shouldn't hide them), and sections with no match are left out.
+ */
+export function sectionsFor(records: Records, view: View, search?: Search): Section[] {
+	const searching = search !== undefined && isSearching(search);
+	const found = (tasks: Task[]) =>
+		searching ? tasks.filter((task) => matches(records, task, search)) : tasks;
 	const uncategorized = () =>
-		section('uncategorized', 'No category', null, null, false, tasksShownIn(records, null));
+		section(
+			'uncategorized',
+			'No category',
+			null,
+			null,
+			searching,
+			found(tasksShownIn(records, null))
+		);
 	const forCategory = (identifier: string, prefix = '') => {
 		const category = get(records, identifier, 'category')!;
 		return section(
@@ -54,8 +69,8 @@ export function sectionsFor(records: Records, view: View): Section[] {
 			prefix + value(category, 'name'),
 			value(category, 'color'),
 			identifier,
-			value(category, 'keepDone'),
-			tasksShownIn(records, identifier)
+			searching || value(category, 'keepDone'),
+			found(tasksShownIn(records, identifier))
 		);
 	};
 
@@ -63,9 +78,9 @@ export function sectionsFor(records: Records, view: View): Section[] {
 	if (view.kind === 'tag') {
 		const tag = get(records, view.identifier, 'tag');
 		if (!tag) return [];
-		const tasks = alive(records, 'task').filter((task) => hasTag(records, task, tag));
+		const tasks = found(alive(records, 'task').filter((task) => hasTag(records, task, tag)));
 		return [
-			section(tag.identifier, `#${value(tag, 'name')}`, value(tag, 'color'), null, false, tasks)
+			section(tag.identifier, `#${value(tag, 'name')}`, value(tag, 'color'), null, searching, tasks)
 		];
 	}
 	const tree = categoryTree(records);
@@ -91,8 +106,14 @@ export function sectionsFor(records: Records, view: View): Section[] {
 	}
 	// In everything at once, sections with nothing in them are noise; the first stays, for quick add.
 	return sections.filter(
-		(candidate, index) => index === 0 || candidate.shown.length || candidate.done.length
+		(candidate, index) =>
+			(index === 0 && !searching) || candidate.shown.length || candidate.done.length
 	);
+}
+
+/** How many tasks a search finds in a place. */
+export function foundCount(records: Records, view: View, search: Search): number {
+	return sectionsFor(records, view, search).reduce((sum, found) => sum + found.shown.length, 0);
 }
 
 export function openCount(records: Records, view: View): number {
@@ -100,12 +121,4 @@ export function openCount(records: Records, view: View): number {
 		(sum, candidate) => sum + candidate.shown.filter((task) => !value(task, 'done')).length,
 		0
 	);
-}
-
-export function categoryLabel(records: Records, task: Task): string | undefined {
-	const identifier = shownCategory(records, task);
-	const category = get(records, identifier, 'category');
-	if (!category) return undefined;
-	const parent = get(records, value(category, 'parentIdentifier'), 'category');
-	return parent ? `${value(parent, 'name')} › ${value(category, 'name')}` : value(category, 'name');
 }
