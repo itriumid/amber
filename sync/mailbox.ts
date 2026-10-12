@@ -13,6 +13,8 @@ export const LIMIT = 1024 * 1024;
 
 /** A mailbox's name: a hash of the code, 32 bytes in base64url, so the code itself never comes here. */
 export const NAME = /^[A-Za-z0-9_-]{43}$/;
+/** `/api/mailboxes/<name>` and `/api/mailboxes/<name>/<part>`. */
+export const ADDRESS = /^\/api\/mailboxes\/([^/]+)(?:\/(list|reply))?$/;
 
 export interface Storage {
 	get<T>(key: string): Promise<T | undefined>;

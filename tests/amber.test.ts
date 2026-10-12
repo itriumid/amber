@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { server } from '../sync/testing';
 
 // Every problem the browser reports: script errors, and anything the security policy blocked.
 function watchProblems(page: Page) {
@@ -459,4 +460,97 @@ test('moves nothing when reduced motion is asked for', async ({ browser }) => {
 	await page.getByText('Done (1)').click();
 	expect(await running()).toEqual([]);
 	await page.context().close();
+});
+
+/** Sync's mailboxes, kept in memory with the real rules, shared by every device in a test. */
+async function mailboxes(...contexts: BrowserContext[]) {
+	const answer = server();
+	for (const context of contexts)
+		await context.route('**/api/mailboxes/**', async (route) => {
+			const request = route.request();
+			const body = request.postDataBuffer();
+			const response = await answer(
+				new Request(request.url(), {
+					method: request.method(),
+					body: body ? new Uint8Array(body) : undefined
+				})
+			);
+			await route.fulfill({
+				status: response.status,
+				headers: Object.fromEntries(response.headers),
+				body: Buffer.from(await response.arrayBuffer())
+			});
+		});
+}
+
+async function syncSheet(page: Page) {
+	const sidebar = await lists(page);
+	await sidebar.page().getByRole('button', { name: 'Sync with another device' }).last().click();
+	return page.getByRole('dialog', { name: 'Sync with another device' });
+}
+
+test('syncs two devices with a code, both ways', async ({ page, context, browser }) => {
+	const phoneContext = await browser.newContext();
+	await mailboxes(context, phoneContext);
+	await addTask(page, 'Book the flights');
+	const laptopSheet = await syncSheet(page);
+	await laptopSheet.getByRole('button', { name: 'Get a code' }).click();
+	const code = await laptopSheet
+		.getByText(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
+		.textContent();
+	expect(await axeViolations(page)).toEqual([]);
+
+	const phone = await phoneContext.newPage();
+	const phoneProblems = watchProblems(phone);
+	await phone.goto('/');
+	await expect(phone.getByLabel('New task')).toBeEnabled();
+	await addTask(phone, 'Buy sunscreen');
+	const phoneSheet = await syncSheet(phone);
+	await phoneSheet.getByLabel('Code from the other device').fill('not a code');
+	await phoneSheet.getByRole('button', { name: 'Sync' }).click();
+	await expect(phoneSheet.getByRole('alert')).toContainText('16 letters and numbers');
+	// Typed the way people do: lowercase, with spaces.
+	await phoneSheet
+		.getByLabel('Code from the other device')
+		.fill(code!.toLowerCase().replace(/-/g, ' '));
+	await phoneSheet.getByRole('button', { name: 'Sync' }).click();
+	await expect(phoneSheet.getByText('Done. The other device finishes in a moment.')).toBeVisible();
+	await expect(phoneSheet.getByText('On this device: Adds 1 task. You can undo it.')).toBeVisible();
+
+	await expect(laptopSheet.getByText('Both devices have the same list now.')).toBeVisible();
+	await expect(
+		laptopSheet.getByText('On this device: Adds 1 task. You can undo it.')
+	).toBeVisible();
+	await laptopSheet.getByRole('button', { name: 'Close', exact: true }).last().click();
+	await expect(task(page, 'Buy sunscreen')).toBeVisible();
+	await phoneSheet.getByRole('button', { name: 'Close', exact: true }).last().click();
+	await expect(task(phone, 'Book the flights')).toBeVisible();
+	expect(phoneProblems).toEqual([]);
+	await phoneContext.close();
+});
+
+test('joins a sync from a link, and a used code says so', async ({ page, context, browser }) => {
+	const phoneContext = await browser.newContext();
+	await mailboxes(context, phoneContext);
+	await addTask(page, 'Renew the passport');
+	const laptopSheet = await syncSheet(page);
+	await laptopSheet.getByRole('button', { name: 'Get a code' }).click();
+	const code = (await laptopSheet.getByText(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$/).textContent())!;
+
+	const phone = await phoneContext.newPage();
+	const phoneProblems = watchProblems(phone);
+	await phone.goto(`/#sync=${code.replace(/-/g, '')}`);
+	const phoneSheet = phone.getByRole('dialog', { name: 'Sync with another device' });
+	await expect(phoneSheet.getByText('Done. The other device finishes in a moment.')).toBeVisible();
+	expect(new URL(phone.url()).hash).toBe('');
+	await expect(laptopSheet.getByText('Both devices have the same list now.')).toBeVisible();
+	await expect(laptopSheet.getByText('Nothing changed on this device.')).toBeVisible();
+
+	await phone.goto(`/#sync=${code}`);
+	await expect(phoneSheet.getByRole('alert')).toContainText("That code isn't open anymore.");
+	// The mailbox answering 404 for a used code is expected; Chrome logs every 404 regardless.
+	expect(phoneProblems).toEqual([
+		'Failed to load resource: the server responded with a status of 404 (Not Found)'
+	]);
+	await phoneContext.close();
 });

@@ -15,6 +15,7 @@
 		oneditcategory,
 		onedittag,
 		onbackup,
+		onsync,
 		oninstall
 	}: {
 		view: View;
@@ -22,6 +23,7 @@
 		oneditcategory: (identifier: string) => void;
 		onedittag: (identifier: string) => void;
 		onbackup: () => void;
+		onsync: () => void;
 		oninstall: () => void;
 	} = $props();
 
@@ -184,6 +186,10 @@
 			Install Amber
 		</button>
 	{/if}
+	<button type="button" class={quiet} onclick={onsync}>
+		<Icon name="sync" />
+		Sync with another device
+	</button>
 	<button type="button" class={quiet} onclick={onbackup}>
 		<Icon name="archive" />
 		Back up and move
