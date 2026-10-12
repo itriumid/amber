@@ -1,19 +1,29 @@
 <!-- One task in the list. Ticking it, opening it and moving it are all here; Alt with the up or down
-     arrow moves it from the keyboard, wherever focus is in the row. -->
+     arrow moves it from the keyboard, wherever focus is in the row. In search results the words
+     found are marked, and moving is off: with tasks hidden in between, a move wouldn't show. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
-	import { moveTask, setDone } from '#lib/model/actions.js';
+	import { categoryLabel, moveTask, setDone } from '#lib/model/actions.js';
 	import { stepsOf, tagsOf, value, type Task } from '#lib/model/list.js';
-	import { categoryLabel } from '#lib/views.js';
+	import { highlight } from '#lib/search.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
 
 	let {
 		task,
 		showCategory = false,
+		words = [],
+		movable = true,
 		onopen
-	}: { task: Task; showCategory?: boolean; onopen: (task: Task) => void } = $props();
+	}: {
+		task: Task;
+		showCategory?: boolean;
+		/** Search words to mark in the title. */
+		words?: string[];
+		movable?: boolean;
+		onopen: (task: Task) => void;
+	} = $props();
 
 	const title = $derived(value(task, 'title'));
 	const done = $derived(value(task, 'done'));
@@ -43,7 +53,7 @@
 	}
 
 	function onkeydown(event: KeyboardEvent) {
-		if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+		if (!movable || !event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
 		event.preventDefault();
 		move(event.key === 'ArrowUp' ? -1 : 1);
 	}
@@ -69,7 +79,9 @@
 				: ''}"
 			onclick={() => onopen(task)}
 		>
-			{title}<span class="sr-only">. Open details</span>
+			{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
+						class="rounded-sm bg-accent text-on-accent">{piece.text}</mark
+					>{:else}{piece.text}{/if}{/each}<span class="sr-only">. Open details</span>
 		</button>
 		{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
 			<div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
@@ -95,20 +107,22 @@
 			</div>
 		{/if}
 	</div>
-	<div
-		class="flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100"
-	>
-		<button
-			type="button"
-			class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
-			aria-label="Move up: {title}"
-			onclick={() => move(-1)}><Icon name="up" /></button
+	{#if movable}
+		<div
+			class="flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:opacity-100"
 		>
-		<button
-			type="button"
-			class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
-			aria-label="Move down: {title}"
-			onclick={() => move(1)}><Icon name="down" /></button
-		>
-	</div>
+			<button
+				type="button"
+				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+				aria-label="Move up: {title}"
+				onclick={() => move(-1)}><Icon name="up" /></button
+			>
+			<button
+				type="button"
+				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+				aria-label="Move down: {title}"
+				onclick={() => move(1)}><Icon name="down" /></button
+			>
+		</div>
+	{/if}
 </div>

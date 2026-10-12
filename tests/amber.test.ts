@@ -11,6 +11,20 @@ function watchProblems(page: Page) {
 	return problems;
 }
 
+/**
+ * The rules of WCAG 2.2 AA that axe breaks, by name. It waits for rows to finish sliding first:
+ * axe measures targets as they are, mid-animation too.
+ */
+async function axeViolations(page: Page) {
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	const results = await new AxeBuilder({ page })
+		.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+		.analyze();
+	return results.violations.map(
+		(violation) => `${violation.id}: ${violation.nodes.map((node) => node.target).join(', ')}`
+	);
+}
+
 async function addTask(page: Page, text: string) {
 	await page.getByLabel('New task').fill(text);
 	await page.getByLabel('New task').press('Enter');
@@ -50,7 +64,9 @@ test('ticks a task done, tucks it away, and undoes it', async ({ page }) => {
 	await addTask(page, 'Water the plants');
 	await page.getByRole('checkbox', { name: 'Mark done: Water the plants' }).check();
 	await expect(page.getByText('Done (1)')).toBeVisible();
-	await expect(page.getByRole('status')).toContainText('Done: Water the plants');
+	await expect(page.getByRole('status').filter({ hasText: 'Undo' })).toContainText(
+		'Done: Water the plants'
+	);
 	await page.getByRole('button', { name: 'Undo' }).click();
 	await expect(page.getByText('Done (1)')).toHaveCount(0);
 	await expect(
@@ -109,27 +125,19 @@ test('deletes a category but keeps its tasks', async ({ page }) => {
 	await expect(task(page, 'Fix the tap')).toBeVisible();
 });
 
-test('has no accessibility problems axe can find, with a list and with a dialog open', async ({
+test('has no accessibility problems axe can find, in a list, a search and a dialog', async ({
 	page
 }) => {
 	await addTask(page, 'A task #with-tag');
 	await page.getByRole('checkbox', { name: 'Mark done: A task' }).check();
 	await addTask(page, 'Another task');
-	const wcag = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
-	const listResults = await new AxeBuilder({ page }).withTags(wcag).analyze();
-	expect(
-		listResults.violations.map(
-			(violation) => `${violation.id}: ${violation.nodes.map((node) => node.target).join(', ')}`
-		)
-	).toEqual([]);
+	expect(await axeViolations(page)).toEqual([]);
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('task');
+	expect(await axeViolations(page)).toEqual([]);
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('');
 	await task(page, 'Another task').click();
 	await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
-	const dialogResults = await new AxeBuilder({ page }).withTags(wcag).analyze();
-	expect(
-		dialogResults.violations.map(
-			(violation) => `${violation.id}: ${violation.nodes.map((node) => node.target).join(', ')}`
-		)
-	).toEqual([]);
+	expect(await axeViolations(page)).toEqual([]);
 });
 
 test('focuses quick add with N, and undoes with the keyboard', async ({ page }) => {
@@ -141,4 +149,60 @@ test('focuses quick add with N, and undoes with the keyboard', async ({ page }) 
 	await page.getByRole('heading', { level: 1 }).click();
 	await page.keyboard.press('ControlOrMeta+z');
 	await expect(task(page, 'Keyboard task')).toHaveCount(0);
+});
+
+test('searches words, tags and status, and marks what it found', async ({ page }) => {
+	await addTask(page, 'Try the new Café #weekend');
+	await addTask(page, 'Call the bank');
+	await page.getByRole('checkbox', { name: 'Mark done: Call the bank' }).check();
+	await addTask(page, 'Paint the bedroom #weekend');
+
+	const search = page.getByRole('searchbox', { name: 'Search tasks' });
+	await search.fill('cafe');
+	await expect(page.getByRole('status').filter({ hasText: 'found' })).toHaveText('1 task found');
+	await expect(task(page, 'Try the new Café')).toBeVisible();
+	await expect(page.getByRole('main').locator('mark')).toHaveText('Café');
+	await expect(page.getByLabel('New task')).toHaveCount(0);
+
+	await search.fill('#weekend');
+	await expect(page.getByRole('status').filter({ hasText: 'found' })).toHaveText('2 tasks found');
+
+	await search.fill('the');
+	await page
+		.locator('label', { hasText: 'Done' })
+		.filter({ has: page.getByRole('radio') })
+		.click();
+	await expect(page.getByRole('radio', { name: 'Done' })).toBeChecked();
+	await expect(task(page, 'Call the bank')).toBeVisible();
+	await expect(task(page, 'Paint the bedroom')).toHaveCount(0);
+
+	await search.fill('nothing like this');
+	await expect(page.getByText('No done tasks match “nothing like this”.')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Clear search' }).click();
+	await expect(search).toHaveValue('');
+	await expect(search).toBeFocused();
+	await search.fill('again');
+	await search.press('Escape');
+	await expect(search).toHaveValue('');
+	await expect(page.getByLabel('New task')).toBeVisible();
+});
+
+test('offers matches outside the current place', async ({ page }) => {
+	await addTask(page, 'Renew passport');
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Renew the lease');
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('renew');
+	await expect(page.getByRole('status').filter({ hasText: 'found' })).toHaveText('1 task found');
+	await page.getByRole('button', { name: '1 more in all tasks' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'All tasks' })).toBeVisible();
+	await expect(page.getByRole('status').filter({ hasText: 'found' })).toHaveText('2 tasks found');
+});
+
+test('focuses search with the slash key', async ({ page }) => {
+	await page.getByRole('heading', { level: 1 }).click();
+	await page.keyboard.press('/');
+	await expect(page.getByRole('searchbox', { name: 'Search tasks' })).toBeFocused();
 });

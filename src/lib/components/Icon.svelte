@@ -14,7 +14,8 @@
 		steps: 'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2',
 		promote: 'M12 19V5M6 11l6-6 6 6',
 		tag: 'M4 4h7l9 9-7 7-9-9V4zM8 8h.01',
-		check: 'M5 12l5 5L19 7'
+		check: 'M5 12l5 5L19 7',
+		search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4'
 	} as const;
 
 	let { name, class: className = 'size-4' }: { name: keyof typeof PATHS; class?: string } =
