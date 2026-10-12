@@ -14,4 +14,4 @@ export const PROMISE = 'Your lists stay on your device, and nobody else can read
 export const PROMISE_DETAIL = 'No account, and it works offline.';
 export const STORAGE_NOTE =
 	'Your lists live in this browser. Clearing its data for this site deletes them, so keep a copy of anything that matters.';
-export const FOOTNOTE = 'Made by Itrium. Itrium is the Indonesian word for yttrium: element 39.';
+export const FOOTNOTE = 'Made by Itrium.';
