@@ -44,6 +44,8 @@
 	let entered = $state('');
 	let enteredProblem = $state<string>();
 	let copied = $state(false);
+	/** Phones and some desktops can hand the link to another app, which beats the clipboard. */
+	let canShare = $state(false);
 	let stop: AbortController | undefined;
 
 	const heading = 'mb-1 text-base font-semibold';
@@ -64,6 +66,7 @@
 		entered = '';
 		enteredProblem = undefined;
 		copied = false;
+		canShare = !!navigator.canShare?.({ url: location.origin });
 		if (!given) return;
 		const code = readCode(given);
 		if (code) void join(code);
@@ -155,9 +158,19 @@
 		void join(code);
 	}
 
+	const linkFor = (code: string) => `${location.origin}/${SYNC_PREFIX}${code}`;
+
 	async function copyLink(code: string) {
-		await navigator.clipboard.writeText(`${location.origin}/${SYNC_PREFIX}${code}`);
+		await navigator.clipboard.writeText(linkFor(code));
 		copied = true;
+	}
+
+	async function shareLink(code: string) {
+		try {
+			await navigator.share({ title: 'Sync with Amber', url: linkFor(code) });
+		} catch {
+			// Closing the share sheet without picking anything lands here too; there's nothing to say.
+		}
 	}
 
 	function close() {
@@ -220,7 +233,12 @@
 			<p class="mt-4 text-center font-mono text-2xl font-semibold tracking-wider">
 				{showCode(code)}
 			</p>
-			<div class="mt-4 flex justify-center">
+			<div class="mt-4 flex flex-wrap justify-center gap-2">
+				{#if canShare}
+					<button type="button" class={smallButton} onclick={() => shareLink(code)}
+						>Share a link</button
+					>
+				{/if}
 				<button type="button" class={smallButton} onclick={() => copyLink(code)}>
 					{copied ? 'Copied' : 'Copy a link'}
 				</button>
