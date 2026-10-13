@@ -21,7 +21,7 @@
 		tagByName
 	} from '#lib/model/actions.js';
 	import { categoryTree, get, stepsOf, tags as allTags, value, LIMITS } from '#lib/model/list.js';
-	import { field, label, secondaryButton } from '#lib/styles.js';
+	import { field, label, secondaryButton, touchText } from '#lib/styles.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
 	import Sheet from './Sheet.svelte';
@@ -166,7 +166,7 @@
 							<label class="sr-only" for="step-{step.identifier}">Step</label>
 							<input
 								id="step-{step.identifier}"
-								class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm hover:border-control-border focus:border-control-border {value(
+								class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm {touchText} hover:border-control-border focus:border-control-border {value(
 									step,
 									'done'
 								)

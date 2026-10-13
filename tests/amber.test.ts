@@ -148,6 +148,30 @@ test('has no accessibility problems axe can find, in a list, a search and a dial
 	expect(await axeViolations(page)).toEqual([]);
 });
 
+/** Fields under 16px, which Safari on iOS zooms the page into when they're focused. */
+const smallFields = (page: Page) =>
+	page.evaluate(() =>
+		[...document.querySelectorAll('input, textarea, select')]
+			.filter((element) => element.checkVisibility() && !element.matches('.sr-only'))
+			.filter((element) => parseFloat(getComputedStyle(element).fontSize) < 16)
+			.map((element) => element.id || element.outerHTML.slice(0, 80))
+	);
+
+test('keeps every field 16px or larger on a touch screen, so nothing zooms in', async ({
+	page
+}) => {
+	test.skip(!isPhone(page), 'Only touch screens zoom.');
+	expect(await page.evaluate(() => getComputedStyle(document.documentElement).touchAction)).toBe(
+		'manipulation'
+	);
+	expect(await smallFields(page)).toEqual([]);
+	await addTask(page, 'Pack for the trip');
+	await task(page, 'Pack for the trip').click();
+	await page.getByLabel('New step').fill('Passport');
+	await page.getByLabel('New step').press('Enter');
+	expect(await smallFields(page)).toEqual([]);
+});
+
 test('focuses quick add with N, and undoes with the keyboard', async ({ page }) => {
 	await page.getByRole('heading', { level: 1 }).click();
 	await page.keyboard.press('n');
