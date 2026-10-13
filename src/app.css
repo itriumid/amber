@@ -80,6 +80,8 @@ html {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	scroll-behavior: smooth;
+	/* No double-tap zoom, so taps land at once; pinching to zoom still works. */
+	touch-action: manipulation;
 }
 
 ::selection {
