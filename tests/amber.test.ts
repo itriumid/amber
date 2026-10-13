@@ -529,17 +529,34 @@ test('syncs two devices with a code, both ways', async ({ page, context, browser
 	await phoneContext.close();
 });
 
-test('joins a sync from a link, and a used code says so', async ({ page, context, browser }) => {
+test('joins a sync from a shared link, and a used code says so', async ({
+	page,
+	context,
+	browser
+}) => {
+	// A share sheet that keeps what it was given, where the browser has none.
+	await page.addInitScript(() => {
+		const shared: ShareData[] = [];
+		Object.assign(window, { shared });
+		navigator.canShare = () => true;
+		navigator.share = async (data) => void shared.push(data!);
+	});
+	await page.reload();
 	const phoneContext = await browser.newContext();
 	await mailboxes(context, phoneContext);
 	await addTask(page, 'Renew the passport');
 	const laptopSheet = await syncSheet(page);
 	await laptopSheet.getByRole('button', { name: 'Get a code' }).click();
 	const code = (await laptopSheet.getByText(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$/).textContent())!;
+	await laptopSheet.getByRole('button', { name: 'Share a link' }).click();
+	const link = await page.evaluate(
+		() => (window as unknown as { shared: ShareData[] }).shared[0]?.url
+	);
+	expect(link).toMatch(new RegExp(`/#sync=${code.replace(/-/g, '')}$`));
 
 	const phone = await phoneContext.newPage();
 	const phoneProblems = watchProblems(phone);
-	await phone.goto(`/#sync=${code.replace(/-/g, '')}`);
+	await phone.goto(new URL(link!).pathname + new URL(link!).hash);
 	const phoneSheet = phone.getByRole('dialog', { name: 'Sync with another device' });
 	await expect(phoneSheet.getByText('Done. The other device finishes in a moment.')).toBeVisible();
 	expect(new URL(phone.url()).hash).toBe('');
