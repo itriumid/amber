@@ -445,6 +445,18 @@ test('keeps focus nearby when a ticked task moves away, and after deleting one',
 	await expect(page.getByLabel('New task')).toBeFocused();
 });
 
+test('outlines the control in focus, but not the whole list when focus falls back to it', async ({
+	page
+}) => {
+	await page.keyboard.press('Tab');
+	await expect(page.locator(':focus-visible')).toHaveCSS('outline-style', 'solid');
+	// Where focus goes when there's no quick add to land on. After a key press, browsers show
+	// focus moved by a script, so only the page's own rule keeps the line off.
+	await page.evaluate(() => document.getElementById('main')?.focus());
+	await expect(page.getByRole('main')).toBeFocused();
+	await expect(page.getByRole('main')).toHaveCSS('outline-style', 'none');
+});
+
 test('names counts and steps the way they should be heard', async ({ page }) => {
 	await addTask(page, 'Paint the bedroom');
 	const sidebar = await lists(page);
