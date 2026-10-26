@@ -89,10 +89,14 @@ html {
 	color: var(--on-accent);
 }
 
-:focus-visible {
-	outline: 2px solid var(--focus);
-	outline-offset: 3px;
-	border-radius: 4px;
+/* In the base layer, so a utility on an element can change its outline: the list itself takes
+   focus when the task holding it goes away, and a pink line around the whole list helps nobody. */
+@layer base {
+	:focus-visible {
+		outline: 2px solid var(--focus);
+		outline-offset: 3px;
+		border-radius: 4px;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
