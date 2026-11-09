@@ -344,7 +344,7 @@
 						/>
 						<button
 							type="submit"
-							class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50"
+							class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50 motion-reduce:transition-none"
 							disabled={!newTask.trim()}
 						>
 							<Icon name="plus" /> Add
