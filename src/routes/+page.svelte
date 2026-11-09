@@ -15,6 +15,7 @@
 	import Seo from '#lib/Seo.svelte';
 	import {
 		DESCRIPTION,
+		DOWNLOAD_COPY,
 		FOOTNOTE,
 		MAIN_SITE_URL,
 		PROMISE,
@@ -26,7 +27,7 @@
 	} from '#lib/content.js';
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
-	import { field } from '#lib/styles.js';
+	import { field, smallButton } from '#lib/styles.js';
 	import { install, type Way } from '#lib/install.svelte.js';
 	import { updates } from '#lib/updates.svelte.js';
 	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
@@ -286,12 +287,16 @@
 			</div>
 
 			{#if amber.problem}
-				<p
-					class="mt-4 rounded-lg border-l-4 border-accent-edge bg-surface p-3 text-sm"
-					role="alert"
-				>
-					{amber.problem}
-				</p>
+				<div class="mt-4 rounded-lg border-l-4 border-accent-edge bg-surface p-3 text-sm">
+					<p role="alert">{amber.problem}</p>
+					{#if amber.unsaved}
+						<button
+							type="button"
+							class="mt-3 {smallButton}"
+							onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
+						>
+					{/if}
+				</div>
 			{/if}
 
 			{#if searching}

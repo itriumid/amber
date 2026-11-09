@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { server } from '../sync/testing';
 
 // Every problem the browser reports: script errors, and anything the security policy blocked.
@@ -331,9 +332,18 @@ test('puts back a copy kept before bringing in a list', async ({ page }) => {
 		.getByRole('dialog', { name: 'Back up and move' })
 		.getByRole('button', { name: 'Close' })
 		.click();
-	// The same browser, emptied: as if the file were opened on a phone with a list of its own.
-	await page.evaluate(() => indexedDB.deleteDatabase('amber'));
-	await page.reload();
+	// The same browser, emptied: as if the file were opened on a phone with a list of its own. It's
+	// emptied from a page of the site without Amber on it: an open Amber writes its list back.
+	await page.goto('/robots.txt');
+	await page.evaluate(
+		() =>
+			new Promise((resolve, reject) => {
+				const deleting = indexedDB.deleteDatabase('amber');
+				deleting.onsuccess = resolve;
+				deleting.onerror = () => reject(deleting.error);
+			})
+	);
+	await page.goto('/');
 	await addTask(page, 'From the phone');
 	sheet = await backup(page);
 	await sheet.getByLabel('Open a file').setInputFiles(mine);
@@ -606,4 +616,142 @@ test('joins a sync from a shared link, and a used code says so', async ({
 		'Failed to load resource: the server responded with a status of 404 (Not Found)'
 	]);
 	await phoneContext.close();
+});
+
+/** The message after an action, with Undo: the last live region on the page. */
+const notice = (page: Page) => page.getByRole('status').last();
+
+/** Renames a task in its details, the way someone would. */
+async function rename(page: Page, from: string, to: string) {
+	await task(page, from).click();
+	const details = page.getByRole('dialog');
+	await details.getByLabel('Task', { exact: true }).fill(to);
+	await details.getByLabel('Task', { exact: true }).press('Tab');
+	await page.keyboard.press('Escape');
+	await expect(details).toHaveCount(0);
+}
+
+test('keeps changes made in two tabs, and shows each tab what the other did', async ({
+	page,
+	context
+}) => {
+	await addTask(page, 'Shared task');
+	const other = await context.newPage();
+	const otherProblems = watchProblems(other);
+	await other.goto('/');
+	await expect(task(other, 'Shared task')).toBeVisible();
+
+	// A rename in one tab shows in the other, without a reload.
+	await rename(page, 'Shared task', 'Renamed in the first tab');
+	await expect(task(other, 'Renamed in the first tab')).toBeVisible();
+
+	// A tab that's behind (here, storage changed under it) doesn't write over what it hasn't seen:
+	// ticking the task keeps the newer title.
+	await other.evaluate(
+		() =>
+			new Promise<void>((resolve, reject) => {
+				const open = indexedDB.open('amber');
+				open.onsuccess = () => {
+					const transaction = open.result.transaction('records', 'readwrite');
+					const store = transaction.objectStore('records');
+					const cursor = store.openCursor();
+					cursor.onsuccess = () => {
+						const found = cursor.result;
+						if (!found) return;
+						const record = found.value;
+						if (record.kind === 'task') {
+							const [time, counter, device] = record.fields.title.stamp.split('.');
+							const later = (parseInt(time, 36) + 1).toString(36).padStart(9, '0');
+							record.fields.title = {
+								value: 'Renamed behind its back',
+								stamp: `${later}.${counter}.${device}`
+							};
+							found.update(record);
+						}
+						found.continue();
+					};
+					transaction.oncomplete = () => {
+						open.result.close();
+						resolve();
+					};
+					transaction.onerror = () => reject(transaction.error);
+				};
+				open.onerror = () => reject(open.error);
+			})
+	);
+	await other.getByRole('checkbox', { name: 'Mark done: Renamed in the first tab' }).check();
+	// The tab that saved takes in what storage held, and the first tab hears about both.
+	for (const tab of [page, other]) {
+		await expect(tab.getByText('Done (1)')).toBeVisible();
+		await tab.getByText('Done (1)').click();
+		await expect(task(tab, 'Renamed behind its back')).toBeVisible();
+	}
+
+	await page.reload();
+	await page.getByText('Done (1)').click();
+	await expect(task(page, 'Renamed behind its back')).toBeVisible();
+	await expect(
+		page.getByRole('checkbox', { name: 'Mark not done: Renamed behind its back' })
+	).toBeChecked();
+	expect(otherProblems).toEqual([]);
+	await other.close();
+});
+
+test('writes the list back when the browser clears its storage while it is open', async ({
+	page,
+	context
+}) => {
+	await addTask(page, 'Before the clearing');
+	await expect(notice(page)).toContainText('Task added');
+	const session = await context.newCDPSession(page);
+	await session.send('Storage.clearDataForOrigin', {
+		origin: new URL(page.url()).origin,
+		storageTypes: 'indexeddb'
+	});
+	await addTask(page, 'After the clearing');
+	await expect(task(page, 'After the clearing')).toBeVisible();
+	await expect(notice(page)).toContainText('Task added');
+	await expect(page.getByRole('alert')).toHaveCount(0);
+
+	await page.reload();
+	await expect(task(page, 'Before the clearing')).toBeVisible();
+	await expect(task(page, 'After the clearing')).toBeVisible();
+});
+
+test('says plainly when the list can’t be saved, and offers a copy instead', async ({
+	page,
+	context
+}) => {
+	await addTask(page, 'Before the clearing');
+	await expect(notice(page)).toContainText('Task added');
+	await notice(page).getByRole('button', { name: 'Dismiss' }).click();
+	await expect(notice(page)).toBeEmpty();
+	// Storage goes, and this browser won't open it again.
+	await page.evaluate(() => {
+		IDBFactory.prototype.open = () => {
+			throw new DOMException('Opening is turned off for this test.', 'UnknownError');
+		};
+	});
+	const session = await context.newCDPSession(page);
+	await session.send('Storage.clearDataForOrigin', {
+		origin: new URL(page.url()).origin,
+		storageTypes: 'indexeddb'
+	});
+	await addTask(page, 'After the clearing');
+	await expect(task(page, 'After the clearing')).toBeVisible();
+	await expect(page.getByRole('alert')).toHaveText(
+		"This browser stopped letting Amber save your list, so your latest changes aren't kept here. Download a copy to keep them safe."
+	);
+	// Nothing claims it was saved.
+	await expect(notice(page)).toBeEmpty();
+
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		page.getByRole('button', { name: 'Download a copy' }).click()
+	]);
+	const file = JSON.parse(await readFile((await download.path())!, 'utf8'));
+	const titles = file.records
+		.filter((record: { kind: string }) => record.kind === 'task')
+		.map((record: { fields: { title: { value: string } } }) => record.fields.title.value);
+	expect(titles.sort()).toEqual(['After the clearing', 'Before the clearing']);
 });

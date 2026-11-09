@@ -17,3 +17,12 @@ export const STORAGE_NOTE =
 export const SYNC_NOTE =
 	'Syncing with another device passes an encrypted copy through our server for a few minutes, and only your devices can open it.';
 export const FOOTNOTE = 'Made by Itrium.';
+
+// Problems with storage, shown above the list.
+export const NEWER_FORMAT_PROBLEM =
+	'This list was saved by a newer version of Amber, so it can be read but not changed until Amber updates.';
+export const NEWER_TAB_PROBLEM =
+	'A newer version of Amber is open in another tab, so this one can show your list but not change it. Reload to update.';
+export const SAVE_PROBLEM =
+	"This browser stopped letting Amber save your list, so your latest changes aren't kept here. Download a copy to keep them safe.";
+export const DOWNLOAD_COPY = 'Download a copy';
