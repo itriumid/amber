@@ -4,7 +4,7 @@
 	import { DOT } from '#lib/colors.js';
 	import { addCategory } from '#lib/model/actions.js';
 	import { categoryTree, tags as allTags, value, LIMITS } from '#lib/model/list.js';
-	import { field } from '#lib/styles.js';
+	import { field, touchTarget } from '#lib/styles.js';
 	import { install } from '#lib/install.svelte.js';
 	import { openCount, type View } from '#lib/views.js';
 	import Icon from './Icon.svelte';
@@ -40,12 +40,12 @@
 			: true);
 
 	const item =
-		'flex min-h-10 flex-1 items-center gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface motion-reduce:transition-none';
+		'flex min-h-10 flex-1 items-center pointer-coarse:min-h-11 gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface motion-reduce:transition-none';
 	const current = 'bg-surface font-semibold';
 	const quiet =
-		'flex min-h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
+		'flex min-h-10 w-full items-center pointer-coarse:min-h-11 gap-2.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
 	const editButton =
-		'inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-surface hover:text-text';
+		'inline-flex size-9 shrink-0 items-center pointer-coarse:size-11 justify-center rounded-lg text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-surface hover:text-text';
 	// The sidebar is drawn twice (beside the list, and in the sheet on a phone), so its identifiers
 	// carry a prefix of their own.
 	const prefix = $props.id();
@@ -143,7 +143,7 @@
 				/>
 				<button
 					type="submit"
-					class="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-control-border hover:bg-surface disabled:opacity-50"
+					class="relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-control-border hover:bg-surface disabled:opacity-50 {touchTarget}"
 					aria-label="Add category"
 					disabled={!newCategory.trim()}><Icon name="plus" /></button
 				>

@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { COLOR_NAMES, DOT } from '#lib/colors.js';
 	import { COLORS, type Color } from '#lib/model/list.js';
+	import { touchTarget } from '#lib/styles.js';
 
 	let {
 		value,
@@ -17,7 +18,7 @@
 	<legend class="mb-2 text-sm font-medium">{label}</legend>
 	<div class="flex flex-wrap gap-2">
 		{#each choices as choice (choice ?? 'none')}
-			<label class="relative cursor-pointer">
+			<label class="relative cursor-pointer {touchTarget}">
 				<input
 					type="radio"
 					{name}

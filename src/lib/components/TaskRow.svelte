@@ -11,6 +11,7 @@
 	import { highlight } from '#lib/search.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
+	import { touchTarget } from '#lib/styles.js';
 
 	let {
 		task,
@@ -100,7 +101,7 @@
 		<div class="min-w-0 flex-1">
 			<button
 				type="button"
-				class="block w-full rounded-md text-left text-base leading-7 break-words {done
+				class="relative block w-full rounded-md text-left text-base leading-7 break-words {touchTarget} {done
 					? 'text-muted line-through decoration-1'
 					: ''}"
 				aria-describedby="task-open-hint"

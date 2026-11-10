@@ -30,7 +30,7 @@
 	} from '#lib/content.js';
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
-	import { field, smallButton } from '#lib/styles.js';
+	import { field, smallButton, touchTarget } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { rescueFocus } from '#lib/focus.js';
 	import { settings } from '#lib/settings.svelte.js';
@@ -227,7 +227,7 @@
 		<div class="flex items-center gap-3">
 			<button
 				type="button"
-				class="inline-flex size-10 items-center justify-center rounded-lg border border-control-border md:hidden"
+				class="relative inline-flex size-10 items-center justify-center rounded-lg border border-control-border md:hidden {touchTarget}"
 				aria-label="Show lists"
 				onclick={() => (listsOpen = true)}
 			>
@@ -304,7 +304,7 @@
 				{#if view.kind === 'category'}
 					<button
 						type="button"
-						class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-text"
+						class="relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-text {touchTarget}"
 						aria-label="Edit {heading}"
 						onclick={() => view.kind === 'category' && (openCategory = view.identifier)}
 					>
@@ -323,7 +323,7 @@
 						<p>A new version of Amber is ready.</p>
 						<button
 							type="button"
-							class="min-h-9 rounded-full border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85"
+							class="relative min-h-9 rounded-full border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85 {touchTarget}"
 							onclick={() => updates.apply()}>Update</button
 						>
 					</div>
@@ -364,7 +364,7 @@
 					<fieldset class="flex rounded-full border border-control-border p-0.5">
 						<legend class="sr-only">Show</legend>
 						{#each STATUSES as choice (choice.status)}
-							<label class="relative cursor-pointer">
+							<label class="relative cursor-pointer {touchTarget}">
 								<input
 									type="radio"
 									name="status"
@@ -382,7 +382,7 @@
 					{#if elsewhere > 0}
 						<button
 							type="button"
-							class="min-h-9 rounded-full px-3 text-sm underline underline-offset-4 hover:bg-surface"
+							class="relative min-h-9 rounded-full px-3 text-sm underline underline-offset-4 hover:bg-surface {touchTarget}"
 							onclick={() => select({ kind: 'all' })}>{elsewhere} more in all tasks</button
 						>
 					{/if}
@@ -476,7 +476,7 @@
 							{#if section.done.length}
 								<details class="group mt-2">
 									<summary
-										class="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text"
+										class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text {touchTarget}"
 									>
 										<Icon
 											name="down"
@@ -501,13 +501,16 @@
 	</div>
 
 	<!-- Room at the bottom so the message with Undo never covers the footer's link. -->
-	<footer class="mt-auto border-t border-border pt-8 pb-24 text-sm text-muted">
+	<footer class="mt-auto border-t border-border pt-8 pb-36 text-sm text-muted">
 		<p class="font-medium text-text">{PROMISE}</p>
 		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE}</p>
 		<p class="mt-1">{SYNC_NOTE}</p>
 		<p class="mt-4">
 			{FOOTNOTE}
-			<a href={SOURCE_URL} rel="external" class="underline underline-offset-4 hover:text-text"
+			<a
+				href={SOURCE_URL}
+				rel="external"
+				class="relative inline-block underline underline-offset-4 hover:text-text {touchTarget}"
 				>The source</a
 			>.
 		</p>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { touchTarget } from '#lib/styles.js';
 </script>
 
 <svelte:head>
@@ -12,7 +13,9 @@
 		{page.status === 404 ? "There's nothing here." : 'Something went wrong.'}
 	</h1>
 	<p class="mt-5 text-lg text-muted">
-		<a href={resolve('/')} class="underline underline-offset-4 hover:text-text"
+		<a
+			href={resolve('/')}
+			class="relative inline-block underline underline-offset-4 hover:text-text {touchTarget}"
 			>Back to your lists</a
 		>
 	</p>

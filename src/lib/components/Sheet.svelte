@@ -5,6 +5,7 @@
 	import type { Snippet } from 'svelte';
 	import { rescueFocus } from '#lib/focus.js';
 	import Icon from './Icon.svelte';
+	import { touchTarget } from '#lib/styles.js';
 
 	let {
 		open,
@@ -43,7 +44,7 @@
 		<h2 id={titleIdentifier} class="text-base font-semibold">{title}</h2>
 		<button
 			type="button"
-			class="inline-flex size-9 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+			class="relative inline-flex size-9 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text {touchTarget}"
 			aria-label="Close"
 			onclick={onclose}
 		>
