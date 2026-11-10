@@ -21,7 +21,7 @@
 		tagByName
 	} from '#lib/model/actions.js';
 	import { categoryTree, get, stepsOf, tags as allTags, value, LIMITS } from '#lib/model/list.js';
-	import { field, label, secondaryButton, touchText } from '#lib/styles.js';
+	import { field, label, secondaryButton, touchTarget, touchText } from '#lib/styles.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
 	import Sheet from './Sheet.svelte';
@@ -107,7 +107,7 @@
 						<button
 							type="button"
 							aria-pressed={on}
-							class="inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors motion-reduce:transition-none {on
+							class="relative inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors motion-reduce:transition-none {touchTarget} {on
 								? 'border-accent-edge bg-accent font-medium text-on-accent'
 								: 'border-control-border hover:bg-bg'}"
 							onclick={() =>
@@ -146,7 +146,9 @@
 			</form>
 		</fieldset>
 
-		<fieldset>
+		<!-- A fieldset is as wide as its content by default; this one fits the sheet, and the step's
+		     text shrinks instead, so the buttons stay in view. -->
+		<fieldset class="min-w-0">
 			<legend class={label}>Steps <span class="font-normal text-muted">(optional)</span></legend>
 			{#if steps.length}
 				<ul class="space-y-1">
@@ -166,7 +168,7 @@
 							<label class="sr-only" for="step-{step.identifier}">Step</label>
 							<input
 								id="step-{step.identifier}"
-								class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm {touchText} hover:border-control-border focus:border-control-border {value(
+								class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm {touchText} hover:border-control-border focus:border-control-border pointer-coarse:min-h-11 {value(
 									step,
 									'done'
 								)
@@ -184,21 +186,21 @@
 							>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Move up: {text}"
 									onclick={() => amber.act('Step moved', (context) => moveStep(context, step, -1))}
 									><Icon name="up" /></button
 								>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Move down: {text}"
 									onclick={() => amber.act('Step moved', (context) => moveStep(context, step, 1))}
 									><Icon name="down" /></button
 								>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Make a task of: {text}"
 									onclick={() =>
 										amber.act(`Made a task: ${text}`, (context) => promoteStep(context, step))}
@@ -206,7 +208,7 @@
 								>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Delete step: {text}"
 									onclick={() => amber.act('Step deleted', (context) => deleteStep(context, step))}
 									><Icon name="trash" /></button

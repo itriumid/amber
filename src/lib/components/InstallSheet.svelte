@@ -2,6 +2,7 @@
      along: on Apple devices an installed Amber keeps its own storage, apart from Safari's. -->
 <script lang="ts">
 	import type { Way } from '#lib/install.svelte.js';
+	import { touchTarget } from '#lib/styles.js';
 	import Sheet from './Sheet.svelte';
 
 	let {
@@ -40,7 +41,7 @@
 			<li>
 				Here, open <button
 					type="button"
-					class="font-semibold underline underline-offset-4"
+					class="relative inline-block font-semibold underline underline-offset-4 {touchTarget}"
 					onclick={onbackup}>Back up and move</button
 				>, make a link, and copy it.
 			</li>

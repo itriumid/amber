@@ -928,25 +928,81 @@ test('reminds now and then to download a copy, and can be put off', async ({ pag
 		.toBeGreaterThan(Date.now() - 60_000);
 });
 
-/** The edges of small controls, with the space around a checkbox that ticks it too. */
+/**
+ * Every control in view (in the open dialog, if there is one): where a finger can hit it, which
+ * counts the invisible layer that widens it on a touch screen, and the label around a checkbox or
+ * radio. Links and buttons inside a sentence count too: the guidelines would excuse them, but a
+ * finger needs the room just as much. Each control is also tapped at its center and near the
+ * middle of each edge, by asking the browser what's there: anything else on top would show up.
+ */
 const targets = (page: Page) =>
-	page.evaluate(() =>
-		[
-			...document.querySelectorAll('main [data-task] label'),
-			...document.querySelectorAll('main [data-task] button[aria-label^="Move"]'),
-			...document.querySelectorAll('[role="status"] button'),
-			...document.querySelectorAll('button[aria-label="Clear search"]')
-		]
-			.filter((element) => (element as HTMLElement).checkVisibility())
-			.map((element) => {
-				const box = element.getBoundingClientRect();
-				const name =
-					element.getAttribute('aria-label') ??
-					element.querySelector('input')?.getAttribute('aria-label') ??
-					element.textContent?.trim();
-				return { name, left: box.left, top: box.top, right: box.right, bottom: box.bottom };
-			})
-	);
+	page.evaluate(() => {
+		const dialog = document.querySelector<HTMLDialogElement>('dialog[open]');
+		const scope: ParentNode = dialog ?? document;
+		if (dialog) dialog.scrollTop = 0;
+		else window.scrollTo({ top: 0, behavior: 'instant' });
+		const hitBox = (
+			element: Element
+		): { left: number; top: number; right: number; bottom: number } => {
+			const box = element.getBoundingClientRect();
+			let { left, top, right, bottom } = box;
+			const after = getComputedStyle(element, '::after');
+			if (after.content !== 'none' && after.position === 'absolute') {
+				const [width, height] = [parseFloat(after.width), parseFloat(after.height)];
+				const [x, y] = [(left + right) / 2, (top + bottom) / 2];
+				left = Math.min(left, x - width / 2);
+				right = Math.max(right, x + width / 2);
+				top = Math.min(top, y - height / 2);
+				bottom = Math.max(bottom, y + height / 2);
+			}
+			// A button inside a field (Clear search) takes that end of it.
+			if (element.matches('input')) {
+				const inside = element.parentElement?.querySelector('button');
+				if (inside) right = Math.min(right, hitBox(inside).left);
+			}
+			return { left, top, right, bottom };
+		};
+		const found = [
+			...scope.querySelectorAll(
+				'button, a[href], summary, select, textarea, input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"]), label:has(input[type="checkbox"], input[type="radio"], input[type="file"])'
+			)
+		].filter(
+			(element) =>
+				(element as HTMLElement).checkVisibility() &&
+				!element.matches('.sr-only') &&
+				// Above the page until focused: the link that skips to the list.
+				element.getBoundingClientRect().bottom > 0
+		);
+		const boxes = found.map(hitBox);
+		return found.map((element, index) => {
+			const name =
+				element.getAttribute('aria-label') ??
+				(element as HTMLInputElement).labels?.[0]?.textContent?.trim() ??
+				element.querySelector('input')?.getAttribute('aria-label') ??
+				element.textContent?.trim().replace(/\s+/g, ' ');
+			// Instant: with smooth scrolling the page would still be moving when the points are read.
+			element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+			const { left, top, right, bottom } = hitBox(element);
+			const [x, y] = [(left + right) / 2, (top + bottom) / 2];
+			const points: [number, number][] = [
+				[x, y],
+				[left + 2, y],
+				[right - 2, y],
+				[x, top + 2],
+				[x, bottom - 2]
+			];
+			// What a finger lands on instead, for each point that misses, so a failure says why.
+			const misses = points.flatMap(([pointX, pointY]) => {
+				const hit = document.elementFromPoint(pointX, pointY);
+				if (hit && element.contains(hit)) return [];
+				const where = `${Math.round(pointX)},${Math.round(pointY)}`;
+				if (!hit) return [`nothing at ${where}`];
+				const label = hit.getAttribute('aria-label') ?? hit.textContent?.trim().slice(0, 30);
+				return [`${hit.tagName.toLowerCase()} "${label}" at ${where}`];
+			});
+			return { name, missed: misses.length, misses, ...boxes[index] };
+		});
+	});
 
 type Target = Awaited<ReturnType<typeof targets>>[number];
 
@@ -955,6 +1011,7 @@ function expectRoomy(found: Target[]) {
 	for (const target of found) {
 		expect(target.right - target.left, `${target.name}, wide`).toBeGreaterThanOrEqual(44);
 		expect(target.bottom - target.top, `${target.name}, high`).toBeGreaterThanOrEqual(44);
+		expect(target.misses, `${target.name}, covered or out of reach`).toEqual([]);
 	}
 	for (const [index, one] of found.entries())
 		for (const other of found.slice(index + 1)) {
@@ -964,32 +1021,105 @@ function expectRoomy(found: Target[]) {
 		}
 }
 
-test('gives small controls a 44px target on a touch screen, without overlapping', async ({
+/**
+ * Checks every control in view, after any sliding has finished, that these are among them, and that
+ * none is pushed off the side.
+ */
+async function expectTargets(page: Page, names: string[]) {
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	// Nothing is pushed off the side, where it would need scrolling sideways to reach.
+	const sideways = await page.evaluate(() => {
+		const scope = document.querySelector('dialog[open]') ?? document.documentElement;
+		return scope.scrollWidth - scope.clientWidth;
+	});
+	expect(sideways, 'scrolls sideways').toBeLessThanOrEqual(0);
+	const found = await targets(page);
+	expect(found.map((target) => target.name)).toEqual(expect.arrayContaining(names));
+	expectRoomy(found);
+}
+
+test('gives every control a 44px target on a touch screen, without overlapping', async ({
 	page
 }) => {
 	test.skip(!isPhone(page), 'Only touch screens need the larger targets.');
 	await addTask(page, 'First');
 	await addTask(page, 'Second');
+	await addTask(page, 'Finished');
+	await page.getByRole('checkbox', { name: 'Mark done: Finished' }).click();
 	await expect(notice(page).getByRole('button', { name: 'Undo' })).toBeVisible();
-	await page.waitForFunction(() => document.getAnimations().length === 0);
-	const listed = await targets(page);
-	expect(listed.map((target) => target.name)).toEqual(
-		expect.arrayContaining(['Mark done: First', 'Move up: Second', 'Undo', 'Dismiss'])
-	);
-	expectRoomy(listed);
+	await expectTargets(page, [
+		'Show lists',
+		'Search tasks',
+		'New task',
+		'Mark done: First',
+		'First',
+		'Move up: Second',
+		'Done (1)',
+		'Undo',
+		'Dismiss'
+	]);
+	await notice(page).getByRole('button', { name: 'Dismiss' }).click();
 
-	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('First');
-	await page.waitForFunction(() => document.getAnimations().length === 0);
-	const searching = await targets(page);
-	expect(searching.map((target) => target.name)).toContain('Clear search');
-	expectRoomy(searching);
+	// The lists, with a category and a tag to edit.
+	await addTask(page, 'Tagged #weekend');
+	await page.getByRole('button', { name: 'Show lists' }).click();
+	const sheet = page.getByRole('dialog', { name: 'Lists' });
+	await sheet.getByLabel('New category').fill('Home');
+	await expectTargets(page, [
+		'Close',
+		'New category',
+		'Edit #weekend',
+		'Add category',
+		'Back up and move',
+		'Keyboard shortcuts'
+	]);
+	await sheet.getByLabel('New category').press('Enter');
+	await page.getByRole('button', { name: 'Show lists' }).click();
+	await expectTargets(page, ['Edit Home']);
+	await sheet.getByRole('button', { name: 'Close' }).click();
+
+	// A category, its editor, and a search that finds more elsewhere.
+	await addTask(page, 'Home task');
+	await expectTargets(page, ['Edit Home', 'Mark done: Home task']);
+	await page.getByRole('button', { name: 'Edit Home' }).click();
+	await expectTargets(page, ['Close', 'Teal', '– No color', 'Delete']);
+	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('second');
+	await expectTargets(page, ['Clear search', 'Any', 'Done', '1 more in all tasks']);
 	await page.getByRole('button', { name: 'Clear search' }).click();
 
+	// A task's details, with a tag and a step.
+	await task(page, 'Home task').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	await details.getByLabel('New step').fill('A step');
+	await details.getByLabel('New step').press('Enter');
+	await expectTargets(page, [
+		'Done',
+		'#weekend',
+		'Mark done: A step',
+		'Move up: A step',
+		'Move down: A step',
+		'Make a task of: A step',
+		'Delete step: A step'
+	]);
+	await details.getByRole('button', { name: 'Close' }).click();
+
+	// The other sheets.
+	await expect(await backup(page)).toBeVisible();
+	await expectTargets(page, ['Download a file', 'Make a link', 'Open a file']);
+	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+	await page.getByRole('heading', { level: 1 }).click();
+	await page.keyboard.press('?');
+	await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+	await expectTargets(page, ['Single-key shortcuts']);
+	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+
 	// A tap beside the circle, not on it, still ticks the box.
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('Home task');
 	await page.waitForFunction(() => document.getAnimations().length === 0);
 	const box = (await page.locator('main [data-task] label').first().boundingBox())!;
 	await page.touchscreen.tap(box.x + 3, box.y + 3);
-	await expect(page.getByText('Done (1)')).toBeVisible();
+	await expect(page.getByRole('checkbox', { name: 'Mark not done: Home task' })).toBeChecked();
 });
 
 test('edges the pink Add button, and shows the row under the pointer, in light mode', async ({
