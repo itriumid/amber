@@ -1,7 +1,16 @@
 // What the list shows for each place in the sidebar, as sections of tasks.
 
 import { hasTag, tasksShownIn } from './model/actions';
-import { alive, categoryTree, get, value, type Color, type Records, type Task } from './model/list';
+import {
+	alive,
+	categoryTree,
+	get,
+	indexByTask,
+	value,
+	type Color,
+	type Records,
+	type Task
+} from './model/list';
 import { isSearching, matches, type Search } from './search';
 
 export type View =
@@ -51,8 +60,10 @@ function section(
  */
 export function sectionsFor(records: Records, view: View, search?: Search): Section[] {
 	const searching = search !== undefined && isSearching(search);
+	// Made once for the whole search, not once per task.
+	const index = searching ? indexByTask(records) : undefined;
 	const found = (tasks: Task[]) =>
-		searching ? tasks.filter((task) => matches(records, task, search)) : tasks;
+		searching ? tasks.filter((task) => matches(records, task, search, index)) : tasks;
 	const uncategorized = () =>
 		section(
 			'uncategorized',

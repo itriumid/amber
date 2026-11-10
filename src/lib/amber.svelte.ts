@@ -2,11 +2,20 @@
 // lets the last actions be undone.
 
 import { prefersReducedMotion } from 'svelte/motion';
-import { NEWER_FORMAT_PROBLEM, NEWER_TAB_PROBLEM, SAVE_PROBLEM } from './content';
+import { backups } from './backups.svelte';
+import {
+	NEWER_FORMAT_PROBLEM,
+	NEWER_TAB_PROBLEM,
+	OLDER_TAB_PROBLEM,
+	OPEN_PROBLEM,
+	SAVE_PROBLEM
+} from './content';
 import { Clock } from './model/clock';
 import { FORMAT_VERSION, migrate, readEntity } from './model/format';
 import { updates } from './updates.svelte';
 import {
+	alive,
+	indexByTask,
 	merge,
 	restore,
 	undo as undoChanges,
@@ -20,6 +29,7 @@ import {
 	keepDailySnapshot,
 	keepSnapshot,
 	NewerFormatError,
+	OlderTabError,
 	openList,
 	watchStorage,
 	writeRecords,
@@ -35,6 +45,8 @@ export interface Undoable {
 class Amber {
 	records = $state<Records>({});
 	ready = $state(false);
+	/** Every task's tags and steps, worked out once per change instead of once per task shown. */
+	index = $derived(indexByTask(this.records));
 	readOnly = $state(false);
 	// Raw, not deeply reactive: they're replaced whole, and the notice offers Undo only while it's
 	// the very same entry as the last one in history.
@@ -80,7 +92,8 @@ class Amber {
 			else if (opened.unreadable)
 				this.problem = `${opened.unreadable} saved items couldn't be read. They're kept as they were, not deleted.`;
 		} catch (error) {
-			this.problem = `Amber couldn't open its storage in this browser: ${error instanceof Error ? error.message : error}`;
+			// The browser's own words name its internals, not what to do; this says what to do.
+			this.problem = error instanceof OlderTabError ? OLDER_TAB_PROBLEM : OPEN_PROBLEM;
 		} finally {
 			this.ready = true;
 		}
@@ -147,6 +160,12 @@ class Amber {
 		anchor.download = fileName();
 		anchor.click();
 		setTimeout(() => URL.revokeObjectURL(url), 10_000);
+		backups.downloaded(this.taskCount);
+	}
+
+	/** Tasks in the list, done ones too. */
+	get taskCount() {
+		return alive(this.records, 'task').length;
 	}
 
 	/** Saves the records changes touched. True once they're saved, here or by writing everything back. */

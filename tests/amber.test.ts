@@ -755,3 +755,322 @@ test('says plainly when the list can’t be saved, and offers a copy instead', a
 		.map((record: { fields: { title: { value: string } } }) => record.fields.title.value);
 	expect(titles.sort()).toEqual(['After the clearing', 'Before the clearing']);
 });
+
+test('lists the keyboard shortcuts, and turns the single-key ones off', async ({ page }) => {
+	const quickAdd = page.getByLabel('New task');
+	const search = page.getByRole('searchbox', { name: 'Search tasks' });
+	await expect(quickAdd).toHaveAttribute('aria-keyshortcuts', 'N');
+	await expect(search).toHaveAttribute('aria-keyshortcuts', '/');
+
+	await page.getByRole('heading', { level: 1 }).click();
+	await page.keyboard.press('?');
+	const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+	await expect(sheet.getByText('Move a task up or down')).toBeVisible();
+	await expect(sheet.getByText('Alt with the up or down arrow')).toBeAttached();
+	expect(await axeViolations(page)).toEqual([]);
+	await sheet.getByRole('checkbox', { name: 'Single-key shortcuts' }).uncheck();
+	await sheet.getByRole('button', { name: 'Close' }).click();
+	await expect(quickAdd).not.toHaveAttribute('aria-keyshortcuts');
+
+	// Off stays off after a reload, and none of the single keys does anything.
+	await page.reload();
+	await expect(quickAdd).toBeEnabled();
+	await expect(quickAdd).not.toHaveAttribute('aria-keyshortcuts');
+	await expect(search).not.toHaveAttribute('aria-keyshortcuts');
+	await page.getByRole('heading', { level: 1 }).click();
+	for (const key of ['n', 'N', '/', '?']) await page.keyboard.press(key);
+	await expect(quickAdd).not.toBeFocused();
+	await expect(search).not.toBeFocused();
+	await expect(sheet).toHaveCount(0);
+
+	// The sheet is in the sidebar too, where they're turned back on.
+	const sidebar = await lists(page);
+	await sidebar.page().getByRole('button', { name: 'Keyboard shortcuts' }).last().click();
+	const setting = sheet.getByRole('checkbox', { name: 'Single-key shortcuts' });
+	await expect(setting).not.toBeChecked();
+	await setting.check();
+	await sheet.getByRole('button', { name: 'Close' }).click();
+	await page.getByRole('heading', { level: 1 }).click();
+	await page.keyboard.press('n');
+	await expect(quickAdd).toBeFocused();
+});
+
+test('keeps a search when N is pressed, and says how to add a task', async ({ page }) => {
+	await addTask(page, 'Find the charger');
+	const search = page.getByRole('searchbox', { name: 'Search tasks' });
+	await search.fill('charger');
+	await page.getByRole('heading', { level: 1 }).click();
+	await page.keyboard.press('n');
+	await expect(search).toHaveValue('charger');
+	await expect(search).toBeFocused();
+	await expect(notice(page)).toContainText('Clear the search to add a task');
+	await expect(task(page, 'Find the charger')).toBeVisible();
+});
+
+test('says plainly when storage won’t open, without the browser’s own words', async ({
+	browser
+}) => {
+	const context = await browser.newContext();
+	await context.addInitScript(() => {
+		IDBFactory.prototype.open = () => {
+			throw new DOMException('Opening is turned off for this test.', 'UnknownError');
+		};
+	});
+	const other = await context.newPage();
+	const otherProblems = watchProblems(other);
+	await other.goto('/');
+	await expect(other.getByRole('alert')).toHaveText(
+		"Amber couldn't open its storage in this browser, so your list can't be shown or saved. Reload to try again, or check that this site is allowed to keep data."
+	);
+	expect(otherProblems).toEqual([]);
+	await context.close();
+});
+
+/** What this browser noted about downloading copies, as stored. */
+const storedNote = (page: Page) =>
+	page.evaluate(
+		() =>
+			new Promise<{ since: number; downloadedAt: number | null } | undefined>((resolve, reject) => {
+				const opening = indexedDB.open('amber');
+				opening.onerror = () => reject(opening.error);
+				opening.onsuccess = () => {
+					const database = opening.result;
+					const reading = database
+						.transaction('details', 'readonly')
+						.objectStore('details')
+						.get('backups');
+					reading.onsuccess = () => {
+						database.close();
+						resolve(reading.result);
+					};
+					reading.onerror = () => reject(reading.error);
+				};
+			})
+	);
+
+/** Notes the last download, or the first visit, as 31 days ago: long enough for a reminder. */
+async function longAgo(page: Page, downloaded: boolean) {
+	await expect.poll(() => storedNote(page)).toBeTruthy();
+	await page.evaluate(
+		(downloaded) =>
+			new Promise<void>((resolve, reject) => {
+				const opening = indexedDB.open('amber');
+				opening.onerror = () => reject(opening.error);
+				opening.onsuccess = () => {
+					const database = opening.result;
+					const writing = database.transaction('details', 'readwrite');
+					const since = Date.now() - 31 * 24 * 60 * 60 * 1000;
+					writing
+						.objectStore('details')
+						.put({ downloadedAt: downloaded ? since : null, since, tasks: 1 }, 'backups');
+					writing.oncomplete = () => {
+						database.close();
+						resolve();
+					};
+					writing.onerror = () => reject(writing.error);
+				};
+			}),
+		downloaded
+	);
+	await page.reload();
+	await expect(page.getByLabel('New task')).toBeEnabled();
+}
+
+test('says the copies on this device go with its data, and when a copy was last downloaded', async ({
+	page
+}) => {
+	await addTask(page, 'Keep me');
+	let sheet = await backup(page);
+	await expect(sheet.getByText(/If its data is cleared, they go too/)).toBeVisible();
+	await expect(sheet.getByText('Not downloaded from this browser yet.')).toBeVisible();
+	await Promise.all([
+		page.waitForEvent('download'),
+		sheet.getByRole('button', { name: 'Download a file' }).click()
+	]);
+	await expect(sheet.getByText(/^Last downloaded /)).toBeVisible();
+	await page.reload();
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	sheet = await backup(page);
+	await expect(sheet.getByText(/^Last downloaded /)).toBeVisible();
+});
+
+test('reminds now and then to download a copy, and can be put off', async ({ page }) => {
+	await addTask(page, 'An old task');
+	// A new list isn't reminded about.
+	await expect(page.getByRole('button', { name: 'Not now' })).toHaveCount(0);
+
+	await longAgo(page, false);
+	const never = page.getByText("You haven't downloaded a copy of your list yet.", {
+		exact: false
+	});
+	await expect(never).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
+	await page.getByRole('button', { name: 'Not now' }).click();
+	await expect(never).toHaveCount(0);
+	await expect(page.getByLabel('New task')).toBeFocused();
+	await expect
+		.poll(async () => (await storedNote(page))?.since)
+		.toBeGreaterThan(Date.now() - 60_000);
+	await page.reload();
+	await expect(task(page, 'An old task')).toBeVisible();
+	await expect(never).toHaveCount(0);
+
+	await longAgo(page, true);
+	const since = page.getByText(/^Your last downloaded copy is from /);
+	await expect(since).toBeVisible();
+	await Promise.all([
+		page.waitForEvent('download'),
+		page.getByRole('button', { name: 'Download a copy' }).click()
+	]);
+	await expect(since).toHaveCount(0);
+	await expect
+		.poll(async () => (await storedNote(page))?.downloadedAt)
+		.toBeGreaterThan(Date.now() - 60_000);
+});
+
+/** The edges of small controls, with the space around a checkbox that ticks it too. */
+const targets = (page: Page) =>
+	page.evaluate(() =>
+		[
+			...document.querySelectorAll('main [data-task] label'),
+			...document.querySelectorAll('main [data-task] button[aria-label^="Move"]'),
+			...document.querySelectorAll('[role="status"] button'),
+			...document.querySelectorAll('button[aria-label="Clear search"]')
+		]
+			.filter((element) => (element as HTMLElement).checkVisibility())
+			.map((element) => {
+				const box = element.getBoundingClientRect();
+				const name =
+					element.getAttribute('aria-label') ??
+					element.querySelector('input')?.getAttribute('aria-label') ??
+					element.textContent?.trim();
+				return { name, left: box.left, top: box.top, right: box.right, bottom: box.bottom };
+			})
+	);
+
+type Target = Awaited<ReturnType<typeof targets>>[number];
+
+function expectRoomy(found: Target[]) {
+	expect(found.length).toBeGreaterThan(0);
+	for (const target of found) {
+		expect(target.right - target.left, `${target.name}, wide`).toBeGreaterThanOrEqual(44);
+		expect(target.bottom - target.top, `${target.name}, high`).toBeGreaterThanOrEqual(44);
+	}
+	for (const [index, one] of found.entries())
+		for (const other of found.slice(index + 1)) {
+			const width = Math.min(one.right, other.right) - Math.max(one.left, other.left);
+			const height = Math.min(one.bottom, other.bottom) - Math.max(one.top, other.top);
+			expect(width > 0.5 && height > 0.5, `${one.name} overlaps ${other.name}`).toBe(false);
+		}
+}
+
+test('gives small controls a 44px target on a touch screen, without overlapping', async ({
+	page
+}) => {
+	test.skip(!isPhone(page), 'Only touch screens need the larger targets.');
+	await addTask(page, 'First');
+	await addTask(page, 'Second');
+	await expect(notice(page).getByRole('button', { name: 'Undo' })).toBeVisible();
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	const listed = await targets(page);
+	expect(listed.map((target) => target.name)).toEqual(
+		expect.arrayContaining(['Mark done: First', 'Move up: Second', 'Undo', 'Dismiss'])
+	);
+	expectRoomy(listed);
+
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('First');
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	const searching = await targets(page);
+	expect(searching.map((target) => target.name)).toContain('Clear search');
+	expectRoomy(searching);
+	await page.getByRole('button', { name: 'Clear search' }).click();
+
+	// A tap beside the circle, not on it, still ticks the box.
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	const box = (await page.locator('main [data-task] label').first().boundingBox())!;
+	await page.touchscreen.tap(box.x + 3, box.y + 3);
+	await expect(page.getByText('Done (1)')).toBeVisible();
+});
+
+test('edges the pink Add button, and shows the row under the pointer, in light mode', async ({
+	page
+}) => {
+	await page.emulateMedia({ colorScheme: 'light' });
+	await addTask(page, 'Hover over me');
+	await page.getByLabel('New task').fill('Another');
+	const add = page.getByRole('button', { name: 'Add', exact: true });
+	expect(await add.evaluate((element) => getComputedStyle(element).borderTopColor)).toBe(
+		'rgb(196, 100, 117)'
+	);
+	// Touch screens have no pointer to hover with.
+	if (isPhone(page)) return;
+	const row = page.locator('main [data-task]').first();
+	const edge = () => row.evaluate((element) => getComputedStyle(element).borderTopColor);
+	expect(await edge()).toBe('rgba(0, 0, 0, 0)');
+	await row.hover();
+	await expect.poll(edge).toBe('rgb(228, 228, 228)');
+});
+
+test('fades no shared button under reduced motion', async ({ browser }) => {
+	const page = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+	await page.goto('/');
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	const sheet = await backup(page);
+	const button = sheet.getByRole('button', { name: 'Download a file' });
+	// `transition-none` turns off which properties change, not how long a change would take.
+	expect(await button.evaluate((element) => getComputedStyle(element).transitionProperty)).toBe(
+		'none'
+	);
+	await page.context().close();
+});
+
+/** How much of a checkbox's tick is drawn: its stroke offset (0 when whole) and its drawing's opacity. */
+const tick = (page: Page, name: string) =>
+	page.getByRole('checkbox', { name }).evaluate((box) => {
+		const drawing = box.parentElement!.querySelector('svg')!;
+		const path = drawing.querySelector('path')!;
+		return {
+			offset: getComputedStyle(path).strokeDashoffset,
+			opacity: getComputedStyle(drawing).opacity
+		};
+	});
+
+test('draws the tick when a box is checked, and hides it when not, in both themes', async ({
+	page
+}) => {
+	await addTask(page, 'Tick me');
+	// In the task's details the box stays put when ticked, instead of moving to Done.
+	await task(page, 'Tick me').click();
+	const box = page.getByRole('dialog', { name: 'Task details' }).getByRole('checkbox', {
+		name: 'Done'
+	});
+	const drawn = () =>
+		box.evaluate((input) => {
+			const drawing = input.parentElement!.querySelector('svg')!;
+			return {
+				offset: getComputedStyle(drawing.querySelector('path')!).strokeDashoffset,
+				opacity: getComputedStyle(drawing).opacity,
+				// The tick is graphite on pink: a different color from the fill it sits on.
+				differs: getComputedStyle(drawing).color !== getComputedStyle(input).backgroundColor
+			};
+		});
+	for (const colorScheme of ['light', 'dark'] as const) {
+		await page.emulateMedia({ colorScheme });
+		await expect.poll(drawn).toMatchObject({ offset: '24px', opacity: '0' });
+		await box.check();
+		await expect.poll(drawn).toEqual({ offset: '0px', opacity: '1', differs: true });
+		await box.uncheck();
+	}
+});
+
+test('draws the tick at once under reduced motion', async ({ browser }) => {
+	const page = await (await browser.newContext({ reducedMotion: 'reduce' })).newPage();
+	await page.goto('/');
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	await addTask(page, 'Calm tick');
+	await page.getByRole('checkbox', { name: 'Mark done: Calm tick' }).click();
+	await page.getByText('Done (1)').click();
+	// Read straight away: with no transition the tick is already whole.
+	expect(await tick(page, 'Mark not done: Calm tick')).toEqual({ offset: '0px', opacity: '1' });
+	await page.context().close();
+});

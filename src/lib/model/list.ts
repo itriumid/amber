@@ -201,6 +201,41 @@ export function tagsOf(records: Records, taskIdentifier: string): Tag[] {
 	);
 }
 
+/** Every task's tags and steps, by task identifier, in the same order `tagsOf` and `stepsOf` give. */
+export interface TaskIndex {
+	tags: Map<string, Tag[]>;
+	steps: Map<string, Step[]>;
+}
+
+/**
+ * Every task's tags and steps, found in one pass over the records. Asking `tagsOf` and `stepsOf`
+ * for each task in a list reads every record once per task, so the work grows with the square of
+ * the list; this reads them once per change instead.
+ */
+export function indexByTask(records: Records): TaskIndex {
+	const tagsFound = new Map<string, Tag[]>();
+	const steps = new Map<string, Step[]>();
+	const add = <T>(map: Map<string, T[]>, key: string, item: T) => {
+		const found = map.get(key);
+		if (found) found.push(item);
+		else map.set(key, [item]);
+	};
+	for (const entity of Object.values(records)) {
+		if (isDeleted(entity)) continue;
+		if (isKind(entity, 'step')) add(steps, value(entity, 'taskIdentifier'), entity);
+		else if (isKind(entity, 'tagging') && value(entity, 'on')) {
+			const tag = get(records, value(entity, 'tagIdentifier'), 'tag');
+			if (tag) add(tagsFound, value(entity, 'taskIdentifier'), tag);
+		}
+	}
+	for (const found of steps.values()) found.sort(byOrder);
+	for (const found of tagsFound.values())
+		found.sort((a, b) =>
+			value(a, 'name').localeCompare(value(b, 'name'), undefined, { sensitivity: 'base' })
+		);
+	return { tags: tagsFound, steps };
+}
+
 export function findTag(records: Records, name: string): Tag | undefined {
 	const wanted = name.trim().toLocaleLowerCase();
 	return alive(records, 'tag').find((tag) => value(tag, 'name').toLocaleLowerCase() === wanted);

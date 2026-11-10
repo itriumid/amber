@@ -117,7 +117,7 @@
 			{#if !isNothing(preview)}
 				<button
 					type="button"
-					class="{smallButton} border-transparent bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85"
+					class="{smallButton} border-accent-edge bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85"
 					disabled={busy || amber.readOnly}
 					onclick={bringIn}>Bring it in</button
 				>

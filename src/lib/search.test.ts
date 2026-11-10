@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addCategory, addStep, addTask, setDone, setNotes } from './model/actions';
+import { indexByTask } from './model/list';
 import { fresh } from './model/testing';
 import { fold, highlight, isSearching, matches, parseSearch } from './search';
 
@@ -54,6 +55,16 @@ describe('search', () => {
 		expect(found('the', 'open')).toEqual(['cafe', 'paint']);
 		expect(found('the', 'done')).toEqual(['bank']);
 		expect(found('the')).toEqual(['cafe', 'paint', 'bank']);
+	});
+
+	it('finds the same tasks with the index made once for the whole list', () => {
+		const { records, ...tasks } = list();
+		const index = indexByTask(records);
+		for (const text of ['rollers', '#weekend', 'home', 'savings', 'nothing', '#food cafe']) {
+			const search = parseSearch(text);
+			for (const task of Object.values(tasks))
+				expect(matches(records, task, search, index)).toBe(matches(records, task, search));
+		}
 	});
 
 	it('is only searching once something is typed', () => {

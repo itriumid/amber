@@ -3,7 +3,7 @@
 // and accents don't matter, so "cafe" finds "Café".
 
 import { categoryLabel } from './model/actions';
-import { stepsOf, tagsOf, value, type Records, type Task } from './model/list';
+import { stepsOf, tagsOf, value, type Records, type Task, type TaskIndex } from './model/list';
 
 export type Status = 'any' | 'open' | 'done';
 
@@ -42,17 +42,25 @@ export function isSearching(search: Search): boolean {
 	return search.words.length > 0 || search.tagNames.length > 0;
 }
 
-export function matches(records: Records, task: Task, search: Search): boolean {
+/**
+ * Whether a search finds a task. Searching a whole list passes `index`, made once with
+ * `indexByTask`, so each task's tags and steps are looked up instead of searched for.
+ */
+export function matches(records: Records, task: Task, search: Search, index?: TaskIndex): boolean {
 	const done = value(task, 'done');
 	if ((search.status === 'open' && done) || (search.status === 'done' && !done)) return false;
-	const tags = tagsOf(records, task.identifier).map((tag) => fold(value(tag, 'name')));
+	const tags = (
+		index ? (index.tags.get(task.identifier) ?? []) : tagsOf(records, task.identifier)
+	).map((tag) => fold(value(tag, 'name')));
 	if (!search.tagNames.every((name) => tags.includes(name))) return false;
 	if (!search.words.length) return true;
 	const haystack = fold(
 		[
 			value(task, 'title'),
 			value(task, 'notes'),
-			...stepsOf(records, task.identifier).map((step) => value(step, 'text')),
+			...(index ? (index.steps.get(task.identifier) ?? []) : stepsOf(records, task.identifier)).map(
+				(step) => value(step, 'text')
+			),
 			...tags.map((name) => `#${name}`),
 			categoryLabel(records, task) ?? ''
 		].join('\n')

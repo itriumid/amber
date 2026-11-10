@@ -50,7 +50,7 @@
 
 	const heading = 'mb-1 text-base font-semibold';
 	const hint = 'text-sm text-muted';
-	const primary = `${smallButton} border-transparent bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85`;
+	const primary = `${smallButton} border-accent-edge bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85`;
 
 	const PROBLEMS: Record<Problem, string> = {
 		'too-large': 'This list is too long to sync. Download a file in Back up and move instead.',

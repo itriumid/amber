@@ -51,17 +51,16 @@
 			/>
 		</div>
 
-		<label class="flex items-center gap-3">
+		<div>
 			<Check
 				checked={value(task, 'done')}
 				label="Done"
 				onchange={(checked) =>
 					amber.act(checked ? 'Marked done' : 'Marked not done', (context) =>
 						setDone(context, task, checked)
-					)}
-			/>
-			<span aria-hidden="true">Done</span>
-		</label>
+					)}><span aria-hidden="true">Done</span></Check
+			>
+		</div>
 
 		<div>
 			<label for="task-notes" class={label}>Notes</label>
@@ -153,7 +152,8 @@
 				<ul class="space-y-1">
 					{#each steps as step (step.identifier)}
 						{@const text = value(step, 'text')}
-						<li class="group flex items-center gap-2">
+						<!-- On a touch screen each step is 44px high and spaced out, so the box's wider hit area meets nothing. -->
+						<li class="group flex items-center gap-2 pointer-coarse:min-h-11 pointer-coarse:gap-3">
 							<Check
 								small
 								checked={value(step, 'done')}
