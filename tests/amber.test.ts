@@ -1204,3 +1204,101 @@ test('draws the tick at once under reduced motion', async ({ browser }) => {
 	expect(await tick(page, 'Mark not done: Calm tick')).toEqual({ offset: '0px', opacity: '1' });
 	await page.context().close();
 });
+
+/** Where the message with Undo is on screen: the pill itself, not the full-width region around it. */
+const noticeBox = (page: Page) =>
+	page.evaluate(() => {
+		const pill = document.querySelector('[role="status"].fixed > div')!;
+		const { top, bottom, left, right } = pill.getBoundingClientRect();
+		return { top, bottom, left, right };
+	});
+
+type Box = Awaited<ReturnType<typeof noticeBox>>;
+const intersects = (one: Box, other: Box) =>
+	Math.min(one.right, other.right) > Math.max(one.left, other.left) &&
+	Math.min(one.bottom, other.bottom) > Math.max(one.top, other.top);
+
+/**
+ * The reservation the message makes: the space it covers, the scroll padding that keeps focus clear
+ * of it, the room added at the end, and the footer's padding, which that room adds to.
+ */
+const reservation = (page: Page) =>
+	page.evaluate(() => ({
+		property: document.documentElement.style.getPropertyValue('--notice-room'),
+		footer: parseFloat(getComputedStyle(document.querySelector('footer')!).paddingBottom),
+		padding: getComputedStyle(document.documentElement).scrollPaddingBottom,
+		room: document
+			.querySelector('[role="status"].fixed')!
+			.previousElementSibling!.getBoundingClientRect().height
+	}));
+
+async function longList(page: Page) {
+	for (let number = 1; number <= 30; number++) await addTask(page, `Errand ${number}`);
+	await expect(task(page, 'Errand 30')).toBeVisible();
+	await expect(notice(page).getByRole('button', { name: 'Undo' })).toBeVisible();
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+}
+
+test('keeps focus clear of the message with Undo, and makes room for it at the end', async ({
+	page
+}) => {
+	await longList(page);
+	// Keep the message from timing out while this runs.
+	await notice(page).hover();
+	const pill = await noticeBox(page);
+	const room = await reservation(page);
+	expect(parseFloat(room.property)).toBeGreaterThanOrEqual(pill.bottom - pill.top);
+	expect(room.padding).toBe(room.property);
+	// The footer's padding is room already: only what it lacks is added, never twice.
+	expect(room.room).toBe(Math.max(0, parseFloat(room.property) - room.footer));
+
+	// A row whose top is just above the message, so the one before it is fully in view.
+	const rows = page.locator('main [data-task]');
+	const index = await rows.evaluateAll(
+		(found, top) => found.findIndex((row) => row.getBoundingClientRect().bottom > top),
+		pill.top
+	);
+	expect(index).toBeGreaterThan(0);
+	await rows.nth(index).evaluate((row, top) => {
+		window.scrollBy({ top: row.getBoundingClientRect().top - (top - 2), behavior: 'instant' });
+	}, pill.top);
+	const before = rows.nth(index - 1);
+	await before.getByRole('button', { name: /^Move down/ }).focus();
+	expect(intersects(await rows.nth(index).boundingBox().then(toBox), pill)).toBe(true);
+	await page.keyboard.press('Tab');
+	await expect(rows.nth(index).getByRole('checkbox')).toBeFocused();
+	await expect
+		.poll(async () => intersects((await rows.nth(index).boundingBox().then(toBox))!, pill))
+		.toBe(false);
+
+	// At the end, the last row is fully above the message.
+	await page.evaluate(() =>
+		window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })
+	);
+	const last = (await rows.last().boundingBox().then(toBox))!;
+	expect(last.bottom).toBeLessThanOrEqual(pill.top);
+
+	// Closing it there moves nothing; the room goes once it's scrolled out of sight.
+	const scrolled = await page.evaluate(() => window.scrollY);
+	await notice(page).getByRole('button', { name: 'Dismiss' }).click();
+	await expect(notice(page)).toBeEmpty();
+	expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+	await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+	await expect
+		.poll(() => reservation(page))
+		.toEqual(expect.objectContaining({ property: '', padding: '0px', room: 0 }));
+});
+
+test('gives the room back when the message goes, away from the end', async ({ page }) => {
+	await longList(page);
+	await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+	expect(parseFloat((await reservation(page)).property)).toBeGreaterThan(0);
+	await notice(page).getByRole('button', { name: 'Dismiss' }).click();
+	await expect
+		.poll(() => reservation(page))
+		.toEqual(expect.objectContaining({ property: '', padding: '0px', room: 0 }));
+});
+
+function toBox(box: { x: number; y: number; width: number; height: number } | null) {
+	return box && { top: box.y, bottom: box.y + box.height, left: box.x, right: box.x + box.width };
+}
