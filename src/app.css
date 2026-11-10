@@ -80,6 +80,9 @@ html {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	scroll-behavior: smooth;
+	/* While the message with Undo shows, the space it covers at the bottom (set by Notice.svelte), so
+	   whatever gets focus is scrolled clear of it, not behind it. */
+	scroll-padding-bottom: var(--notice-room, 0px);
 	/* No double-tap zoom, so taps land at once; pinching to zoom still works. */
 	touch-action: manipulation;
 }
