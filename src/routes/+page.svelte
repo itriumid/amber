@@ -8,16 +8,19 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
+	import ShortcutsSheet from '#lib/components/ShortcutsSheet.svelte';
 	import Sidebar from '#lib/components/Sidebar.svelte';
 	import TagEditor from '#lib/components/TagEditor.svelte';
 	import TaskDetails from '#lib/components/TaskDetails.svelte';
 	import TaskRow from '#lib/components/TaskRow.svelte';
 	import Seo from '#lib/Seo.svelte';
 	import {
+		backupReminder,
 		DESCRIPTION,
 		DOWNLOAD_COPY,
 		FOOTNOTE,
 		MAIN_SITE_URL,
+		NOT_NOW,
 		PROMISE,
 		PROMISE_DETAIL,
 		SOURCE_URL,
@@ -28,6 +31,9 @@
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, smallButton } from '#lib/styles.js';
+	import { backups } from '#lib/backups.svelte.js';
+	import { rescueFocus } from '#lib/focus.js';
+	import { settings } from '#lib/settings.svelte.js';
 	import { install, type Way } from '#lib/install.svelte.js';
 	import { updates } from '#lib/updates.svelte.js';
 	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
@@ -40,6 +46,7 @@
 	let openTag = $state<string | undefined>();
 	let listsOpen = $state(false);
 	let backupOpen = $state(false);
+	let shortcutsOpen = $state(false);
 	let syncOpen = $state(false);
 	let syncCode = $state<string>();
 	let bringing = $state<Source>();
@@ -61,7 +68,8 @@
 	let searchField: HTMLInputElement | undefined = $state();
 
 	onMount(() => {
-		void amber.open();
+		void settings.load();
+		void amber.open().then(() => backups.load(amber.taskCount));
 		updates.watch();
 		install.watch();
 	});
@@ -132,6 +140,25 @@
 	);
 	const duration = $derived(amber.reducedMotion ? 0 : 200);
 
+	// Now and then, a reminder to download a copy: the copies kept here go if the browser's data is
+	// cleared. Not over a problem, which has its own way forward.
+	const backupDue = $derived(
+		amber.ready && !amber.problem && !amber.readOnly && backups.isDue(amber.taskCount)
+	);
+	const lastDownloaded = $derived(
+		backups.note?.downloadedAt
+			? new Intl.DateTimeFormat(undefined, { dateStyle: 'long' }).format(backups.note.downloadedAt)
+			: undefined
+	);
+
+	/** The reminder goes once answered; focus, which was on its button, stays nearby. */
+	async function answerReminder(download: boolean) {
+		if (download) await amber.downloadCopy();
+		else backups.dismiss(amber.taskCount);
+		await tick();
+		rescueFocus();
+	}
+
 	function select(next: View) {
 		view = next;
 		listsOpen = false;
@@ -161,15 +188,30 @@
 		if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
 			event.preventDefault();
 			amber.undo();
-		} else if (event.key === 'n' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+			return;
+		}
+		// Single keys (N, / and ?) can be turned off in Keyboard shortcuts: pressed by mistake, or
+		// heard by speech input as a word, they'd do something nobody asked for.
+		if (!settings.singleKeyShortcuts || event.metaKey || event.ctrlKey || event.altKey) return;
+		if (event.key.toLowerCase() === 'n') {
 			event.preventDefault();
-			if (searching) query = '';
-			// Quick add is back once the search is cleared and the page has updated.
-			void tick().then(() => quickAdd?.focus());
-		} else if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+			// Quick add is hidden while searching. The search stays as typed: it's said how to get back.
+			if (searching) {
+				searchField?.focus();
+				amber.notice = { message: 'Clear the search to add a task', changes: [] };
+			} else quickAdd?.focus();
+		} else if (event.key === '/') {
 			event.preventDefault();
 			searchField?.focus();
+		} else if (event.key === '?') {
+			event.preventDefault();
+			shortcutsOpen = true;
 		}
+	}
+
+	function openShortcuts() {
+		listsOpen = false;
+		shortcutsOpen = true;
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
@@ -205,10 +247,11 @@
 					type="search"
 					bind:this={searchField}
 					bind:value={query}
-					class="{field} pr-10 pl-9 [&::-webkit-search-cancel-button]:appearance-none"
+					class="{field} pr-10 pl-9 pointer-coarse:pr-12 [&::-webkit-search-cancel-button]:appearance-none"
 					placeholder="Search"
 					autocomplete="off"
 					enterkeyhint="search"
+					aria-keyshortcuts={settings.singleKeyShortcuts ? '/' : undefined}
 					disabled={!amber.ready}
 					onkeydown={(event) => {
 						if (event.key === 'Escape' && query) {
@@ -220,7 +263,7 @@
 				{#if query}
 					<button
 						type="button"
-						class="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-text"
+						class="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-text pointer-coarse:right-px pointer-coarse:size-11"
 						aria-label="Clear search"
 						onclick={() => {
 							query = '';
@@ -249,6 +292,7 @@
 					onbackup={() => (backupOpen = true)}
 					onsync={openSync}
 					oninstall={offerInstall}
+					onshortcuts={openShortcuts}
 				/>
 			{/if}
 		</aside>
@@ -279,7 +323,7 @@
 						<p>A new version of Amber is ready.</p>
 						<button
 							type="button"
-							class="min-h-9 rounded-full bg-accent px-4 font-semibold text-on-accent hover:opacity-85"
+							class="min-h-9 rounded-full border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85"
 							onclick={() => updates.apply()}>Update</button
 						>
 					</div>
@@ -296,6 +340,22 @@
 							onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
 						>
 					{/if}
+				</div>
+			{/if}
+
+			{#if backupDue}
+				<div
+					class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
+				>
+					<p class="min-w-0 flex-[1_1_16rem]">{backupReminder(lastDownloaded)}</p>
+					<div class="flex flex-wrap gap-2">
+						<button type="button" class={smallButton} onclick={() => void answerReminder(true)}
+							>{DOWNLOAD_COPY}</button
+						>
+						<button type="button" class={smallButton} onclick={() => void answerReminder(false)}
+							>{NOT_NOW}</button
+						>
+					</div>
 				</div>
 			{/if}
 
@@ -338,13 +398,14 @@
 							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
 							placeholder="Add a task"
 							aria-describedby="quick-add-hint"
+							aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
 							maxlength={LIMITS.title + 200}
 							autocomplete="off"
 							disabled={!amber.ready || amber.readOnly}
 						/>
 						<button
 							type="submit"
-							class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50 motion-reduce:transition-none"
+							class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-accent-edge bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50 motion-reduce:transition-none"
 							disabled={!newTask.trim()}
 						>
 							<Icon name="plus" /> Add
@@ -472,9 +533,11 @@
 			}}
 			onsync={openSync}
 			oninstall={offerInstall}
+			onshortcuts={openShortcuts}
 		/>
 	{/if}
 </Sheet>
+<ShortcutsSheet open={shortcutsOpen} onclose={() => (shortcutsOpen = false)} />
 
 <TaskDetails identifier={openTask} onclose={() => (openTask = undefined)} />
 <CategoryEditor

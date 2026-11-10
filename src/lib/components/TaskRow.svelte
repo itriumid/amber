@@ -5,7 +5,7 @@
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
 	import { categoryLabel, moveTask, setDone } from '#lib/model/actions.js';
-	import { stepsOf, tagsOf, value, type Task } from '#lib/model/list.js';
+	import { value, type Task } from '#lib/model/list.js';
 	import { tick } from 'svelte';
 	import { isShown } from '#lib/focus.js';
 	import { highlight } from '#lib/search.js';
@@ -30,8 +30,10 @@
 	const title = $derived(value(task, 'title'));
 	const done = $derived(value(task, 'done'));
 	const doneAt = $derived(value(task, 'doneAt'));
-	const tags = $derived(tagsOf(amber.records, task.identifier));
-	const steps = $derived(stepsOf(amber.records, task.identifier));
+	// Looked up in the index made once per change: searching the records here, in every row, would
+	// grow with the square of the list.
+	const tags = $derived(amber.index.tags.get(task.identifier) ?? []);
+	const steps = $derived(amber.index.steps.get(task.identifier) ?? []);
 	const stepsDone = $derived(steps.filter((step) => value(step, 'done')).length);
 	const category = $derived(showCategory ? categoryLabel(amber.records, task) : undefined);
 	const hasNotes = $derived(value(task, 'notes').trim().length > 0);
@@ -78,11 +80,12 @@
 	}
 </script>
 
+<!-- Hovered, the row shows as a card, with an edge: on the light page, white alone barely shows. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={row}
 	data-task={task.identifier}
-	class="group flex flex-wrap items-start gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface"
+	class="group flex flex-wrap items-start gap-3 rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface motion-reduce:transition-none"
 	{onkeydown}
 >
 	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead. -->
@@ -138,13 +141,13 @@
 		>
 			<button
 				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 				aria-label="Move up: {title}"
 				onclick={() => move(-1)}><Icon name="up" /></button
 			>
 			<button
 				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text"
+				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 				aria-label="Move down: {title}"
 				onclick={() => move(1)}><Icon name="down" /></button
 			>

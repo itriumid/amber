@@ -3,7 +3,8 @@
 //
 // One database, three stores:
 // - `records`: every record of the list, as Amber's format describes it.
-// - `details`: this browser's device identifier, and the format version the records are in.
+// - `details`: this browser's device identifier, the format version the records are in, and what
+//   this browser remembers for itself (a setting, when a copy was last downloaded).
 // - `snapshots`: whole copies kept before anything risky (a format upgrade, an import), so it can be
 //   put back.
 //
@@ -47,6 +48,13 @@ function done(transaction: IDBTransaction): Promise<void> {
 export class NewerFormatError extends Error {
 	constructor() {
 		super('The list was saved by a newer version of Amber.');
+	}
+}
+
+/** Opening waits on another tab, running an older Amber, that holds the database open. */
+export class OlderTabError extends Error {
+	constructor() {
+		super('Amber is open in another tab with an older version.');
 	}
 }
 
@@ -123,8 +131,7 @@ function database(): Promise<IDBDatabase> {
 			opening = undefined;
 			reject(open.error);
 		};
-		open.onblocked = () =>
-			reject(new Error('Amber is open in another tab with an older version. Close it and reload.'));
+		open.onblocked = () => reject(new OlderTabError());
 	});
 	return opening;
 }
@@ -358,6 +365,23 @@ export async function listSnapshots(): Promise<Snapshot[]> {
 		});
 	});
 	return snapshots.reverse();
+}
+
+/**
+ * Something this browser remembers for itself, beside its device identifier: a setting, or when a
+ * copy was last downloaded. Never part of the list, so it isn't synced, copied or brought in.
+ */
+export async function readDetail(name: string): Promise<unknown> {
+	const opened = await database();
+	return request(opened.transaction('details', 'readonly').objectStore('details').get(name));
+}
+
+export async function writeDetail(name: string, detail: unknown) {
+	const opened = await database();
+	const transaction = opened.transaction('details', 'readwrite');
+	transaction.objectStore('details').put(detail, name);
+	transaction.commit();
+	await done(transaction);
 }
 
 /** Asks the browser to keep Amber's storage even when space runs low. Whether it does is up to it. */

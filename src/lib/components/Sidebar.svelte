@@ -16,7 +16,8 @@
 		onedittag,
 		onbackup,
 		onsync,
-		oninstall
+		oninstall,
+		onshortcuts
 	}: {
 		view: View;
 		onselect: (view: View) => void;
@@ -25,6 +26,7 @@
 		onbackup: () => void;
 		onsync: () => void;
 		oninstall: () => void;
+		onshortcuts: () => void;
 	} = $props();
 
 	const tree = $derived(categoryTree(amber.records));
@@ -193,5 +195,9 @@
 	<button type="button" class={quiet} onclick={onbackup}>
 		<Icon name="archive" />
 		Back up and move
+	</button>
+	<button type="button" class={quiet} onclick={onshortcuts}>
+		<Icon name="keyboard" />
+		Keyboard shortcuts
 	</button>
 </div>

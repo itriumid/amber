@@ -25,4 +25,16 @@ export const NEWER_TAB_PROBLEM =
 	'A newer version of Amber is open in another tab, so this one can show your list but not change it. Reload to update.';
 export const SAVE_PROBLEM =
 	"This browser stopped letting Amber save your list, so your latest changes aren't kept here. Download a copy to keep them safe.";
+export const OPEN_PROBLEM =
+	"Amber couldn't open its storage in this browser, so your list can't be shown or saved. Reload to try again, or check that this site is allowed to keep data.";
+export const OLDER_TAB_PROBLEM =
+	'Amber is open in another tab with an older version. Close it and reload.';
 export const DOWNLOAD_COPY = 'Download a copy';
+
+// A reminder to download a copy, now and then: the copies Amber keeps by itself are in this
+// browser too, and go with it.
+export const backupReminder = (lastDownloaded: string | undefined) =>
+	lastDownloaded
+		? `Your last downloaded copy is from ${lastDownloaded}. If this browser's data is cleared, anything newer goes with it.`
+		: "You haven't downloaded a copy of your list yet. If this browser's data is cleared, the list goes with it.";
+export const NOT_NOW = 'Not now';

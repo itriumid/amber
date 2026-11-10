@@ -2,6 +2,7 @@
      this device keeps by itself. Nothing here leaves the browser unless someone takes it. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
+	import { backups } from '#lib/backups.svelte.js';
 	import { isLink, LINK_PREFIX } from '#lib/links.js';
 	import { listSnapshots, type Snapshot } from '#lib/storage.js';
 	import { field, label, smallButton } from '#lib/styles.js';
@@ -74,6 +75,7 @@
 			anchor.download = fileName();
 			anchor.click();
 			setTimeout(() => URL.revokeObjectURL(url), 10_000);
+			backups.downloaded(amber.taskCount);
 		} finally {
 			busy = false;
 		}
@@ -83,6 +85,7 @@
 		busy = true;
 		try {
 			await navigator.share({ files: [await file()], title: 'Amber' });
+			backups.downloaded(amber.taskCount);
 		} catch {
 			// Closing the share sheet without picking anything lands here too; there's nothing to say.
 		} finally {
@@ -165,6 +168,13 @@
 		<h3 id="{prefix}-file" class={heading}>Keep a copy</h3>
 		<p class={hint}>
 			Download your list as a file, to keep somewhere safe or open on another device.
+		</p>
+		<p class="mt-2 text-sm">
+			{#if backups.note?.downloadedAt}
+				Last downloaded {when.format(backups.note.downloadedAt)}.
+			{:else}
+				Not downloaded from this browser yet.
+			{/if}
 		</p>
 		<div class="mt-3 flex flex-wrap gap-2">
 			<button type="button" class={smallButton} disabled={busy} onclick={download}>
@@ -264,6 +274,10 @@
 			Amber keeps a copy each day, and before anything that changes a lot at once. Putting one back
 			can be undone too.
 		</p>
+		<p class="mt-2 text-sm">
+			These copies are in this browser, with your list. If its data is cleared, they go too, so
+			download a file as well.
+		</p>
 		{#if snapshots.length}
 			<ul class="mt-3 divide-y divide-border">
 				{#each snapshots as snapshot (snapshot.key)}
@@ -302,7 +316,7 @@
 									<div class="mt-3 flex gap-2">
 										<button
 											type="button"
-											class="{smallButton} border-transparent bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85"
+											class="{smallButton} border-accent-edge bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85"
 											onclick={() => putBack(snapshot)}>Put it back</button
 										>
 										<button
