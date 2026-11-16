@@ -477,6 +477,10 @@
 								: ` in ${heading}`}.
 						{:else if view.kind === 'all'}
 							Nothing here yet. Add your first task above.
+							<span class="mt-2 block text-sm">
+								Keeping a bucket list? Make a category and choose Bucket list: what you achieve
+								stays, with the date.
+							</span>
 							{#if install.installed && install.apple}
 								<span class="mt-2 block text-sm">
 									Have a list in Safari? Make a link there in Back up and move, and paste it in

@@ -150,6 +150,25 @@ test("keeps a task's name when it's emptied, and says why", async ({ page }) => 
 	await expect(name).toHaveAccessibleDescription('A task needs a name, so the one it had is kept.');
 });
 
+test('offers a bucket list as a category is started, and names what a sheet edits', async ({
+	page
+}) => {
+	// The first thing seen says bucket lists exist.
+	await expect(page.getByText(/Keeping a bucket list\?/)).toBeVisible();
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').focus();
+	await expect(sidebar.getByRole('radio', { name: 'Bucket list' })).toBeVisible();
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Fix the gate');
+	await page.getByRole('button', { name: 'Edit Home' }).first().click();
+	await expect(page.getByRole('dialog', { name: 'Category: Home' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	// A lone search result still says where it is.
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('gate');
+	await expect(page.getByRole('heading', { level: 2, name: /Home/ })).toBeVisible();
+});
+
 test('deletes a category but keeps its tasks', async ({ page }) => {
 	const sidebar = await lists(page);
 	await sidebar.getByLabel('New category').fill('Home');

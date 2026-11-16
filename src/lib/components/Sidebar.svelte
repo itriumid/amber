@@ -137,7 +137,7 @@
 			{/each}
 		</ul>
 		<form
-			class="mt-2"
+			class="group/new mt-2"
 			onsubmit={(event) => {
 				event.preventDefault();
 				const made = amber.act('Category added', (context) =>
@@ -166,12 +166,12 @@
 					disabled={!newCategory.trim()}><Icon name="plus" class="size-4" />Add</button
 				>
 			</div>
-			<!-- Asked as the category is made, since it's what a bucket list is: once there's a name. -->
-			{#if newCategory.trim()}
-				<div class="mt-3 px-1">
-					<ListKind bucket={newBucket} onchange={(bucket) => (newBucket = bucket)} />
-				</div>
-			{/if}
+			<!-- Asked as the category is made, since it's what a bucket list is: shown as soon as the
+			     field has focus, so the choice is seen before a name is thought of, and kept once there's
+			     a name. -->
+			<div class="mt-3 {newCategory.trim() ? '' : 'hidden group-focus-within/new:block'}">
+				<ListKind bucket={newBucket} onchange={(bucket) => (newBucket = bucket)} />
+			</div>
 		</form>
 	</div>
 
