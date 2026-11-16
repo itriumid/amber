@@ -320,7 +320,7 @@
 			<div role="status">
 				{#if updates.ready}
 					<div
-						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface p-3 text-sm"
+						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
 						transition:slide={{ duration }}
 					>
 						<p>A new version of Amber is ready.</p>
@@ -334,15 +334,19 @@
 			</div>
 
 			{#if amber.problem}
-				<div class="mt-4 rounded-lg border-l-4 border-accent-edge bg-surface p-3 text-sm">
-					<p role="alert">{amber.problem}</p>
-					{#if amber.unsaved}
-						<button
-							type="button"
-							class="mt-3 {smallButton}"
-							onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
-						>
-					{/if}
+				<!-- A problem gets the stronger control edge and a sign, apart from the calmer notes. -->
+				<div class="mt-4 flex gap-3 rounded-lg border border-control-border bg-surface p-3 text-sm">
+					<Icon name="alert" class="mt-0.5 size-4 shrink-0" />
+					<div class="min-w-0">
+						<p role="alert">{amber.problem}</p>
+						{#if amber.unsaved}
+							<button
+								type="button"
+								class="mt-3 {smallButton}"
+								onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
+							>
+						{/if}
+					</div>
 				</div>
 			{/if}
 
