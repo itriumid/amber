@@ -92,21 +92,28 @@ test('moves a task with Alt and the arrow keys', async ({ page }) => {
 	await expect(titles).toHaveText([/Third/, /First/, /Second/]);
 });
 
-test('keeps done tasks in view, with their date, in a bucket-list category', async ({ page }) => {
+test('keeps achieved dreams on a shelf, with their date, in a bucket list', async ({ page }) => {
 	const sidebar = await lists(page);
 	await sidebar.getByLabel('New category').fill('Bucket list');
 	await sidebar.getByLabel('New category').press('Enter');
 	await expect(page.getByRole('heading', { level: 1, name: 'Bucket list' })).toBeVisible();
 	await page.getByRole('button', { name: 'Edit Bucket list' }).first().click();
-	await page.getByRole('checkbox', { name: /Keep done tasks in view/ }).check();
+	const editor = page.getByRole('dialog');
+	await editor.locator('label', { has: page.getByRole('radio', { name: 'Bucket list' }) }).click();
+	await expect(editor.getByRole('radio', { name: 'Bucket list' })).toBeChecked();
+	await expect(editor.getByText('Achieved ones are kept, with the date.')).toBeVisible();
 	// The radio itself is visually hidden; people click its swatch.
-	await page.locator('label', { has: page.getByRole('radio', { name: 'Teal' }) }).click();
-	await expect(page.getByRole('radio', { name: 'Teal' })).toBeChecked();
-	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+	await editor.locator('label', { has: page.getByRole('radio', { name: 'Teal' }) }).click();
+	await expect(editor.getByRole('radio', { name: 'Teal' })).toBeChecked();
+	await editor.getByRole('button', { name: 'Close' }).click();
 	await addTask(page, 'See the northern lights');
+	await addTask(page, 'Learn to sail');
 	await page.getByRole('checkbox', { name: 'Mark done: See the northern lights' }).check();
-	await expect(page.getByText(/^Done \w+ \d+, \d{4}$|^Done \d+ \w+ \d{4}$/)).toBeVisible();
+	// Not folded into Done: on the Achieved shelf, with the date.
+	await expect(page.getByRole('heading', { name: 'Achieved (1)' })).toBeVisible();
+	await expect(page.getByText(/^Achieved \w+ \d+, \d{4}$|^Achieved \d+ \w+ \d{4}$/)).toBeVisible();
 	await expect(page.getByText('Done (1)')).toHaveCount(0);
+	await expect(task(page, 'Learn to sail')).toBeVisible();
 });
 
 test('adds steps to a task, and turns one into a task', async ({ page }) => {

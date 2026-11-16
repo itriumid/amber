@@ -485,7 +485,25 @@
 									</li>
 								{/each}
 							</ul>
-							{#if section.done.length}
+							{#if section.done.length && section.bucket}
+								<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
+								     newest first, with the date, never folded away. -->
+								<section class="mt-6" aria-labelledby="achieved-{section.key}">
+									<h3
+										id="achieved-{section.key}"
+										class="mb-2 px-2 text-xs font-semibold tracking-wider text-muted uppercase"
+									>
+										Achieved ({section.done.length})
+									</h3>
+									<ul>
+										{#each section.done as task (task.identifier)}
+											<li transition:slide={{ duration }}>
+												<TaskRow {task} achieved movable={false} onopen={openDetails} />
+											</li>
+										{/each}
+									</ul>
+								</section>
+							{:else if section.done.length}
 								<details class="group mt-2">
 									<summary
 										class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text {touchTarget}"

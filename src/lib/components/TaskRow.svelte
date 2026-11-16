@@ -19,6 +19,7 @@
 		showCategory = false,
 		words = [],
 		movable = true,
+		achieved = false,
 		onopen
 	}: {
 		task: Task;
@@ -26,6 +27,8 @@
 		/** Search words to mark in the title. */
 		words?: string[];
 		movable?: boolean;
+		/** On a bucket list's Achieved shelf: done, said as achieved. */
+		achieved?: boolean;
 		onopen: (task: Task) => void;
 	} = $props();
 
@@ -141,7 +144,9 @@
 			</button>
 			{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
 				<div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-					{#if done && doneAt}<span>Done {dateFormat.format(doneAt)}</span>{/if}
+					{#if done && doneAt}<span
+							>{achieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
+						>{/if}
 					{#if category}<span>{category}</span>{/if}
 					{#each tags as tag (tag.identifier)}
 						{@const color = value(tag, 'color')}

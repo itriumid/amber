@@ -25,11 +25,11 @@ export interface Section {
 	color: Color | null;
 	/** Where quick add puts new tasks for this section, and where moving happens. */
 	categoryIdentifier: string | null;
-	/** Bucket-list style: done tasks stay in place, with their date. */
-	keepDone: boolean;
-	/** Tasks shown in the main list, in order (done ones too, when `keepDone`). */
+	/** A bucket list: its done tasks are achieved dreams, shown on a shelf of their own, not folded away. */
+	bucket: boolean;
+	/** Tasks shown in the main list, in order (done ones too, while searching). */
 	shown: Task[];
-	/** Done tasks tucked away below, newest first (empty when `keepDone`). */
+	/** Done tasks below the list, newest first (empty while searching). */
 	done: Task[];
 }
 
@@ -40,7 +40,9 @@ function section(
 	title: string,
 	color: Color | null,
 	categoryIdentifier: string | null,
-	keepDone: boolean,
+	/** While searching, done tasks stay in place: a search for done tasks shouldn't hide them. */
+	inPlace: boolean,
+	bucket: boolean,
 	tasks: Task[]
 ): Section {
 	return {
@@ -48,9 +50,9 @@ function section(
 		title,
 		color,
 		categoryIdentifier,
-		keepDone,
-		shown: keepDone ? tasks : tasks.filter((task) => !value(task, 'done')),
-		done: keepDone ? [] : tasks.filter((task) => value(task, 'done')).sort(newestDone)
+		bucket,
+		shown: inPlace ? tasks : tasks.filter((task) => !value(task, 'done')),
+		done: inPlace ? [] : tasks.filter((task) => value(task, 'done')).sort(newestDone)
 	};
 }
 
@@ -71,6 +73,7 @@ export function sectionsFor(records: Records, view: View, search?: Search): Sect
 			null,
 			null,
 			searching,
+			false,
 			found(tasksShownIn(records, null))
 		);
 	const forCategory = (identifier: string, prefix = '') => {
@@ -80,7 +83,8 @@ export function sectionsFor(records: Records, view: View, search?: Search): Sect
 			prefix + value(category, 'name'),
 			value(category, 'color'),
 			identifier,
-			searching || value(category, 'keepDone'),
+			searching,
+			value(category, 'keepDone'),
 			found(tasksShownIn(records, identifier))
 		);
 	};
@@ -91,7 +95,15 @@ export function sectionsFor(records: Records, view: View, search?: Search): Sect
 		if (!tag) return [];
 		const tasks = found(alive(records, 'task').filter((task) => hasTag(records, task, tag)));
 		return [
-			section(tag.identifier, `#${value(tag, 'name')}`, value(tag, 'color'), null, searching, tasks)
+			section(
+				tag.identifier,
+				`#${value(tag, 'name')}`,
+				value(tag, 'color'),
+				null,
+				searching,
+				false,
+				tasks
+			)
 		];
 	}
 	const tree = categoryTree(records);
