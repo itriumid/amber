@@ -303,12 +303,6 @@
 				{/if}
 			</div>
 		</search>
-		<a
-			href={MAIN_SITE_URL}
-			rel="external"
-			class="hidden shrink-0 text-sm text-muted transition-colors hover:text-text sm:block"
-			>by Itrium</a
-		>
 	</header>
 
 	<div class="grid flex-1 gap-8 md:grid-cols-[15rem_1fr]">
@@ -581,7 +575,13 @@
 		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE}</p>
 		<p class="mt-1">{SYNC_NOTE}</p>
 		<p class="mt-4">
-			{FOOTNOTE}
+			{FOOTNOTE.before}
+			<a
+				href={MAIN_SITE_URL}
+				rel="external"
+				class="relative inline-block underline underline-offset-4 hover:text-text {touchTarget}"
+				>{FOOTNOTE.name}</a
+			>{FOOTNOTE.after}
 			<a
 				href={SOURCE_URL}
 				rel="external"

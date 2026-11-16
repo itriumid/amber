@@ -16,7 +16,8 @@ export const STORAGE_NOTE =
 	'Your lists live in this browser. Clearing its data for this site deletes them, so keep a copy of anything that matters.';
 export const SYNC_NOTE =
 	'Syncing with another device passes an encrypted copy through our server for a few minutes, and only your devices can open it.';
-export const FOOTNOTE = 'Made by Itrium.';
+// "Made by Itrium.", with Itrium linking to its site: the one link to it, kept out of the app's header.
+export const FOOTNOTE = { before: 'Made by', name: 'Itrium', after: '.' };
 
 // Problems with storage, shown above the list.
 export const NEWER_FORMAT_PROBLEM =
