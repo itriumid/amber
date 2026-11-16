@@ -19,8 +19,6 @@ export const smallButton = `relative inline-flex min-h-9 items-center justify-ce
 export const touchText = 'pointer-coarse:text-base';
 export const field = `w-full rounded-lg border border-control-border bg-bg px-3 py-2.5 text-sm ${touchText} text-text placeholder:text-muted`;
 export const label = 'mb-1.5 block text-sm font-medium';
-export const card = 'rounded-2xl border border-border bg-surface p-5 sm:p-6';
-export const cardHeading = 'mb-4 text-lg font-semibold';
 /** A framed label, as on a specimen drawer: the names of sections and shelves. */
 export const labelPlate =
 	'inline-flex items-center gap-1.5 rounded-sm border border-control-border px-2 py-0.5 text-[0.6875rem] font-semibold tracking-widest text-muted uppercase';
