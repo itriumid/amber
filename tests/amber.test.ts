@@ -1082,7 +1082,7 @@ test('gives every control a 44px target on a touch screen, without overlapping',
 	await addTask(page, 'Home task');
 	await expectTargets(page, ['Edit Home', 'Mark done: Home task']);
 	await page.getByRole('button', { name: 'Edit Home' }).click();
-	await expectTargets(page, ['Close', 'Teal', '– No color', 'Delete']);
+	await expectTargets(page, ['Close', 'Teal', '– No color', 'Delete category']);
 	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
 	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('second');
 	await expectTargets(page, ['Clear search', 'Any', 'Done', '1 more in all tasks']);
