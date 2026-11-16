@@ -12,7 +12,8 @@
 		edit: 'M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4',
 		notes: 'M6 4h9l3 3v13H6zM9 11h6M9 15h6',
 		steps: 'M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2',
-		promote: 'M12 19V5M6 11l6-6 6 6',
+		// A task's round box with a plus: a new task, made of the step.
+		promote: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 8v8M8 12h8',
 		tag: 'M4 4h7l9 9-7 7-9-9V4zM8 8h.01',
 		check: 'M5 12l5 5L19 7',
 		search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',

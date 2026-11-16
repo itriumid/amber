@@ -66,7 +66,7 @@
 			<label for="task-notes" class={label}>Notes</label>
 			<textarea
 				id="task-notes"
-				class="{field} min-h-28 resize-y"
+				class="{field} field-sizing-content max-h-80 min-h-20 resize-y"
 				value={value(task, 'notes')}
 				maxlength={LIMITS.notes}
 				onchange={(event) =>
@@ -108,7 +108,7 @@
 							type="button"
 							aria-pressed={on}
 							class="relative inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors motion-reduce:transition-none {touchTarget} {on
-								? 'border-accent-edge bg-accent font-medium text-on-accent'
+								? 'border-text bg-text font-medium text-bg'
 								: 'border-control-border hover:bg-bg'}"
 							onclick={() =>
 								amber.act(
@@ -146,8 +146,10 @@
 			</form>
 		</fieldset>
 
-		<!-- A fieldset is as wide as its content by default; this one fits the sheet, and the step's
-		     text shrinks instead, so the buttons stay in view. -->
+		<!-- A fieldset is as wide as its content by default; this one fits the sheet. A step's text keeps
+		     at least 12rem: where that and the buttons don't fit, as on a phone or with large text, the
+		     buttons move to a line of their own instead of squeezing it. Alt with the up or down arrow
+		     moves a step, as it moves a task. -->
 		<fieldset class="min-w-0">
 			<legend class={label}>Steps <span class="font-normal text-muted">(optional)</span></legend>
 			{#if steps.length}
@@ -155,39 +157,53 @@
 					{#each steps as step (step.identifier)}
 						{@const text = value(step, 'text')}
 						<!-- On a touch screen each step is 44px high and spaced out, so the box's wider hit area meets nothing. -->
-						<li class="group flex items-center gap-2 pointer-coarse:min-h-11 pointer-coarse:gap-3">
-							<Check
-								small
-								checked={value(step, 'done')}
-								label={value(step, 'done') ? `Mark not done: ${text}` : `Mark done: ${text}`}
-								onchange={(checked) =>
-									amber.act(checked ? 'Step done' : 'Step not done', (context) =>
-										setStepDone(context, step, checked)
-									)}
-							/>
-							<label class="sr-only" for="step-{step.identifier}">Step</label>
-							<input
-								id="step-{step.identifier}"
-								class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm {touchText} hover:border-control-border focus:border-control-border pointer-coarse:min-h-11 {value(
-									step,
-									'done'
-								)
-									? 'text-muted line-through'
-									: ''}"
-								value={text}
-								maxlength={LIMITS.step}
-								onchange={(event) =>
-									amber.act('Step renamed', (context) =>
-										setStepText(context, step, event.currentTarget.value)
-									)}
-							/>
+						<!-- The row hears Alt with an arrow from the controls inside it, as a task's row does; it's
+						     never focused or clicked itself. -->
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+						<li
+							class="group flex flex-wrap items-center gap-x-2 pointer-coarse:min-h-11 pointer-coarse:gap-x-3"
+							onkeydown={(event) => {
+								if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+								event.preventDefault();
+								const direction = event.key === 'ArrowUp' ? -1 : 1;
+								amber.act('Step moved', (context) => moveStep(context, step, direction));
+							}}
+						>
+							<div class="flex min-w-0 flex-[1_1_12rem] items-center gap-2 pointer-coarse:gap-3">
+								<Check
+									small
+									checked={value(step, 'done')}
+									label={value(step, 'done') ? `Mark not done: ${text}` : `Mark done: ${text}`}
+									onchange={(checked) =>
+										amber.act(checked ? 'Step done' : 'Step not done', (context) =>
+											setStepDone(context, step, checked)
+										)}
+								/>
+								<label class="sr-only" for="step-{step.identifier}">Step</label>
+								<input
+									id="step-{step.identifier}"
+									class="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-sm {touchText} hover:border-control-border focus:border-control-border pointer-coarse:min-h-11 {value(
+										step,
+										'done'
+									)
+										? 'text-muted line-through'
+										: ''}"
+									value={text}
+									maxlength={LIMITS.step}
+									onchange={(event) =>
+										amber.act('Step renamed', (context) =>
+											setStepText(context, step, event.currentTarget.value)
+										)}
+								/>
+							</div>
 							<div
-								class="flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
+								class="ml-auto flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
 							>
 								<button
 									type="button"
 									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Move up: {text}"
+									title="Move up"
 									onclick={() => amber.act('Step moved', (context) => moveStep(context, step, -1))}
 									><Icon name="up" /></button
 								>
@@ -195,6 +211,7 @@
 									type="button"
 									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Move down: {text}"
+									title="Move down"
 									onclick={() => amber.act('Step moved', (context) => moveStep(context, step, 1))}
 									><Icon name="down" /></button
 								>
@@ -202,6 +219,7 @@
 									type="button"
 									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Make a task of: {text}"
+									title="Make a task of this step"
 									onclick={() =>
 										amber.act(`Made a task: ${text}`, (context) => promoteStep(context, step))}
 									><Icon name="promote" /></button
@@ -210,6 +228,7 @@
 									type="button"
 									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Delete step: {text}"
+									title="Delete step"
 									onclick={() => amber.act('Step deleted', (context) => deleteStep(context, step))}
 									><Icon name="trash" /></button
 								>
