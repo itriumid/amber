@@ -167,7 +167,7 @@
 	}
 </script>
 
-<!-- Grouped by what someone came to do: keep a copy, or move the list. Downloading is the main
+<!-- Grouped by what someone came to do: keep a copy, move the list, or bring one in. Downloading is the main
      action, since it's what the backup reminder asks for. The passphrase is folded away: it's
      optional, and a password field first makes keeping a copy look like a security procedure. The
      copies this device keeps come last, with the one warning that they go if the browser's data is
@@ -302,9 +302,12 @@
 			</div>
 			<p class="sr-only" role="status">{copied ? 'Link copied' : ''}</p>
 		{/if}
+	</section>
 
-		<h4 id="{prefix}-bring" class="mt-6 text-sm font-semibold">Bring in a list</h4>
-		<p class="mt-1 {hint}">
+	<!-- Bringing a list in is its own job, apart from taking one out. -->
+	<section aria-labelledby="{prefix}-bring">
+		<h3 id="{prefix}-bring" class={heading}>Bring in a list</h3>
+		<p class={hint}>
 			From a file or a link made in Amber. It's added to your list: nothing you have is lost, and
 			you can undo it.
 		</p>
