@@ -20,7 +20,7 @@
 	});
 </script>
 
-<Sheet open={!!tag} title="Tag" {onclose}>
+<Sheet open={!!tag} title={tag ? `Tag: #${value(tag, 'name')}` : 'Tag'} {onclose}>
 	{#if tag}
 		<div>
 			<label for="tag-name" class={label}>Name</label>

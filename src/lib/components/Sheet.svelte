@@ -36,9 +36,13 @@
 		if (open && !dialog.open) {
 			dialog.showModal();
 			// The browser puts focus on the first control, which is Close; every edit would start with
-			// a Tab past it. With a mouse or a trackpad, focus goes to the first field instead. Not on a
-			// touch screen, where a focused field brings up the on-screen keyboard over the sheet.
-			if (focusField && matchMedia('(pointer: fine)').matches) {
+			// a Tab past it. A sheet whose point is one action (marked data-autofocus) opens on it, so
+			// its pink isn't joined by a pink focus ring on a field beside it. Otherwise, with a mouse
+			// or a trackpad, focus goes to the first field; not on a touch screen, where a focused
+			// field brings up the on-screen keyboard over the sheet.
+			const action = dialog.querySelector<HTMLElement>('[data-autofocus]');
+			if (action && isShown(action)) action.focus();
+			else if (focusField && matchMedia('(pointer: fine)').matches) {
 				const first = [
 					...dialog.querySelectorAll<HTMLElement>(
 						'input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"]), textarea, select'

@@ -144,7 +144,9 @@ class Amber {
 		if (!last || this.readOnly) return;
 		this.history = this.history.slice(0, -1);
 		const changes = undoChanges({ records: this.records, clock: this.clock }, last.changes);
-		const message = `Undone: “${last.message}”`;
+		// "Deleted: Plan the trip (undone)": the change itself, then that it's undone, rather than one
+		// message quoted inside another.
+		const message = `${last.message} (undone)`;
 		void this.save(changes).then((saved) => {
 			if (saved) this.notice = { message, changes: [] };
 		});

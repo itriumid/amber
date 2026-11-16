@@ -8,7 +8,7 @@
 	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
 	import { value, type Task } from '#lib/model/list.js';
 	import { tick, untrack } from 'svelte';
-	import { isShown } from '#lib/focus.js';
+	import { home, isShown } from '#lib/focus.js';
 	import { highlight } from '#lib/search.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
@@ -60,6 +60,7 @@
 	// Read once, as the specimen appears: it's the arrival that's marked, not later changes.
 	const fresh = untrack(() => achieved && Date.now() - (value(task, 'doneAt') ?? 0) < 3000);
 	const menuIdentifier = $props.id();
+	const meta = $derived(category || tags.length || steps.length || hasNotes || (done && doneAt));
 
 	const dateFormat = new Intl.DateTimeFormat(undefined, {
 		day: 'numeric',
@@ -122,7 +123,7 @@
 		const checkbox = (place: Element | null | undefined) =>
 			place?.querySelector<HTMLInputElement>('input[type="checkbox"]');
 		const target = [moved, ...neighbors].map(checkbox).find(isShown);
-		(target ?? document.getElementById('quick-add'))?.focus();
+		(target ?? home())?.focus();
 	}
 
 	/**
@@ -140,7 +141,7 @@
 		amber.act(`Deleted: ${title}`, (context) => deleteTask(context, task));
 		await tick();
 		// Not left to rescueFocus: the row slides away first, so focus isn't lost until it's gone.
-		(neighbors.find(isShown) ?? document.getElementById('quick-add'))?.focus();
+		(neighbors.find(isShown) ?? home())?.focus();
 	}
 
 	function onkeydown(event: KeyboardEvent) {
@@ -207,7 +208,7 @@
 						: done
 							? 'text-base text-muted line-through decoration-1'
 							: 'text-base'}"
-				aria-describedby="task-open-hint"
+				aria-describedby={meta ? `${menuIdentifier}-meta task-open-hint` : 'task-open-hint'}
 				onclick={() => onopen(task)}
 			>
 				<!-- A found word keeps the strike-through of a done task's title. -->
@@ -217,12 +218,16 @@
 								: ''}">{piece.text}</mark
 						>{:else}{piece.text}{/if}{/each}
 			</button>
-			{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
-				<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+			<!-- Read with the title as its description, so moving through the list by arrow, which never
+			     lands here, still says a task's date, tags, steps and notes. -->
+			{#if meta}
+				<div
+					id="{menuIdentifier}-meta"
+					class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted"
+				>
 					{#if done && doneAt}<span
-							class={isAchieved
-								? 'rounded-sm border border-control-border px-1.5 py-0.5 text-text'
-								: ''}>{isAchieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
+							class={isAchieved ? 'rounded-sm border border-border px-1.5 py-0.5 text-text' : ''}
+							>{isAchieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
 						>{/if}
 					{#if category}<span>{category}</span>{/if}
 					{#each tags as tag (tag.identifier)}
@@ -242,6 +247,8 @@
 					{#if hasNotes}<span class="inline-flex items-center gap-1"
 							><Icon name="notes" class="size-3.5" /><span class="sr-only">Has notes</span></span
 						>{/if}
+					<!-- A pause before the hint that follows it in the description. -->
+					<span class="sr-only">.</span>
 				</div>
 			{/if}
 		</div>

@@ -4,8 +4,9 @@
 	import { amber } from '#lib/amber.svelte.js';
 	import type { Source } from '#lib/links.js';
 	import { updates } from '#lib/updates.svelte.js';
-	import { field, label, smallButton } from '#lib/styles.js';
+	import { field, label, primaryButton, smallButton } from '#lib/styles.js';
 	import {
+		deletedByMerge,
 		isNothing,
 		previewMerge,
 		readFile,
@@ -13,6 +14,7 @@
 		summarize,
 		type Reading
 	} from '#lib/transfer.js';
+	import DeletedByMerge from './DeletedByMerge.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let { source, onclose }: { source: Source | undefined; onclose: () => void } = $props();
@@ -36,6 +38,14 @@
 		reading?.kind === 'list'
 			? previewMerge($state.snapshot(amber.records), reading.records)
 			: undefined
+	);
+	const deletions = $derived(
+		preview ? preview.tasks.deleted + preview.categories.deleted + preview.tags.deleted : 0
+	);
+	const deletedTitles = $derived(
+		reading?.kind === 'list' && deletions
+			? deletedByMerge($state.snapshot(amber.records), reading.records)
+			: []
 	);
 
 	async function unlock(event: SubmitEvent) {
@@ -99,10 +109,17 @@
 			<p class="text-sm">You already have everything in it.</p>
 		{:else}
 			<p class="text-base font-medium">{summarize(preview)}</p>
-			<p class="mt-2 text-sm text-muted">
-				Nothing you have is lost. Where both lists changed the same thing, the newer change wins.
-				You can undo it afterward.
-			</p>
+			{#if deletions}
+				<DeletedByMerge titles={deletedTitles} total={deletions} />
+				<p class="mt-2 text-sm text-muted">
+					Where both lists changed the same thing, the newer change wins.
+				</p>
+			{:else}
+				<p class="mt-2 text-sm text-muted">
+					Nothing you have is lost. Where both lists changed the same thing, the newer change wins.
+					You can undo it afterward.
+				</p>
+			{/if}
 		{/if}
 		{#if reading.unreadable}
 			<p class="mt-3 text-sm">
@@ -117,7 +134,8 @@
 			{#if !isNothing(preview)}
 				<button
 					type="button"
-					class="{smallButton} border-accent-edge bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85"
+					class={primaryButton}
+					data-autofocus
 					disabled={busy || amber.readOnly}
 					onclick={bringIn}>Bring it in</button
 				>

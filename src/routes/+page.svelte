@@ -233,9 +233,24 @@
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
+
+	/**
+	 * A field saves when it's left. Before the page goes away or out of sight (a reload, a closed
+	 * tab, a phone putting Amber in the background, where it may never come back), the field being
+	 * typed in saves as well, so a note half written isn't lost. Saving the same value again changes
+	 * nothing, so leaving the field afterward adds no second change to undo.
+	 */
+	function saveTyping() {
+		const field = document.activeElement;
+		const typing =
+			field instanceof HTMLTextAreaElement ||
+			(field instanceof HTMLInputElement && ['text', 'search', ''].includes(field.type));
+		if (typing) field.dispatchEvent(new Event('change', { bubbles: true }));
+	}
 </script>
 
-<svelte:window {onkeydown} onhashchange={() => amber.ready && takeLink()} />
+<svelte:window {onkeydown} onhashchange={() => amber.ready && takeLink()} onpagehide={saveTyping} />
+<svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && saveTyping()} />
 
 <Seo title={TITLE} description={DESCRIPTION} path="/" />
 
@@ -462,6 +477,10 @@
 								: ` in ${heading}`}.
 						{:else if view.kind === 'all'}
 							Nothing here yet. Add your first task above.
+							<span class="mt-2 block text-sm">
+								Keeping a bucket list? Make a category and choose Bucket list: what you achieve
+								stays, with the date.
+							</span>
 							{#if install.installed && install.apple}
 								<span class="mt-2 block text-sm">
 									Have a list in Safari? Make a link there in Back up and move, and paste it in
@@ -480,7 +499,7 @@
 							<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
 							<h2
 								id="section-{section.key}"
-								class="mb-2 {labelPlate} {sections.length > 1 ? '' : 'sr-only'}"
+								class="mb-2 {labelPlate} {sections.length > 1 || searching ? '' : 'sr-only'}"
 							>
 								{#if section.color}<span
 										class="size-2.5 rounded-full {DOT[section.color]}"
@@ -548,7 +567,7 @@
 										/>
 										Done ({section.done.length})
 									</summary>
-									<ul class="mt-1">
+									<ul class="mt-1 {tray}">
 										{#each section.done as task (task.identifier)}
 											<li transition:slide={{ duration }}>
 												<TaskRow
@@ -572,8 +591,7 @@
 	<!-- Room at the bottom so the message with Undo never covers the footer's link. -->
 	<footer class="mt-auto border-t border-border pt-8 pb-36 text-sm text-muted">
 		<p class="font-medium text-text">{PROMISE}</p>
-		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE}</p>
-		<p class="mt-1">{SYNC_NOTE}</p>
+		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE} {SYNC_NOTE}</p>
 		<p class="mt-4">
 			{FOOTNOTE.before}
 			<a

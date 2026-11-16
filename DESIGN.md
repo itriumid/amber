@@ -371,7 +371,7 @@ ticks it too.
 
 A slip in its tray: checkbox, title as a button that opens the task, and a meta line beneath,
 ruled from the next slip by a hairline. Under the pointer it takes a half-tone tint. Done tasks
-show muted with a 1px strike-through. Search matches are marked in pink with graphite text. Slips
+show muted with a 1px strike-through, in a tray of their own under the fold. Search matches are marked in pink with graphite text. Slips
 slide in and out and flip into new order when moved. The whole list is one Tab stop: arrows go
 from slip to slip, Enter opens, Space ticks, Delete deletes with Undo.
 
@@ -434,7 +434,10 @@ that can't be edited keep the same gap so every count lines up.
 
 Native modal dialogs. On a phone a sheet rises from the bottom (up to 92% of the height, top
 corners rounded); from 640px it is a 28rem panel on the right, full height, left corners rounded.
-A sticky header holds the title and a round close button, over a hairline.
+A sticky header holds the title, which names what's edited ("Category: Home"), and a close
+button, over a hairline. A sheet whose point is one action (Get a code, Bring it in) opens with
+focus on it; otherwise, with a mouse, on its first field, and on a touch screen on Close, so no
+on-screen keyboard comes up unasked. Main actions in sheets use the one primary button.
 
 ### Undo Message
 

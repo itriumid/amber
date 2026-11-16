@@ -76,7 +76,7 @@ test('ticks a task done, tucks it away, and undoes it', async ({ page }) => {
 		'Done: Water the plants'
 	);
 	await page.getByRole('button', { name: 'Undo' }).click();
-	await expect(page.getByText('Undone: “Done: Water the plants”')).toBeVisible();
+	await expect(page.getByText('Done: Water the plants (undone)')).toBeVisible();
 	await expect(page.getByText('Done (1)')).toHaveCount(0);
 	await expect(
 		page.getByRole('checkbox', { name: 'Mark done: Water the plants' })
@@ -148,6 +148,25 @@ test("keeps a task's name when it's emptied, and says why", async ({ page }) => 
 		'A task needs a name, so the one it had is kept.'
 	);
 	await expect(name).toHaveAccessibleDescription('A task needs a name, so the one it had is kept.');
+});
+
+test('offers a bucket list as a category is started, and names what a sheet edits', async ({
+	page
+}) => {
+	// The first thing seen says bucket lists exist.
+	await expect(page.getByText(/Keeping a bucket list\?/)).toBeVisible();
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').focus();
+	await expect(sidebar.getByRole('radio', { name: 'Bucket list' })).toBeVisible();
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Fix the gate');
+	await page.getByRole('button', { name: 'Edit Home' }).first().click();
+	await expect(page.getByRole('dialog', { name: 'Category: Home' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	// A lone search result still says where it is.
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('gate');
+	await expect(page.getByRole('heading', { level: 2, name: /Home/ })).toBeVisible();
 });
 
 test('deletes a category but keeps its tasks', async ({ page }) => {
@@ -482,12 +501,14 @@ test('keeps focus nearby when a ticked task moves away, and after deleting one',
 	await page.keyboard.press('Space');
 	await expect(page.getByRole('checkbox', { name: 'Mark done: Second' })).toBeFocused();
 
-	// Deleting from the details: the title that opened them is gone, so focus goes to quick add.
+	// Deleting from the details: the title that opened them is gone, so focus goes to quick add,
+	// or on a touch screen to the list, where no on-screen keyboard comes up.
 	await task(page, 'First').focus();
 	await page.keyboard.press('Enter');
 	const details = page.getByRole('dialog', { name: 'Task details' });
 	await details.getByRole('button', { name: 'Delete task' }).click();
-	await expect(page.getByLabel('New task')).toBeFocused();
+	if (isPhone(page)) await expect(page.locator('#main')).toBeFocused();
+	else await expect(page.getByLabel('New task')).toBeFocused();
 });
 
 test('keeps focus in the details when a step goes away', async ({ page }) => {
@@ -667,8 +688,10 @@ test('names counts and steps the way they should be heard', async ({ page }) => 
 	await details.getByLabel('New step').press('Enter');
 	await details.getByRole('button', { name: 'Close' }).click();
 	await expect(page.getByRole('main').getByText('0 of 1 steps done')).toBeAttached();
+	// The steps are said with the title, then the hint: arrowing through the list never lands on
+	// the line under it.
 	await expect(task(page, 'Paint the bedroom')).toHaveAccessibleDescription(
-		"Opens the task's details."
+		"0 of 1 steps done . Opens the task's details."
 	);
 });
 
@@ -764,6 +787,112 @@ test('syncs two devices with a code, both ways', async ({ page, context, browser
 	await expect(task(phone, 'Book the flights')).toBeVisible();
 	expect(phoneProblems).toEqual([]);
 	await phoneContext.close();
+});
+
+test('names what bringing a list in would delete, instead of saying nothing is lost', async ({
+	page,
+	browser
+}) => {
+	await addTask(page, 'Old chore');
+	await addTask(page, 'Keep me');
+	const download = async (from: Page) => {
+		const sheet = await backup(from);
+		const [file] = await Promise.all([
+			from.waitForEvent('download'),
+			sheet.getByRole('button', { name: 'Download a file' }).click()
+		]);
+		await from.keyboard.press('Escape');
+		return file.path();
+	};
+	const first = await download(page);
+
+	// Another device takes the list, deletes a task, and sends its list back.
+	const other = await (await browser.newContext()).newPage();
+	await other.goto('/');
+	await expect(other.getByLabel('New task')).toBeEnabled();
+	await (await backup(other)).getByLabel('Open a file').setInputFiles(first);
+	await other
+		.getByRole('dialog', { name: 'Bring in a list' })
+		.getByRole('button', { name: 'Bring it in' })
+		.click();
+	await task(other, 'Old chore').click();
+	await other
+		.getByRole('dialog', { name: 'Task details' })
+		.getByRole('button', { name: 'Delete task' })
+		.click();
+	const back = await download(other);
+
+	await (await backup(page)).getByLabel('Open a file').setInputFiles(back);
+	const bringIn = page.getByRole('dialog', { name: 'Bring in a list' });
+	await expect(bringIn.getByText('Deletes 1 task.')).toBeVisible();
+	await expect(bringIn.getByText(/One was deleted on the other list/)).toBeVisible();
+	await expect(bringIn.getByText(/Nothing you have is lost/)).toHaveCount(0);
+	await bringIn.getByText('Show which').click();
+	await expect(bringIn.getByRole('listitem').filter({ hasText: 'Old chore' })).toBeVisible();
+	// Closed only now: its downloads go with it.
+	await other.context().close();
+});
+
+test('asks before a sync deletes anything, and changes nothing when told not to', async ({
+	page,
+	context,
+	browser
+}) => {
+	const phoneContext = await browser.newContext();
+	await mailboxes(context, phoneContext);
+	const phone = await phoneContext.newPage();
+	await phone.goto('/');
+	await expect(phone.getByLabel('New task')).toBeEnabled();
+	const sync = async () => {
+		const laptopSheet = await syncSheet(page);
+		await laptopSheet.getByRole('button', { name: 'Get a code' }).click();
+		const code = await laptopSheet
+			.getByText(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
+			.textContent();
+		const phoneSheet = await syncSheet(phone);
+		await phoneSheet.getByLabel('Code from the other device').fill(code!);
+		await phoneSheet.getByRole('button', { name: 'Sync' }).click();
+		await expect(
+			phoneSheet.getByText('Done. The other device finishes in a moment.')
+		).toBeVisible();
+		await phone.keyboard.press('Escape');
+		return laptopSheet;
+	};
+
+	await addTask(page, 'Shared');
+	await expect((await sync()).getByText('Both devices have the same list now.')).toBeVisible();
+	await page.keyboard.press('Escape');
+
+	// The phone deletes it; the next sync would delete it here too, so it asks first.
+	await task(phone, 'Shared').click();
+	await phone
+		.getByRole('dialog', { name: 'Task details' })
+		.getByRole('button', { name: 'Delete task' })
+		.click();
+	const laptopSheet = await sync();
+	await expect(laptopSheet.getByText('Deletes 1 task.')).toBeVisible();
+	await expect(laptopSheet.getByRole('button', { name: 'Sync', exact: true })).toBeFocused();
+	await laptopSheet.getByText('Show which').click();
+	await expect(laptopSheet.getByRole('listitem').filter({ hasText: 'Shared' })).toBeVisible();
+	await laptopSheet.getByRole('button', { name: "Don't sync" }).click();
+	await expect(laptopSheet.getByText('Nothing changed on this device.')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(task(page, 'Shared')).toBeVisible();
+	await phoneContext.close();
+});
+
+test('keeps a note half written when the page goes away', async ({ page }) => {
+	await addTask(page, 'Plan the trip');
+	await task(page, 'Plan the trip').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	// Typed, and never left: the page reloads with the cursor still in the box.
+	await details.getByLabel('Notes').fill('Ask Sari about the ferry');
+	await page.reload();
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	await task(page, 'Plan the trip').click();
+	await expect(page.getByRole('dialog', { name: 'Task details' }).getByLabel('Notes')).toHaveValue(
+		'Ask Sari about the ferry'
+	);
 });
 
 test('joins a sync from a shared link, and a used code says so', async ({
@@ -1098,7 +1227,8 @@ test('reminds now and then to download a copy, and can be put off', async ({ pag
 	expect(await axeViolations(page)).toEqual([]);
 	await page.getByRole('button', { name: 'Not now' }).click();
 	await expect(never).toHaveCount(0);
-	await expect(page.getByLabel('New task')).toBeFocused();
+	if (isPhone(page)) await expect(page.locator('#main')).toBeFocused();
+	else await expect(page.getByLabel('New task')).toBeFocused();
 	await expect
 		.poll(async () => (await storedNote(page))?.since)
 		.toBeGreaterThan(Date.now() - 60_000);

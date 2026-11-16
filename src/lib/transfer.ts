@@ -296,6 +296,24 @@ export function previewMerge(records: Records, incoming: Entity[]): Preview {
 	return describe(records, copy, changes);
 }
 
+/**
+ * The names of the tasks merging records in would delete, worked out on a copy: a task deleted on
+ * the other list is deleted here too, and people should see which before it happens.
+ */
+export function deletedByMerge(records: Records, incoming: Entity[]): string[] {
+	const copy = structuredClone(records);
+	const { changes } = merge({ records: copy, clock: new Clock('preview') }, incoming);
+	return changes.flatMap((change) => {
+		const before = records[change.identifier];
+		const after = copy[change.identifier];
+		if (change.created || after?.kind !== 'task' || !before || before.fields.deleted.value)
+			return [];
+		if (!after.fields.deleted.value) return [];
+		const title = (before.fields as Record<string, { value: unknown }>).title?.value;
+		return typeof title === 'string' ? [title] : [];
+	});
+}
+
 /** What putting a snapshot back would do, worked out on a copy. */
 export function previewRestore(records: Records, snapshot: Entity[]): Preview {
 	const copy = structuredClone(records);
