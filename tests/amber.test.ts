@@ -766,6 +766,98 @@ test('syncs two devices with a code, both ways', async ({ page, context, browser
 	await phoneContext.close();
 });
 
+test('names what bringing a list in would delete, instead of saying nothing is lost', async ({
+	page,
+	browser
+}) => {
+	await addTask(page, 'Old chore');
+	await addTask(page, 'Keep me');
+	const download = async (from: Page) => {
+		const sheet = await backup(from);
+		const [file] = await Promise.all([
+			from.waitForEvent('download'),
+			sheet.getByRole('button', { name: 'Download a file' }).click()
+		]);
+		await from.keyboard.press('Escape');
+		return file.path();
+	};
+	const first = await download(page);
+
+	// Another device takes the list, deletes a task, and sends its list back.
+	const other = await (await browser.newContext()).newPage();
+	await other.goto('/');
+	await expect(other.getByLabel('New task')).toBeEnabled();
+	await (await backup(other)).getByLabel('Open a file').setInputFiles(first);
+	await other
+		.getByRole('dialog', { name: 'Bring in a list' })
+		.getByRole('button', { name: 'Bring it in' })
+		.click();
+	await task(other, 'Old chore').click();
+	await other
+		.getByRole('dialog', { name: 'Task details' })
+		.getByRole('button', { name: 'Delete task' })
+		.click();
+	const back = await download(other);
+
+	await (await backup(page)).getByLabel('Open a file').setInputFiles(back);
+	const bringIn = page.getByRole('dialog', { name: 'Bring in a list' });
+	await expect(bringIn.getByText('Deletes 1 task.')).toBeVisible();
+	await expect(bringIn.getByText(/One was deleted on the other list/)).toBeVisible();
+	await expect(bringIn.getByText(/Nothing you have is lost/)).toHaveCount(0);
+	await bringIn.getByText('Show which').click();
+	await expect(bringIn.getByRole('listitem').filter({ hasText: 'Old chore' })).toBeVisible();
+	// Closed only now: its downloads go with it.
+	await other.context().close();
+});
+
+test('asks before a sync deletes anything, and changes nothing when told not to', async ({
+	page,
+	context,
+	browser
+}) => {
+	const phoneContext = await browser.newContext();
+	await mailboxes(context, phoneContext);
+	const phone = await phoneContext.newPage();
+	await phone.goto('/');
+	await expect(phone.getByLabel('New task')).toBeEnabled();
+	const sync = async () => {
+		const laptopSheet = await syncSheet(page);
+		await laptopSheet.getByRole('button', { name: 'Get a code' }).click();
+		const code = await laptopSheet
+			.getByText(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
+			.textContent();
+		const phoneSheet = await syncSheet(phone);
+		await phoneSheet.getByLabel('Code from the other device').fill(code!);
+		await phoneSheet.getByRole('button', { name: 'Sync' }).click();
+		await expect(
+			phoneSheet.getByText('Done. The other device finishes in a moment.')
+		).toBeVisible();
+		await phone.keyboard.press('Escape');
+		return laptopSheet;
+	};
+
+	await addTask(page, 'Shared');
+	await expect((await sync()).getByText('Both devices have the same list now.')).toBeVisible();
+	await page.keyboard.press('Escape');
+
+	// The phone deletes it; the next sync would delete it here too, so it asks first.
+	await task(phone, 'Shared').click();
+	await phone
+		.getByRole('dialog', { name: 'Task details' })
+		.getByRole('button', { name: 'Delete task' })
+		.click();
+	const laptopSheet = await sync();
+	await expect(laptopSheet.getByText('Deletes 1 task.')).toBeVisible();
+	await expect(laptopSheet.getByRole('button', { name: 'Sync', exact: true })).toBeFocused();
+	await laptopSheet.getByText('Show which').click();
+	await expect(laptopSheet.getByRole('listitem').filter({ hasText: 'Shared' })).toBeVisible();
+	await laptopSheet.getByRole('button', { name: "Don't sync" }).click();
+	await expect(laptopSheet.getByText('Nothing changed on this device.')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(task(page, 'Shared')).toBeVisible();
+	await phoneContext.close();
+});
+
 test('joins a sync from a shared link, and a used code says so', async ({
 	page,
 	context,

@@ -4,7 +4,7 @@
 	import { amber } from '#lib/amber.svelte.js';
 	import { SYNC_PREFIX } from '#lib/links.js';
 	import type { Entity } from '#lib/model/list.js';
-	import { field, label, smallButton } from '#lib/styles.js';
+	import { field, label, primaryButton, smallButton } from '#lib/styles.js';
 	import {
 		cancel,
 		collect,
@@ -17,8 +17,15 @@
 		type Mailbox,
 		type Problem
 	} from '#lib/sync.js';
-	import { isNothing, previewMerge, summarize, type Reading } from '#lib/transfer.js';
+	import {
+		deletedByMerge,
+		isNothing,
+		previewMerge,
+		summarize,
+		type Reading
+	} from '#lib/transfer.js';
 	import { updates } from '#lib/updates.svelte.js';
+	import DeletedByMerge from './DeletedByMerge.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let {
@@ -36,6 +43,13 @@
 		| { kind: 'choose' }
 		| { kind: 'working'; message: string }
 		| { kind: 'waiting'; code: string; mailbox: Mailbox; until: number }
+		| {
+				kind: 'confirm';
+				summary: string;
+				deletions: number;
+				titles: string[];
+				answer: (go: boolean) => void;
+		  }
 		| { kind: 'done'; message: string; detail: string }
 		| { kind: 'newer' }
 		| { kind: 'problem'; message: string };
@@ -64,7 +78,7 @@
 
 	const heading = 'mb-1 text-base font-semibold';
 	const hint = 'text-sm text-muted';
-	const primary = `${smallButton} border-accent-edge bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85`;
+	const primary = primaryButton;
 
 	const PROBLEMS: Record<Problem, string> = {
 		'too-large': 'This list is too long to sync. Download a file in Back up and move instead.',
@@ -90,6 +104,25 @@
 				message: "That link's code is incomplete. Enter the code instead."
 			};
 	});
+
+	/**
+	 * When merging would delete anything here, it's said first, with the tasks named, and nothing
+	 * happens until it's agreed to: the same as bringing a list in, which never deletes unseen.
+	 */
+	function agreed(records: Entity[]): Promise<boolean> {
+		const preview = previewMerge($state.snapshot(amber.records), records);
+		const deletions = preview.tasks.deleted + preview.categories.deleted + preview.tags.deleted;
+		if (!deletions) return Promise.resolve(true);
+		return new Promise((answer) => {
+			stage = {
+				kind: 'confirm',
+				summary: summarize(preview),
+				deletions,
+				titles: deletedByMerge($state.snapshot(amber.records), records),
+				answer
+			};
+		});
+	}
 
 	/** What merging a list in did here, said after it's done. */
 	async function mergeIn(records: Entity[]) {
@@ -123,7 +156,7 @@
 				kind: 'problem',
 				message:
 					outcome.problem === 'gone'
-						? 'The code ran out before the other device used it. Start again.'
+						? "The other device didn't sync, or the code ran out first. Start again if you still want to."
 						: PROBLEMS[outcome.problem]
 			};
 			return;
@@ -131,6 +164,14 @@
 		const wrong = unusable(outcome);
 		if (wrong || outcome.kind !== 'list') {
 			stage = wrong ?? { kind: 'choose' };
+			return;
+		}
+		if (!(await agreed(outcome.records))) {
+			stage = {
+				kind: 'done',
+				message: 'Nothing changed on this device.',
+				detail: 'The other device already has both lists; this one stays as it was.'
+			};
 			return;
 		}
 		stage = {
@@ -152,6 +193,13 @@
 			stage = wrong ?? { kind: 'choose' };
 			return;
 		}
+		if (!(await agreed(fetched.reading.records))) {
+			// The other device stops waiting: its code is closed, and nothing merged on either side.
+			await cancel(fetched.mailbox);
+			stage = { kind: 'done', message: 'Nothing changed on either device.', detail: '' };
+			return;
+		}
+		stage = { kind: 'working', message: 'Syncing…' };
 		const detail = await mergeIn(fetched.reading.records);
 		const problem = await reply(fetched.mailbox, $state.snapshot(amber.records));
 		stage = problem
@@ -207,7 +255,8 @@
 		<section aria-labelledby="{prefix}-start">
 			<h3 id="{prefix}-start" class={heading}>Start on this device</h3>
 			<p class={hint}>Get a code here, then enter it on the other device.</p>
-			<button type="button" class="{primary} mt-3" onclick={start}>Get a code</button>
+			<button type="button" class="{primary} mt-3" data-autofocus onclick={start}>Get a code</button
+			>
 		</section>
 
 		<section aria-labelledby="{prefix}-join">
@@ -264,10 +313,28 @@
 				? 'less than a minute'
 				: `${minutesLeft} more minutes`}. Keep this open until it's done.
 		</p>
+	{:else if stage.kind === 'confirm'}
+		{@const confirm = stage}
+		<div>
+			<p class="text-base font-medium">{confirm.summary}</p>
+			<DeletedByMerge titles={confirm.titles} total={confirm.deletions} />
+		</div>
+		<div class="flex flex-wrap gap-2">
+			<!-- Focus moves here as the question appears: what had it is gone with the stage before. -->
+			<button
+				type="button"
+				class={primary}
+				{@attach (button) => button.focus()}
+				onclick={() => confirm.answer(true)}>Sync</button
+			>
+			<button type="button" class={smallButton} onclick={() => confirm.answer(false)}
+				>Don't sync</button
+			>
+		</div>
 	{:else if stage.kind === 'done'}
 		<div role="status">
 			<p class="text-base font-medium">{stage.message}</p>
-			<p class="mt-2 text-sm text-muted">{stage.detail}</p>
+			{#if stage.detail}<p class="mt-2 text-sm text-muted">{stage.detail}</p>{/if}
 		</div>
 		<button type="button" class={smallButton} onclick={close}>Close</button>
 	{:else if stage.kind === 'newer'}
