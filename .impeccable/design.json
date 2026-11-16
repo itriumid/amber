@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 2,
-	"generatedAt": "2026-11-16T08:10:28+00:00",
+	"generatedAt": "2026-11-16T10:24:57+00:00",
 	"title": "Design System: Amber",
 	"extensions": {
 		"colorMeta": {
@@ -280,6 +280,11 @@
 				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
 			},
 			{
+				"name": "carry",
+				"value": "crossfade 450ms cubic-out",
+				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
+			},
+			{
 				"name": "reduced-motion",
 				"value": "duration 0 / transition: none",
 				"purpose": "Every motion above has an instant version."
@@ -353,7 +358,7 @@
 			"refersTo": "specimen",
 			"description": "An achieved dream on a bucket list's shelf: the dream in semibold, its collection label (the date) framed beneath.",
 			"html": "<div class=\"ds-shelf\"><span class=\"ds-plate\">Achieved (2)</span><div class=\"ds-specimens\"><div class=\"ds-specimen\"><span class=\"ds-box ds-box-on\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12l5 5L19 7\"/></svg></span><div><div class=\"ds-specimen-name\">See the sunrise at Bromo</div><span class=\"ds-collection\">Achieved 3 August 2026</span></div></div><div class=\"ds-specimen\"><span class=\"ds-box ds-box-on\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12l5 5L19 7\"/></svg></span><div><div class=\"ds-specimen-name\">Learn to sail</div><span class=\"ds-collection\">Achieved 21 March 2026</span></div></div></div></div>",
-			"css": ".ds-shelf{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;width:520px}.ds-plate{display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-specimens{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ds-specimen{display:flex;gap:12px;padding:12px;border:1px solid var(--control-border);border-radius:6px;background:var(--surface)}.ds-box{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;margin-top:2px;box-sizing:border-box;border:2px solid var(--control-border);border-radius:9999px;color:var(--on-accent)}.ds-box-on{border-color:var(--accent-edge);background:var(--accent)}.ds-specimen-name{font-size:16px;font-weight:600;line-height:1.75;color:var(--text)}.ds-collection{display:inline-block;padding:2px 6px;border:1px solid var(--control-border);border-radius:4px;font-size:12px;color:var(--text)}"
+			"css": ".ds-shelf{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;width:520px}.ds-plate{display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-specimens{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ds-specimen{display:flex;gap:12px;padding:16px;border:1px solid var(--control-border);border-radius:6px;background:var(--surface)}.ds-box{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;margin-top:2px;box-sizing:border-box;border:2px solid var(--control-border);border-radius:9999px;color:var(--on-accent)}.ds-box-on{border-color:var(--accent-edge);background:var(--accent)}.ds-specimen-name{font-size:18px;font-weight:600;line-height:1.75;color:var(--text)}.ds-collection{display:inline-block;padding:2px 6px;border:1px solid var(--control-border);border-radius:4px;font-size:12px;color:var(--text)}"
 		},
 		{
 			"name": "Drawers",
@@ -369,7 +374,7 @@
 			"refersTo": "toast",
 			"description": "Floating pill after an action, with Undo; the one in-flow shadow exception because it floats.",
 			"html": "<div class=\"ds-toast\" role=\"status\"><span>Done: Water the plants</span><button class=\"ds-toast-undo\">Undo</button><button class=\"ds-btn-icon-t\" aria-label=\"Dismiss\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button></div>",
-			"css": ".ds-toast{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 20px;border-radius:8px;border:1px solid var(--control-border);background:var(--surface);color:var(--text);font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-toast-undo{all:unset;min-height:32px;padding:0 12px;border-radius:9999px;font-weight:600;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-toast-undo:hover{background:var(--bg)}.ds-toast-undo:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-btn-icon-t{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:9999px;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon-t:hover{background:var(--bg);color:var(--text)}"
+			"css": ".ds-toast{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 20px;border-radius:8px;border:1px solid var(--control-border);background:var(--surface);color:var(--text);font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-toast-undo{all:unset;min-height:32px;padding:0 12px;border-radius:8px;font-weight:600;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-toast-undo:hover{background:var(--bg)}.ds-toast-undo:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-btn-icon-t{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:9999px;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon-t:hover{background:var(--bg);color:var(--text)}"
 		},
 		{
 			"name": "Kind of List Switch",
@@ -414,6 +419,11 @@
 			{
 				"name": "The 16px on Touch Rule",
 				"body": "On a touch screen, fields are 16px text, or Safari zooms the page.",
+				"section": "typography"
+			},
+			{
+				"name": "The One Exception Rule",
+				"body": "A sync code, and a link to the list, are set in the system's monospace font, where telling a 0 from an O matters more than the typeface. Nothing else uses it.",
 				"section": "typography"
 			},
 			{
