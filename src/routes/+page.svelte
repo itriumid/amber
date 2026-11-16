@@ -33,6 +33,7 @@
 	import { field, smallButton, touchTarget } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { rescueFocus } from '#lib/focus.js';
+	import { roving } from '#lib/roving.js';
 	import { settings } from '#lib/settings.svelte.js';
 	import { install, type Way } from '#lib/install.svelte.js';
 	import { updates } from '#lib/updates.svelte.js';
@@ -300,7 +301,7 @@
 			{/if}
 		</aside>
 
-		<main id="main" class="min-w-0 pb-32 outline-none" tabindex="-1">
+		<main id="main" class="min-w-0 pb-32 outline-none" tabindex="-1" {@attach roving}>
 			<p id="task-open-hint" hidden>Opens the task's details.</p>
 			<div class="flex items-center gap-3">
 				<h1 class="min-w-0 truncate text-3xl font-bold tracking-tight">{heading}</h1>

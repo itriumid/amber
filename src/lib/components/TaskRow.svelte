@@ -1,10 +1,11 @@
-<!-- One task in the list. Ticking it, opening it and moving it are all here; Alt with the up or down
-     arrow moves it from the keyboard, wherever focus is in the row. In search results the words
-     found are marked, and moving is off: with tasks hidden in between, a move wouldn't show. -->
+<!-- One task in the list. Ticking it, opening it and moving it are all here. From the keyboard,
+     wherever focus is in the row: Alt with the up or down arrow moves it, Enter opens it, and Delete
+     deletes it, with Undo. In search results the words found are marked, and moving is off: with
+     tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
-	import { categoryLabel, moveTask, setDone } from '#lib/model/actions.js';
+	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
 	import { value, type Task } from '#lib/model/list.js';
 	import { tick } from 'svelte';
 	import { isShown } from '#lib/focus.js';
@@ -74,10 +75,37 @@
 		(target ?? document.getElementById('quick-add'))?.focus();
 	}
 
+	/** Deleted from the keyboard: focus goes to the same control on the next task, or the one before. */
+	async function remove(from: HTMLElement) {
+		const item = row?.closest('li');
+		const controls = row ? [...row.querySelectorAll<HTMLElement>('input, button')] : [];
+		const place = Math.max(0, controls.indexOf(from));
+		const neighbors = [item?.nextElementSibling, item?.previousElementSibling].map(
+			(neighbor) => neighbor?.querySelectorAll<HTMLElement>('input, button')[place]
+		);
+		amber.act(`Deleted: ${title}`, (context) => deleteTask(context, task));
+		await tick();
+		// Not left to rescueFocus: the row slides away first, so focus isn't lost until it's gone.
+		(neighbors.find(isShown) ?? document.getElementById('quick-add'))?.focus();
+	}
+
 	function onkeydown(event: KeyboardEvent) {
-		if (!movable || !event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
-		event.preventDefault();
-		move(event.key === 'ArrowUp' ? -1 : 1);
+		const target = event.target;
+		if (event.ctrlKey || event.metaKey || event.shiftKey || !(target instanceof HTMLElement))
+			return;
+		if (event.altKey) {
+			if (!movable || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+			event.preventDefault();
+			move(event.key === 'ArrowUp' ? -1 : 1);
+		} else if (event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			void remove(target);
+		} else if (event.key === 'Enter' && target.matches('input[type="checkbox"]')) {
+			// On the title, Enter already opens the task; on the checkbox it does the same, while Space
+			// ticks it.
+			event.preventDefault();
+			onopen(task);
+		}
 	}
 </script>
 

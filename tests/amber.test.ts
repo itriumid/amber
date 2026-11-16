@@ -484,6 +484,48 @@ test('keeps focus in the details when a step goes away', async ({ page }) => {
 	await expect(details.getByLabel('New step')).toBeFocused();
 });
 
+test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
+	page
+}) => {
+	for (const title of ['First', 'Second', 'Third']) await addTask(page, title);
+	const box = (title: string) => page.getByRole('checkbox', { name: `Mark done: ${title}` });
+	// Tab reaches the list once, on the first task, and the next Tab leaves it.
+	// Add is off while quick add is empty, so the list is next.
+	await page.getByLabel('New task').focus();
+	await page.keyboard.press('Tab');
+	await expect(box('First')).toBeFocused();
+	await page.keyboard.press('ArrowDown');
+	await expect(box('Second')).toBeFocused();
+	await page.keyboard.press('Shift+Tab');
+	await page.keyboard.press('Tab');
+	// Back in the list, Tab returns to the task last visited, not the first.
+	await expect(box('Second')).toBeFocused();
+	await page.keyboard.press('Tab');
+	// And Tab again leaves the list: the move buttons aren't stops of their own.
+	expect(await page.evaluate(() => !!document.activeElement?.closest('[data-task]'))).toBe(false);
+
+	await box('Second').focus();
+	await page.keyboard.press('ArrowRight');
+	await expect(task(page, 'Second')).toBeFocused();
+	await page.keyboard.press('ArrowDown');
+	await expect(task(page, 'Third')).toBeFocused();
+	await page.keyboard.press('Home');
+	await expect(box('First')).toBeFocused();
+	await page.keyboard.press('End');
+	await expect(box('Third')).toBeFocused();
+
+	// Enter opens a task, Space ticks it, Delete deletes it with Undo.
+	await page.keyboard.press('Enter');
+	await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	await box('First').focus();
+	await page.keyboard.press('Delete');
+	await expect(task(page, 'First')).toHaveCount(0);
+	await expect(box('Second')).toBeFocused();
+	await page.getByRole('button', { name: 'Undo' }).click();
+	await expect(task(page, 'First')).toBeVisible();
+});
+
 test('outlines the control in focus, but not the whole list when focus falls back to it', async ({
 	page
 }) => {
@@ -1294,9 +1336,10 @@ test('keeps focus clear of the message with Undo, and makes room for it at the e
 		window.scrollBy({ top: row.getBoundingClientRect().top - (top - 2), behavior: 'instant' });
 	}, pill.top);
 	const before = rows.nth(index - 1);
-	await before.getByRole('button', { name: /^Move down/ }).focus();
+	await before.getByRole('checkbox').focus();
 	expect(intersects(await rows.nth(index).boundingBox().then(toBox), pill)).toBe(true);
-	await page.keyboard.press('Tab');
+	// The down arrow goes from task to task in the list.
+	await page.keyboard.press('ArrowDown');
 	await expect(rows.nth(index).getByRole('checkbox')).toBeFocused();
 	await expect
 		.poll(async () => intersects((await rows.nth(index).boundingBox().then(toBox))!, pill))
