@@ -184,12 +184,15 @@
 	}
 
 	function onkeydown(event: KeyboardEvent) {
-		if (isTyping(event.target) || document.querySelector('dialog[open]')) return;
+		// In a field, Ctrl or ⌘ with Z belongs to the field: it undoes typing there.
+		if (isTyping(event.target)) return;
+		// Undo works in a dialog too: that's where steps and tags are taken off.
 		if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
 			event.preventDefault();
 			amber.undo();
 			return;
 		}
+		if (document.querySelector('dialog[open]')) return;
 		// Single keys (N, / and ?) can be turned off in Keyboard shortcuts: pressed by mistake, or
 		// heard by speech input as a word, they'd do something nobody asked for.
 		if (!settings.singleKeyShortcuts || event.metaKey || event.ctrlKey || event.altKey) return;
