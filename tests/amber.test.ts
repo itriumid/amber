@@ -284,7 +284,8 @@ test('moves a list to another device with a file, and the move can be undone', a
 test('moves a list with a link locked by a passphrase', async ({ page, browser }) => {
 	await addTask(page, 'Secret plan');
 	const sheet = await backup(page);
-	await sheet.getByLabel(/Passphrase/).fill('kopi susu');
+	await sheet.getByText('Lock the file and the link').click();
+	await sheet.getByLabel('Passphrase').fill('kopi susu');
 	await sheet.getByRole('button', { name: 'Make a link' }).click();
 	const link = await sheet.getByLabel('Link to the list').inputValue();
 	expect(link).toContain('#locked=');

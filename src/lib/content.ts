@@ -31,10 +31,10 @@ export const OLDER_TAB_PROBLEM =
 	'Amber is open in another tab with an older version. Close it and reload.';
 export const DOWNLOAD_COPY = 'Download a copy';
 
-// A reminder to download a copy, now and then: the copies Amber keeps by itself are in this
-// browser too, and go with it.
+// A reminder to download a copy, now and then. It says what's kept already, so it reads as a
+// next step, not a warning: the copies Amber keeps by itself are in this browser too, and go with it.
 export const backupReminder = (lastDownloaded: string | undefined) =>
 	lastDownloaded
-		? `Your last downloaded copy is from ${lastDownloaded}. If this browser's data is cleared, anything newer goes with it.`
-		: "You haven't downloaded a copy of your list yet. If this browser's data is cleared, the list goes with it.";
+		? `Your last downloaded copy is from ${lastDownloaded}. Amber keeps a copy here each day, but if this browser's data is cleared, those go with it, and so does anything newer.`
+		: "You haven't downloaded a copy of your list yet. Amber keeps a copy here each day, but if this browser's data is cleared, those go with it.";
 export const NOT_NOW = 'Not now';
