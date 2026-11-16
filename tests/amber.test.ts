@@ -285,7 +285,14 @@ test('moves a list with a link locked by a passphrase', async ({ page, browser }
 	await addTask(page, 'Secret plan');
 	const sheet = await backup(page);
 	await sheet.getByText('Lock the file and the link').click();
-	await sheet.getByLabel('Passphrase').fill('kopi susu');
+	await sheet.getByLabel('Passphrase', { exact: true }).fill('kopi susu');
+	// Typed twice, and refused while the two differ: a typo would lock the list away for good.
+	await sheet.getByLabel('Type it again').fill('kopi sus');
+	await sheet.getByRole('button', { name: 'Make a link' }).click();
+	await expect(sheet.getByRole('alert')).toContainText('The two passphrases are different');
+	await expect(sheet.getByLabel('Type it again')).toBeFocused();
+	await expect(sheet.getByLabel('Link to the list')).toHaveCount(0);
+	await sheet.getByLabel('Type it again').fill('kopi susu');
 	await sheet.getByRole('button', { name: 'Make a link' }).click();
 	const link = await sheet.getByLabel('Link to the list').inputValue();
 	expect(link).toContain('#locked=');
@@ -903,7 +910,7 @@ test('says the copies on this device go with its data, and when a copy was last 
 }) => {
 	await addTask(page, 'Keep me');
 	let sheet = await backup(page);
-	await expect(sheet.getByText(/If its data is cleared, they go too/)).toBeVisible();
+	await expect(sheet.getByText(/if its data is cleared, they go\s+with it/)).toBeVisible();
 	await expect(sheet.getByText('Not downloaded from this browser yet.')).toBeVisible();
 	await Promise.all([
 		page.waitForEvent('download'),

@@ -5,7 +5,7 @@
 	import { backups } from '#lib/backups.svelte.js';
 	import { isLink, LINK_PREFIX } from '#lib/links.js';
 	import { listSnapshots, type Snapshot } from '#lib/storage.js';
-	import { field, label, smallButton, touchTarget } from '#lib/styles.js';
+	import { field, label, primaryButton, smallButton, touchTarget } from '#lib/styles.js';
 	import {
 		fileName,
 		isNothing,
@@ -33,6 +33,12 @@
 
 	const prefix = $props.id();
 	let passphrase = $state('');
+	// Typed twice, unless it's shown: a typo in a passphrase nobody can see would lock the list away
+	// for good, since nobody, us included, can open it without the exact one.
+	let again = $state('');
+	let showPassphrase = $state(false);
+	let mismatch = $state(false);
+	let againInput: HTMLInputElement | undefined = $state();
 	let link = $state<string>();
 	let linkProblem = $state<string>();
 	let copied = $state(false);
@@ -61,15 +67,28 @@
 			.catch(() => (snapshots = []));
 	});
 
-	const file = async () =>
-		new File([await toFile($state.snapshot(amber.records), passphrase || undefined)], fileName(), {
+	/** The passphrase to lock with, or false when it was typed twice and the two differ. */
+	function lock(): string | undefined | false {
+		if (!passphrase) return undefined;
+		if (!showPassphrase && again !== passphrase) {
+			mismatch = true;
+			againInput?.focus();
+			return false;
+		}
+		return passphrase;
+	}
+
+	const file = async (key: string | undefined) =>
+		new File([await toFile($state.snapshot(amber.records), key)], fileName(), {
 			type: 'application/json'
 		});
 
 	async function download() {
+		const key = lock();
+		if (key === false) return;
 		busy = true;
 		try {
-			const url = URL.createObjectURL(await file());
+			const url = URL.createObjectURL(await file(key));
 			const anchor = document.createElement('a');
 			anchor.href = url;
 			anchor.download = fileName();
@@ -82,9 +101,11 @@
 	}
 
 	async function share() {
+		const key = lock();
+		if (key === false) return;
 		busy = true;
 		try {
-			await navigator.share({ files: [await file()], title: 'Amber' });
+			await navigator.share({ files: [await file(key)], title: 'Amber' });
 			backups.downloaded(amber.taskCount);
 		} catch {
 			// Closing the share sheet without picking anything lands here too; there's nothing to say.
@@ -94,10 +115,12 @@
 	}
 
 	async function makeLink() {
+		const key = lock();
+		if (key === false) return;
 		busy = true;
 		copied = false;
 		try {
-			const hash = await toLink($state.snapshot(amber.records), passphrase || undefined);
+			const hash = await toLink($state.snapshot(amber.records), key);
 			if (location.origin.length + hash.length > LINK_LIMIT) {
 				link = undefined;
 				linkProblem = 'This list is too long for a link. Download a file instead.';
@@ -144,47 +167,12 @@
 	}
 </script>
 
-<!-- What's already kept comes first, then taking the list somewhere, then bringing one in. The
-     passphrase is folded away: it's optional, and an empty password field first makes keeping a
-     copy look like a security procedure. -->
+<!-- Grouped by what someone came to do: keep a copy, or move the list. Downloading is the main
+     action, since it's what the backup reminder asks for. The passphrase is folded away: it's
+     optional, and a password field first makes keeping a copy look like a security procedure. The
+     copies this device keeps come last, with the one warning that they go if the browser's data is
+     cleared. -->
 <Sheet {open} title="Back up and move" {onclose}>
-	{#if snapshots.length}
-		<p class="text-sm">
-			{snapshots.length === 1 ? 'One copy' : `${snapshots.length} copies`} of your list kept on this device,
-			the latest from {when.format(snapshots[0].takenAt)}. They're listed at the end.
-		</p>
-	{/if}
-
-	<details class="group" open={!!passphrase}>
-		<summary
-			class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg text-sm font-medium {touchTarget}"
-		>
-			<Icon name="lock" class="size-4" />
-			Lock the file and the link
-			<span class="font-normal text-muted">(optional)</span>
-			<Icon
-				name="down"
-				class="ml-auto size-4 text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
-			/>
-		</summary>
-		<div class="mt-2">
-			<label for="{prefix}-passphrase" class={label}>Passphrase</label>
-			<input
-				id="{prefix}-passphrase"
-				type="password"
-				class={field}
-				bind:value={passphrase}
-				oninput={() => (link = undefined)}
-				autocomplete="new-password"
-				aria-describedby="{prefix}-passphrase-hint"
-			/>
-			<p id="{prefix}-passphrase-hint" class="mt-1.5 {hint}">
-				Nobody can open the file or the link without it, us included, so keep it somewhere safe.
-				Changing it means making the link again.
-			</p>
-		</div>
-	</details>
-
 	<section aria-labelledby="{prefix}-file">
 		<h3 id="{prefix}-file" class={heading}>Keep a copy</h3>
 		<p class={hint}>
@@ -196,9 +184,13 @@
 			{:else}
 				Not downloaded from this browser yet.
 			{/if}
+			{#if snapshots.length}
+				This device also keeps {snapshots.length === 1 ? 'one copy' : `${snapshots.length} copies`},
+				listed at the end.
+			{/if}
 		</p>
 		<div class="mt-3 flex flex-wrap gap-2">
-			<button type="button" class={smallButton} disabled={busy} onclick={download}>
+			<button type="button" class={primaryButton} disabled={busy} onclick={download}>
 				{#if passphrase}<Icon name="lock" />{/if}Download a file
 			</button>
 			{#if canShareFiles}
@@ -207,19 +199,84 @@
 				>
 			{/if}
 		</div>
+
+		<details class="group mt-4" open={!!passphrase}>
+			<summary
+				class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg text-sm font-medium {touchTarget}"
+			>
+				<Icon name="lock" class="size-4" />
+				Lock the file and the link
+				<span class="font-normal text-muted">(optional)</span>
+				<Icon
+					name="down"
+					class="ml-auto size-4 text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
+				/>
+			</summary>
+			<div class="mt-2 space-y-3">
+				<div>
+					<label for="{prefix}-passphrase" class={label}>Passphrase</label>
+					<input
+						id="{prefix}-passphrase"
+						type={showPassphrase ? 'text' : 'password'}
+						class={field}
+						bind:value={passphrase}
+						oninput={() => {
+							link = undefined;
+							mismatch = false;
+						}}
+						autocomplete="new-password"
+						autocapitalize="off"
+						spellcheck="false"
+						aria-describedby="{prefix}-passphrase-hint"
+					/>
+					<p id="{prefix}-passphrase-hint" class="mt-1.5 {hint}">
+						Nobody can open the file or the link without it, us included, so keep it somewhere safe.
+						Changing it means making the link again.
+					</p>
+				</div>
+				{#if !showPassphrase}
+					<div>
+						<label for="{prefix}-again" class={label}>Type it again</label>
+						<input
+							bind:this={againInput}
+							id="{prefix}-again"
+							type="password"
+							class={field}
+							bind:value={again}
+							oninput={() => (mismatch = false)}
+							autocomplete="new-password"
+							aria-invalid={mismatch}
+							aria-describedby={mismatch ? `${prefix}-mismatch` : undefined}
+						/>
+						{#if mismatch}
+							<p id="{prefix}-mismatch" class="mt-1.5 text-sm" role="alert">
+								The two passphrases are different. Type the same one in both.
+							</p>
+						{/if}
+					</div>
+				{/if}
+				<label class="relative flex min-h-10 items-center gap-2 text-sm {touchTarget}">
+					<input
+						type="checkbox"
+						class="size-4 accent-accent-edge"
+						bind:checked={showPassphrase}
+						onchange={() => (mismatch = false)}
+					/>
+					Show the passphrase
+				</label>
+			</div>
+		</details>
 	</section>
 
-	<section aria-labelledby="{prefix}-link">
-		<h3 id="{prefix}-link" class={heading}>Move with a link</h3>
+	<section aria-labelledby="{prefix}-move">
+		<h3 id="{prefix}-move" class={heading}>Move to another device</h3>
 		<p class={hint}>
-			The link holds the whole list. Open it on another device to bring the list there. It never
-			passes through a server of ours. To keep two of your devices in step, use Sync with another
-			device instead.
+			A link holds the whole list and never passes through a server of ours. Open it on the other
+			device to bring the list there. To keep two devices in step, use Sync with another device
+			instead.
 		</p>
 		{#if !passphrase}
-			<p class="mt-2 text-sm">
-				Anyone with the link can read the list. Lock it with a passphrase above.
-			</p>
+			<p class="mt-2 text-sm">Anyone with the link can read the list, unless you lock it.</p>
 		{/if}
 		<div class="mt-3 flex flex-wrap gap-2">
 			<button type="button" class={smallButton} disabled={busy} onclick={makeLink}>
@@ -245,13 +302,11 @@
 			</div>
 			<p class="sr-only" role="status">{copied ? 'Link copied' : ''}</p>
 		{/if}
-	</section>
 
-	<section aria-labelledby="{prefix}-bring">
-		<h3 id="{prefix}-bring" class={heading}>Bring in a list</h3>
-		<p class={hint}>
-			Open a file from Amber. It's added to your list: nothing you have is lost, and you can undo
-			it.
+		<h4 id="{prefix}-bring" class="mt-6 text-sm font-semibold">Bring in a list</h4>
+		<p class="mt-1 {hint}">
+			From a file or a link made in Amber. It's added to your list: nothing you have is lost, and
+			you can undo it.
 		</p>
 		<label
 			class="{smallButton} mt-3 cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"
@@ -294,11 +349,8 @@
 		<h3 id="{prefix}-copies" class={heading}>Copies on this device</h3>
 		<p class={hint}>
 			Amber keeps a copy each day, and before anything that changes a lot at once. Putting one back
-			can be undone too.
-		</p>
-		<p class="mt-2 text-sm">
-			These copies are in this browser, with your list. If its data is cleared, they go too, so
-			download a file as well.
+			can be undone too. They're in this browser with your list, so if its data is cleared, they go
+			with it.
 		</p>
 		{#if snapshots.length}
 			<ul class="mt-3 divide-y divide-border">
