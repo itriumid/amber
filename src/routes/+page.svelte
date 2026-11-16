@@ -490,7 +490,7 @@
 									<ul class="mt-1">
 										{#each section.done as task (task.identifier)}
 											<li transition:slide={{ duration }}>
-												<TaskRow {task} onopen={openDetails} />
+												<TaskRow {task} movable={false} onopen={openDetails} />
 											</li>
 										{/each}
 									</ul>
