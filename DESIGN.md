@@ -63,7 +63,7 @@ typography:
     lineHeight: 1.33
   label:
     fontFamily: 'Plus Jakarta Sans Variable, ui-sans-serif, system-ui, sans-serif'
-    fontSize: '0.75rem'
+    fontSize: '0.6875rem'
     fontWeight: 600
     lineHeight: 1.33
     letterSpacing: '0.1em'
@@ -138,10 +138,25 @@ components:
   drawer-current:
     backgroundColor: '{colors.off-white}'
     textColor: '{colors.graphite}'
-  card:
+  search-field:
     backgroundColor: '{colors.graphite-surface}'
-    rounded: '{rounded.xl}'
-    padding: '20px'
+    textColor: '{colors.off-white}'
+    typography: '{typography.body}'
+    rounded: '{rounded.lg}'
+    padding: '10px 40px'
+  chip:
+    textColor: '{colors.off-white}'
+    typography: '{typography.body-small}'
+    rounded: '{rounded.sm}'
+    padding: '0 12px'
+    height: '36px'
+  chip-chosen:
+    backgroundColor: '{colors.off-white}'
+    textColor: '{colors.graphite}'
+  notice:
+    backgroundColor: '{colors.graphite-surface}'
+    rounded: '{rounded.md}'
+    padding: '12px'
   toast:
     backgroundColor: '{colors.graphite-surface}'
     textColor: '{colors.off-white}'
@@ -300,7 +315,7 @@ that float above the page and will go away.
 - **Floating message** (`box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)`):
   the Undo message at the bottom of the screen.
 - **Sheet** (`box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25)`, over a `rgb(0 0 0 / 0.5)`
-  backdrop): dialogs.
+  backdrop): dialogs, and a step's menu on a touch screen (over a `rgb(0 0 0 / 0.4)` backdrop).
 
 ### Named Rules
 
@@ -333,6 +348,13 @@ Calm, square-cornered, and clearly edged.
 - **Icon:** 32px (44px on touch), muted gray, turns text-colored on a page-colored fill on hover.
   Move buttons in a row stay hidden until the row is hovered or focused, and always show on touch.
 - **Disabled:** 50% opacity, not-allowed cursor.
+
+### Chips
+
+- **Style:** a task's tags in its details: 36px tall, 6px corners, a control edge, the tag's
+  color dot before the name.
+- **State:** chosen fills with the text color, the text takes the page color, and a check replaces
+  the dot (see the Graphite Chosen Rule); unchosen fills with the page color on hover.
 
 ### Checkbox (signature)
 
@@ -373,15 +395,21 @@ labels each action.
 - **Style:** page-colored fill, 1px control edge, 8px corners, 10px × 12px padding, 0.875rem text
   (16px on touch), muted placeholder.
 - **Focus:** the global focus outline (pink on graphite, graphite on paper), 3px offset.
-- **Search:** a magnifier inside on the left, a clear button inside on the right.
+- **Search:** the one field drawn the way every list app draws it: 12px corners, the surface
+  tone, body-size text, a magnifier inside on the left and a clear button inside on the right.
+  Full width on its own line on a phone, up to 28rem in the header from 640px.
 
 ### Cards / Containers
 
-- **Corner Style:** 16px.
-- **Background:** `graphite-surface` (`paper-surface` in light).
+The cabinet has no free-floating cards; its containers each hold one kind of thing.
+
+- **Trays** (6px corners): a list's slips on the surface tone, with a hairline edge and hairline
+  rules between slips. No padding of their own; each slip carries 10px × 12px.
+- **Specimens** (6px corners): an achieved dream on the surface tone with a control edge and 12px
+  padding.
+- **Notices** (8px corners): the update offer, the backup reminder and a problem, on the surface
+  tone with a hairline edge (a control edge and a warning sign for a problem), 12px padding.
 - **Shadow Strategy:** none; see Elevation.
-- **Border:** 1px hairline.
-- **Internal Padding:** 20px, 24px from 640px.
 
 ### Navigation
 
