@@ -4,3 +4,6 @@ pnpm-lock.yaml
 # Brand files, copied from the assets as they are
 /static/
 src/lib/*.svg
+
+# The design tool's local cache, which it writes in its own style
+.impeccable/hook.cache.json
