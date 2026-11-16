@@ -112,12 +112,15 @@
 	}
 </script>
 
-<!-- Hovered, the row shows as a card, with an edge: on the light page, white alone barely shows. -->
+<!-- A slip in its tray, ruled from the next; on the Achieved shelf, a specimen with its collection
+     label: the dream in weight, and when it was achieved. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={row}
 	data-task={task.identifier}
-	class="group flex flex-wrap items-start gap-3 rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface motion-reduce:transition-none"
+	class="group flex flex-wrap items-start gap-3 transition-colors motion-reduce:transition-none {achieved
+		? 'h-full rounded-md border border-control-border bg-surface p-3'
+		: 'px-3 py-2.5 hover:bg-border/50'}"
 	{onkeydown}
 >
 	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead. -->
@@ -132,9 +135,11 @@
 		<div class="min-w-0 flex-1">
 			<button
 				type="button"
-				class="relative block w-full rounded-md text-left text-base leading-7 break-words {touchTarget} {done
-					? 'text-muted line-through decoration-1'
-					: ''}"
+				class="relative block w-full rounded-md text-left text-base leading-7 break-words {touchTarget} {achieved
+					? 'font-semibold'
+					: done
+						? 'text-muted line-through decoration-1'
+						: ''}"
 				aria-describedby="task-open-hint"
 				onclick={() => onopen(task)}
 			>
@@ -145,7 +150,9 @@
 			{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
 				<div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
 					{#if done && doneAt}<span
-							>{achieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
+							class={achieved
+								? 'rounded-sm border border-control-border px-1.5 py-0.5 text-text'
+								: ''}>{achieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
 						>{/if}
 					{#if category}<span>{category}</span>{/if}
 					{#each tags as tag (tag.identifier)}
@@ -175,13 +182,13 @@
 		>
 			<button
 				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+				class="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 				aria-label="Move up: {title}"
 				onclick={() => move(-1)}><Icon name="up" /></button
 			>
 			<button
 				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+				class="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 				aria-label="Move down: {title}"
 				onclick={() => move(1)}><Icon name="down" /></button
 			>

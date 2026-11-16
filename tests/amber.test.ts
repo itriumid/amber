@@ -1261,11 +1261,12 @@ test('edges the pink Add button, and shows the row under the pointer, in light m
 	);
 	// Touch screens have no pointer to hover with.
 	if (isPhone(page)) return;
+	// A slip in its tray is tinted under the pointer: on a white tray, white alone wouldn't show.
 	const row = page.locator('main [data-task]').first();
-	const edge = () => row.evaluate((element) => getComputedStyle(element).borderTopColor);
-	expect(await edge()).toBe('rgba(0, 0, 0, 0)');
+	const tint = () => row.evaluate((element) => getComputedStyle(element).backgroundColor);
+	expect(await tint()).toBe('rgba(0, 0, 0, 0)');
 	await row.hover();
-	await expect.poll(edge).toBe('rgb(228, 228, 228)');
+	await expect.poll(tint).not.toBe('rgba(0, 0, 0, 0)');
 });
 
 test('fades no shared button under reduced motion', async ({ browser }) => {

@@ -217,7 +217,9 @@ export function deleteTag(context: Context, tag: Tag): Change[] {
 export function addCategory(
 	context: Context,
 	name: string,
-	parentIdentifier: string | null = null
+	parentIdentifier: string | null = null,
+	/** A bucket list, when it's said at the start; a subcategory follows its parent otherwise. */
+	bucket?: boolean
 ): { category: Category; changes: Change[] } | undefined {
 	const cleaned = clean(name, LIMITS.name);
 	if (!cleaned) return undefined;
@@ -237,7 +239,7 @@ export function addCategory(
 		name: cleaned,
 		parentIdentifier: parent?.identifier ?? null,
 		color: parent ? value(parent, 'color') : null,
-		keepDone: parent ? value(parent, 'keepDone') : false,
+		keepDone: bucket ?? (parent ? value(parent, 'keepDone') : false),
 		order: endOf(siblings),
 		deleted: false
 	});

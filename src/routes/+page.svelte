@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
-	import { fade, slide } from 'svelte/transition';
+	import { crossfade, fade, slide } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { amber } from '#lib/amber.svelte.js';
-	import { DOT, EDGE } from '#lib/colors.js';
+	import { DOT } from '#lib/colors.js';
 	import CategoryEditor from '#lib/components/CategoryEditor.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
@@ -30,7 +31,7 @@
 	} from '#lib/content.js';
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
-	import { field, smallButton, touchTarget } from '#lib/styles.js';
+	import { field, labelPlate, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { rescueFocus } from '#lib/focus.js';
 	import { roving } from '#lib/roving.js';
@@ -140,6 +141,18 @@
 		sections.every((section) => !section.shown.length && !section.done.length)
 	);
 	const duration = $derived(amber.reducedMotion ? 0 : 200);
+	// The signature move: on a bucket list, a ticked dream is carried from the tray onto the
+	// Achieved shelf (and back), so where it went is seen, not guessed. Everything else slides.
+	const [send, receive] = crossfade({
+		duration: () => (amber.reducedMotion ? 0 : 450),
+		easing: cubicOut,
+		fallback: (node) => slide(node, { duration: amber.reducedMotion ? 0 : 200 })
+	});
+	type Carried = { key: string; bucket: boolean };
+	const arrive = (node: Element, { key, bucket }: Carried) =>
+		bucket ? receive(node, { key }) : slide(node, { duration });
+	const leave = (node: Element, { key, bucket }: Carried) =>
+		bucket ? send(node, { key }) : slide(node, { duration });
 	const hasTags = $derived(allTags(amber.records).length > 0);
 
 	// Now and then, a reminder to download a copy: the copies kept here go if the browser's data is
@@ -238,22 +251,34 @@
 			>
 				<Icon name="menu" class="size-5" />
 			</button>
+			<!-- Amber's icon, as it is: on the graphite page its tile is edged so it doesn't vanish. -->
+			<img
+				src="/favicon.svg"
+				alt=""
+				width="32"
+				height="32"
+				class="size-8 rounded-md outline outline-1 -outline-offset-1 outline-border"
+			/>
 			<p class="text-xl font-bold tracking-tight">Amber</p>
 		</div>
-		<search class="ml-auto min-w-0 flex-[1_1_10rem] sm:max-w-xs">
+		<!-- The search bar as people know it from every list app: wide, rounded, on its own line on a
+		     phone. The cabinet look stays out of the way of finding things. -->
+		<search
+			class="order-last min-w-0 flex-[1_1_100%] sm:order-none sm:ml-auto sm:max-w-md sm:flex-[1_1_14rem]"
+		>
 			<label for="search" class="sr-only">Search tasks</label>
 			<div class="relative">
 				<Icon
 					name="search"
-					class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
+					class="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
 				/>
 				<input
 					id="search"
 					type="search"
 					bind:this={searchField}
 					bind:value={query}
-					class="{field} pr-10 pl-9 pointer-coarse:pr-12 [&::-webkit-search-cancel-button]:appearance-none"
-					placeholder="Search"
+					class="w-full rounded-xl border border-control-border bg-surface py-2.5 pr-10 pl-10 text-base text-text placeholder:text-muted pointer-coarse:pr-12 [&::-webkit-search-cancel-button]:appearance-none"
+					placeholder="Search tasks"
 					autocomplete="off"
 					enterkeyhint="search"
 					aria-keyshortcuts={settings.singleKeyShortcuts ? '/' : undefined}
@@ -328,7 +353,7 @@
 						<p>A new version of Amber is ready.</p>
 						<button
 							type="button"
-							class="relative min-h-9 rounded-full border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85 {touchTarget}"
+							class="relative min-h-9 rounded-md border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85 {touchTarget}"
 							onclick={() => updates.apply()}>Update</button
 						>
 					</div>
@@ -370,7 +395,7 @@
 
 			{#if searching}
 				<div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-					<fieldset class="flex rounded-full border border-control-border p-0.5">
+					<fieldset class="flex rounded-md border border-control-border p-0.5">
 						<legend class="sr-only">Show</legend>
 						{#each STATUSES as choice (choice.status)}
 							<label class="relative cursor-pointer {touchTarget}">
@@ -382,7 +407,7 @@
 									class="peer sr-only"
 								/>
 								<span
-									class="flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
+									class="flex min-h-9 items-center rounded-sm px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
 									>{choice.label}</span
 								>
 							</label>
@@ -391,7 +416,7 @@
 					{#if elsewhere > 0}
 						<button
 							type="button"
-							class="relative min-h-9 rounded-full px-3 text-sm underline underline-offset-4 hover:bg-surface {touchTarget}"
+							class="relative min-h-9 rounded-md px-3 text-sm underline underline-offset-4 hover:bg-surface {touchTarget}"
 							onclick={() => select({ kind: 'all' })}>{elsewhere} more in all tasks</button
 						>
 					{/if}
@@ -414,7 +439,7 @@
 						/>
 						<button
 							type="submit"
-							class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-accent-edge bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:opacity-50 motion-reduce:transition-none"
+							class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-accent-edge bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:border-control-border disabled:bg-transparent disabled:text-muted disabled:hover:opacity-100 motion-reduce:transition-none"
 							disabled={!newTask.trim()}
 						>
 							<Icon name="plus" /> Add
@@ -458,23 +483,26 @@
 				{#each sections as section (section.key)}
 					{#if section.shown.length || section.done.length}
 						<section class="mt-8" aria-labelledby="section-{section.key}">
+							<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
 							<h2
 								id="section-{section.key}"
-								class="mb-2 flex items-center gap-2 border-l-2 pl-3 text-sm font-semibold {section.color
-									? EDGE[section.color]
-									: 'border-border'} {sections.length > 1 ? '' : 'sr-only'}"
+								class="mb-2 {labelPlate} {sections.length > 1 ? '' : 'sr-only'}"
 							>
 								{#if section.color}<span
 										class="size-2.5 rounded-full {DOT[section.color]}"
 										aria-hidden="true"
 									></span>{/if}
 								{section.title}
-								{#if searching}<span class="font-normal text-muted">{section.shown.length}</span
+								{#if searching}<span class="font-normal tabular-nums">{section.shown.length}</span
 									>{/if}
 							</h2>
-							<ul>
+							<ul class={section.shown.length ? tray : ''}>
 								{#each section.shown as task (task.identifier)}
-									<li animate:flip={{ duration }} transition:slide={{ duration }}>
+									<li
+										animate:flip={{ duration }}
+										in:arrive={{ key: task.identifier, bucket: section.bucket }}
+										out:leave={{ key: task.identifier, bucket: section.bucket }}
+									>
 										<TaskRow
 											{task}
 											showCategory={view.kind === 'tag'}
@@ -487,17 +515,19 @@
 							</ul>
 							{#if section.done.length && section.bucket}
 								<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
-								     newest first, with the date, never folded away. -->
+								     newest first, each with its collection label, never folded away. A dream ticked in
+								     the tray is carried onto the shelf, and back if it's unticked. -->
 								<section class="mt-6" aria-labelledby="achieved-{section.key}">
-									<h3
-										id="achieved-{section.key}"
-										class="mb-2 px-2 text-xs font-semibold tracking-wider text-muted uppercase"
-									>
+									<h3 id="achieved-{section.key}" class="mb-2 {labelPlate}">
 										Achieved ({section.done.length})
 									</h3>
-									<ul>
+									<ul class="grid gap-2 sm:grid-cols-2">
 										{#each section.done as task (task.identifier)}
-											<li transition:slide={{ duration }}>
+											<li
+												animate:flip={{ duration }}
+												in:arrive={{ key: task.identifier, bucket: true }}
+												out:leave={{ key: task.identifier, bucket: true }}
+											>
 												<TaskRow {task} achieved movable={false} onopen={openDetails} />
 											</li>
 										{/each}

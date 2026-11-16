@@ -65,7 +65,7 @@
 	}
 
 	const iconButton =
-		'inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text';
+		'inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text';
 	const menuItem =
 		'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-base hover:bg-bg';
 </script>
@@ -155,7 +155,7 @@
 						<button
 							type="button"
 							aria-pressed={on}
-							class="relative inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors motion-reduce:transition-none {touchTarget} {on
+							class="relative inline-flex min-h-9 items-center gap-1.5 rounded-md border px-3 text-sm transition-colors motion-reduce:transition-none {touchTarget} {on
 								? 'border-text bg-text font-medium text-bg'
 								: 'border-control-border hover:bg-bg'}"
 							onclick={() =>
@@ -190,7 +190,9 @@
 					bind:value={newTag}
 					maxlength={LIMITS.name}
 				/>
-				<button type="submit" class={secondaryButton} disabled={!newTag.trim()}>Add</button>
+				<button type="submit" class={secondaryButton} disabled={!newTag.trim()}
+					><Icon name="plus" class="size-4" />Add</button
+				>
 			</form>
 		</fieldset>
 
@@ -289,9 +291,10 @@
 							<button
 								type="button"
 								data-more
-								class="ml-auto hidden size-11 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
+								class="ml-auto hidden size-11 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
 								aria-label="More: {text}"
-								popovertarget="step-menu-{step.identifier}"><Icon name="more" /></button
+								popovertarget="step-menu-{step.identifier}"
+								><Icon name="more" class="size-5 stroke-[3.5]" /></button
 							>
 							<div
 								id="step-menu-{step.identifier}"
@@ -351,7 +354,9 @@
 					bind:value={newStep}
 					maxlength={LIMITS.step}
 				/>
-				<button type="submit" class={secondaryButton} disabled={!newStep.trim()}>Add</button>
+				<button type="submit" class={secondaryButton} disabled={!newStep.trim()}
+					><Icon name="plus" class="size-4" />Add</button
+				>
 			</form>
 		</fieldset>
 

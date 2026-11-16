@@ -88,7 +88,9 @@
 						bind:value={newChild}
 						maxlength={LIMITS.name}
 					/>
-					<button type="submit" class={secondaryButton} disabled={!newChild.trim()}>Add</button>
+					<button type="submit" class={secondaryButton} disabled={!newChild.trim()}
+						><Icon name="plus" class="size-4" />Add</button
+					>
 				</div>
 			</form>
 		{/if}

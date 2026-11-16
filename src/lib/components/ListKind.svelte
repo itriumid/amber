@@ -19,7 +19,7 @@
 
 <fieldset>
 	<legend class="mb-1.5 text-sm font-medium">{legend}</legend>
-	<div class="inline-flex flex-wrap gap-1 rounded-full border border-control-border p-1">
+	<div class="inline-flex flex-wrap gap-1 rounded-md border border-control-border p-1">
 		{#each kinds as kind (kind.label)}
 			<label class="relative cursor-pointer">
 				<input
@@ -30,7 +30,7 @@
 					onchange={() => onchange(kind.bucket)}
 				/>
 				<span
-					class="flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
+					class="flex min-h-9 items-center rounded-sm px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
 					>{kind.label}</span
 				>
 			</label>

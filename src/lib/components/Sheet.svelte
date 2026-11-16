@@ -102,7 +102,7 @@
 		<h2 id={titleIdentifier} class="text-base font-semibold">{title}</h2>
 		<button
 			type="button"
-			class="relative inline-flex size-9 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text {touchTarget}"
+			class="relative inline-flex size-9 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text {touchTarget}"
 			aria-label="Close"
 			onclick={onclose}
 		>

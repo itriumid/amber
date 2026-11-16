@@ -1,14 +1,17 @@
-<!-- The places to look at: everything, no category, each category and subcategory, each tag. -->
+<!-- The places to look at: everything, no category, each category and subcategory, each tag. Drawn
+     as the drawers of a cabinet: each place a drawer front, its count framed on it, and the open one
+     pulled out in graphite. -->
 <script lang="ts">
 	import { settings } from '#lib/settings.svelte.js';
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
 	import { addCategory } from '#lib/model/actions.js';
 	import { categoryTree, tags as allTags, value, LIMITS } from '#lib/model/list.js';
-	import { field, touchTarget } from '#lib/styles.js';
+	import { field, labelPlate, touchTarget } from '#lib/styles.js';
 	import { install } from '#lib/install.svelte.js';
 	import { openCount, type View } from '#lib/views.js';
 	import Icon from './Icon.svelte';
+	import ListKind from './ListKind.svelte';
 
 	let {
 		view,
@@ -33,6 +36,7 @@
 	const tree = $derived(categoryTree(amber.records));
 	const tags = $derived(allTags(amber.records));
 	let newCategory = $state('');
+	let newBucket = $state(false);
 
 	const isCurrent = (candidate: View) =>
 		candidate.kind === view.kind &&
@@ -41,12 +45,15 @@
 			: true);
 
 	const item =
-		'flex min-h-10 flex-1 items-center pointer-coarse:min-h-11 gap-2.5 rounded-lg px-3 text-left text-sm transition-colors hover:bg-surface motion-reduce:transition-none';
-	const current = 'bg-surface font-semibold';
+		'flex min-h-10 min-w-0 flex-1 items-center pointer-coarse:min-h-11 gap-2.5 rounded-md border border-border bg-surface px-3 text-left text-sm transition-colors hover:border-control-border motion-reduce:transition-none';
+	const current = 'border-text bg-text font-semibold text-bg hover:border-text';
 	const quiet =
-		'flex min-h-10 w-full items-center pointer-coarse:min-h-11 gap-2.5 rounded-lg px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
+		'flex min-h-10 w-full items-center pointer-coarse:min-h-11 gap-2.5 rounded-md px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
 	const editButton =
-		'inline-flex size-9 shrink-0 items-center pointer-coarse:size-11 justify-center rounded-lg text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-surface hover:text-text';
+		'inline-flex size-9 shrink-0 items-center pointer-coarse:size-11 justify-center rounded-md text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-surface hover:text-text';
+	// All tasks and No category can't be edited; a gap the edit button's size keeps their counts in
+	// line with the others'.
+	const editSpace = 'size-9 shrink-0 pointer-coarse:size-11';
 	// The sidebar is drawn twice (beside the list, and in the sheet on a phone), so its identifiers
 	// carry a prefix of their own.
 	const prefix = $props.id();
@@ -62,30 +69,37 @@
 	>
 		{#if color}<span class="size-2.5 shrink-0 rounded-full {color}" aria-hidden="true"></span>{/if}
 		<span class="min-w-0 flex-1 truncate">{name}</span>
-		{#if count}<span class="text-xs text-muted tabular-nums" aria-hidden="true">{count}</span><span
-				class="sr-only">{count} to do</span
-			>{/if}
+		{#if count}<span
+				class="rounded-sm border px-1.5 text-xs tabular-nums {isCurrent(target)
+					? 'border-bg/40'
+					: 'border-border text-muted'}"
+				aria-hidden="true">{count}</span
+			><span class="sr-only">{count} to do</span>{/if}
 	</button>
 {/snippet}
 
 <nav aria-label="Lists" class="space-y-6">
-	<ul class="space-y-0.5">
-		<li class="flex">{@render place({ kind: 'all' }, 'All tasks', null)}</li>
-		<li class="flex">{@render place({ kind: 'uncategorized' }, 'No category', null)}</li>
+	<ul class="space-y-1.5">
+		<li class="flex gap-1">
+			{@render place({ kind: 'all' }, 'All tasks', null)}<span class={editSpace} aria-hidden="true"
+			></span>
+		</li>
+		<li class="flex gap-1">
+			{@render place({ kind: 'uncategorized' }, 'No category', null)}<span
+				class={editSpace}
+				aria-hidden="true"
+			></span>
+		</li>
 	</ul>
 
-	<section aria-labelledby="{prefix}-categories-heading">
-		<h2
-			id="{prefix}-categories-heading"
-			class="mb-1 px-3 text-xs font-semibold tracking-widest text-muted uppercase"
-		>
-			Categories
-		</h2>
-		<ul class="space-y-0.5">
+	<!-- Groups with a name, not headings: the page's own heading comes first in the outline. -->
+	<div role="group" aria-labelledby="{prefix}-categories-heading">
+		<p id="{prefix}-categories-heading" class="mb-2 {labelPlate}">Categories</p>
+		<ul class="space-y-1.5">
 			{#each tree as { category, children } (category.identifier)}
 				{@const color = value(category, 'color')}
 				<li>
-					<div class="group flex items-center">
+					<div class="group flex items-center gap-1">
 						{@render place(
 							{ kind: 'category', identifier: category.identifier },
 							value(category, 'name'),
@@ -99,10 +113,10 @@
 						>
 					</div>
 					{#if children.length}
-						<ul class="space-y-0.5">
+						<ul class="mt-1.5 space-y-1.5">
 							{#each children as child (child.identifier)}
 								{@const childColor = value(child, 'color')}
-								<li class="group flex items-center">
+								<li class="group flex items-center gap-1">
 									{@render place(
 										{ kind: 'category', identifier: child.identifier },
 										value(child, 'name'),
@@ -126,9 +140,12 @@
 			class="mt-2 px-1"
 			onsubmit={(event) => {
 				event.preventDefault();
-				const made = amber.act('Category added', (context) => addCategory(context, newCategory));
+				const made = amber.act('Category added', (context) =>
+					addCategory(context, newCategory, null, newBucket)
+				);
 				if (made && 'category' in made) {
 					newCategory = '';
+					newBucket = false;
 					onselect({ kind: 'category', identifier: made.category.identifier });
 				}
 			}}
@@ -144,26 +161,27 @@
 				/>
 				<button
 					type="submit"
-					class="relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-control-border hover:bg-surface disabled:opacity-50 {touchTarget}"
+					class="relative inline-flex min-h-10 shrink-0 items-center gap-1 rounded-md border border-control-border px-3 text-sm font-medium hover:bg-surface disabled:opacity-50 {touchTarget}"
 					aria-label="Add category"
-					disabled={!newCategory.trim()}><Icon name="plus" /></button
+					disabled={!newCategory.trim()}><Icon name="plus" class="size-4" />Add</button
 				>
 			</div>
+			<!-- Asked as the category is made, since it's what a bucket list is: once there's a name. -->
+			{#if newCategory.trim()}
+				<div class="mt-3 px-1">
+					<ListKind bucket={newBucket} onchange={(bucket) => (newBucket = bucket)} />
+				</div>
+			{/if}
 		</form>
-	</section>
+	</div>
 
 	{#if tags.length}
-		<section aria-labelledby="{prefix}-tags-heading">
-			<h2
-				id="{prefix}-tags-heading"
-				class="mb-1 px-3 text-xs font-semibold tracking-widest text-muted uppercase"
-			>
-				Tags
-			</h2>
-			<ul class="space-y-0.5">
+		<div role="group" aria-labelledby="{prefix}-tags-heading">
+			<p id="{prefix}-tags-heading" class="mb-2 {labelPlate}">Tags</p>
+			<ul class="space-y-1.5">
 				{#each tags as tag (tag.identifier)}
 					{@const color = value(tag, 'color')}
-					<li class="group flex items-center">
+					<li class="group flex items-center gap-1">
 						{@render place(
 							{ kind: 'tag', identifier: tag.identifier },
 							`#${value(tag, 'name')}`,
@@ -178,7 +196,7 @@
 					</li>
 				{/each}
 			</ul>
-		</section>
+		</div>
 	{/if}
 </nav>
 
