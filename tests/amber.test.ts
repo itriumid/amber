@@ -495,6 +495,12 @@ test('opens a sheet on its first field with a mouse, and on Close on a touch scr
 	else await expect(details.getByLabel('Task', { exact: true })).toBeFocused();
 });
 
+test('offers keyboard shortcuts only where there is a keyboard', async ({ page }) => {
+	await lists(page);
+	const shown = page.getByRole('button', { name: 'Keyboard shortcuts' }).filter({ visible: true });
+	await expect(shown).toHaveCount(isPhone(page) ? 0 : 1);
+});
+
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
 	page
 }) => {
@@ -1155,7 +1161,7 @@ test('gives every control a 44px target on a touch screen, without overlapping',
 		'Edit #weekend',
 		'Add category',
 		'Back up and move',
-		'Keyboard shortcuts'
+		'Sync with another device'
 	]);
 	await sheet.getByLabel('New category').press('Enter');
 	await page.getByRole('button', { name: 'Show lists' }).click();

@@ -1,5 +1,6 @@
 <!-- The places to look at: everything, no category, each category and subcategory, each tag. -->
 <script lang="ts">
+	import { settings } from '#lib/settings.svelte.js';
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
 	import { addCategory } from '#lib/model/actions.js';
@@ -196,8 +197,12 @@
 		<Icon name="archive" />
 		Back up and move
 	</button>
-	<button type="button" class={quiet} onclick={onshortcuts}>
-		<Icon name="keyboard" />
-		Keyboard shortcuts
-	</button>
+	<!-- With a mouse or a trackpad, where there's likely a keyboard. A touch screen has no use for the
+	     shortcuts, except to turn the single-key ones back on: with them off, ? can't open the sheet. -->
+	<div class={settings.singleKeyShortcuts ? 'hidden pointer-fine:block' : ''}>
+		<button type="button" class={quiet} onclick={onshortcuts}>
+			<Icon name="keyboard" />
+			Keyboard shortcuts
+		</button>
+	</div>
 </div>
