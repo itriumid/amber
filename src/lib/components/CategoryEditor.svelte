@@ -1,4 +1,4 @@
-<!-- A category's settings: its name, color, whether done tasks stay in view (for bucket lists),
+<!-- A category's settings: its name, whether it's a to-do list or a bucket list, its color,
      its subcategories, its place in the list, and deleting it. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
@@ -12,8 +12,8 @@
 	import { get, value, LIMITS } from '#lib/model/list.js';
 	import { field, label, secondaryButton } from '#lib/styles.js';
 	import ColorChoice from './ColorChoice.svelte';
-	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
+	import ListKind from './ListKind.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let {
@@ -32,7 +32,6 @@
 		category ? siblings.findIndex((sibling) => sibling.identifier === category.identifier) : -1
 	);
 	let newChild = $state('');
-	const keepDoneHint = $props.id();
 </script>
 
 <Sheet open={!!category} title={parent ? 'Subcategory' : 'Category'} {onclose}>
@@ -52,31 +51,20 @@
 			{#if parent}<p class="mt-1.5 text-sm text-muted">Inside {value(parent, 'name')}</p>{/if}
 		</div>
 
+		<ListKind
+			bucket={value(category, 'keepDone')}
+			onchange={(bucket) =>
+				amber.act(bucket ? 'Made a bucket list' : 'Made a to-do list', (context) =>
+					updateCategory(context, category, { keepDone: bucket })
+				)}
+		/>
+
 		<ColorChoice
 			label="Color"
 			value={value(category, 'color')}
 			onchange={(color) =>
 				amber.act('Color changed', (context) => updateCategory(context, category, { color }))}
 		/>
-
-		<!-- The same round box as a task's. The hint is indented to the words: the box (28px) and the
-		     gap (12px). -->
-		<div>
-			<Check
-				checked={value(category, 'keepDone')}
-				label="Keep done tasks in view"
-				describedby={keepDoneHint}
-				onchange={(checked) =>
-					amber.act('Setting changed', (context) =>
-						updateCategory(context, category, { keepDone: checked })
-					)}
-			>
-				<span class="font-medium" aria-hidden="true">Keep done tasks in view</span>
-			</Check>
-			<p id={keepDoneHint} class="mt-1 pl-10 text-sm text-muted">
-				With the date they were done, like a bucket list. Otherwise they tuck away below.
-			</p>
-		</div>
 
 		{#if !parent}
 			<form
@@ -93,8 +81,16 @@
 			>
 				<label for="new-subcategory" class={label}>Add a subcategory</label>
 				<div class="flex gap-2">
-					<input id="new-subcategory" class={field} bind:value={newChild} maxlength={LIMITS.name} />
-					<button type="submit" class={secondaryButton} disabled={!newChild.trim()}>Add</button>
+					<input
+						id="new-subcategory"
+						class={field}
+						placeholder="New subcategory"
+						bind:value={newChild}
+						maxlength={LIMITS.name}
+					/>
+					<button type="submit" class={secondaryButton} disabled={!newChild.trim()}
+						><Icon name="plus" class="size-4" />Add</button
+					>
 				</div>
 			</form>
 		{/if}

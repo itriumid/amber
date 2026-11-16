@@ -1,10 +1,11 @@
-<!-- One task in the list. Ticking it, opening it and moving it are all here; Alt with the up or down
-     arrow moves it from the keyboard, wherever focus is in the row. In search results the words
-     found are marked, and moving is off: with tasks hidden in between, a move wouldn't show. -->
+<!-- One task in the list. Ticking it, opening it and moving it are all here. From the keyboard,
+     wherever focus is in the row: Alt with the up or down arrow moves it, Enter opens it, and Delete
+     deletes it, with Undo. In search results the words found are marked, and moving is off: with
+     tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
-	import { categoryLabel, moveTask, setDone } from '#lib/model/actions.js';
+	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
 	import { value, type Task } from '#lib/model/list.js';
 	import { tick } from 'svelte';
 	import { isShown } from '#lib/focus.js';
@@ -18,6 +19,7 @@
 		showCategory = false,
 		words = [],
 		movable = true,
+		achieved = false,
 		onopen
 	}: {
 		task: Task;
@@ -25,6 +27,8 @@
 		/** Search words to mark in the title. */
 		words?: string[];
 		movable?: boolean;
+		/** On a bucket list's Achieved shelf: done, said as achieved. */
+		achieved?: boolean;
 		onopen: (task: Task) => void;
 	} = $props();
 
@@ -74,19 +78,49 @@
 		(target ?? document.getElementById('quick-add'))?.focus();
 	}
 
+	/** Deleted from the keyboard: focus goes to the same control on the next task, or the one before. */
+	async function remove(from: HTMLElement) {
+		const item = row?.closest('li');
+		const controls = row ? [...row.querySelectorAll<HTMLElement>('input, button')] : [];
+		const place = Math.max(0, controls.indexOf(from));
+		const neighbors = [item?.nextElementSibling, item?.previousElementSibling].map(
+			(neighbor) => neighbor?.querySelectorAll<HTMLElement>('input, button')[place]
+		);
+		amber.act(`Deleted: ${title}`, (context) => deleteTask(context, task));
+		await tick();
+		// Not left to rescueFocus: the row slides away first, so focus isn't lost until it's gone.
+		(neighbors.find(isShown) ?? document.getElementById('quick-add'))?.focus();
+	}
+
 	function onkeydown(event: KeyboardEvent) {
-		if (!movable || !event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
-		event.preventDefault();
-		move(event.key === 'ArrowUp' ? -1 : 1);
+		const target = event.target;
+		if (event.ctrlKey || event.metaKey || event.shiftKey || !(target instanceof HTMLElement))
+			return;
+		if (event.altKey) {
+			if (!movable || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+			event.preventDefault();
+			move(event.key === 'ArrowUp' ? -1 : 1);
+		} else if (event.key === 'Delete' || event.key === 'Backspace') {
+			event.preventDefault();
+			void remove(target);
+		} else if (event.key === 'Enter' && target.matches('input[type="checkbox"]')) {
+			// On the title, Enter already opens the task; on the checkbox it does the same, while Space
+			// ticks it.
+			event.preventDefault();
+			onopen(task);
+		}
 	}
 </script>
 
-<!-- Hovered, the row shows as a card, with an edge: on the light page, white alone barely shows. -->
+<!-- A slip in its tray, ruled from the next; on the Achieved shelf, a specimen with its collection
+     label: the dream in weight, and when it was achieved. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={row}
 	data-task={task.identifier}
-	class="group flex flex-wrap items-start gap-3 rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface motion-reduce:transition-none"
+	class="group flex flex-wrap items-start gap-3 transition-colors motion-reduce:transition-none {achieved
+		? 'h-full rounded-md border border-control-border bg-surface p-3'
+		: 'px-3 py-2.5 hover:bg-border/50'}"
 	{onkeydown}
 >
 	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead. -->
@@ -101,9 +135,11 @@
 		<div class="min-w-0 flex-1">
 			<button
 				type="button"
-				class="relative block w-full rounded-md text-left text-base leading-7 break-words {touchTarget} {done
-					? 'text-muted line-through decoration-1'
-					: ''}"
+				class="relative block w-full rounded-md text-left text-base leading-7 break-words {touchTarget} {achieved
+					? 'font-semibold'
+					: done
+						? 'text-muted line-through decoration-1'
+						: ''}"
 				aria-describedby="task-open-hint"
 				onclick={() => onopen(task)}
 			>
@@ -113,7 +149,11 @@
 			</button>
 			{#if category || tags.length || steps.length || hasNotes || (done && doneAt)}
 				<div class="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-					{#if done && doneAt}<span>Done {dateFormat.format(doneAt)}</span>{/if}
+					{#if done && doneAt}<span
+							class={achieved
+								? 'rounded-sm border border-control-border px-1.5 py-0.5 text-text'
+								: ''}>{achieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
+						>{/if}
 					{#if category}<span>{category}</span>{/if}
 					{#each tags as tag (tag.identifier)}
 						{@const color = value(tag, 'color')}
@@ -142,13 +182,13 @@
 		>
 			<button
 				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+				class="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 				aria-label="Move up: {title}"
 				onclick={() => move(-1)}><Icon name="up" /></button
 			>
 			<button
 				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+				class="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 				aria-label="Move down: {title}"
 				onclick={() => move(1)}><Icon name="down" /></button
 			>

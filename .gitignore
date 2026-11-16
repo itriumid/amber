@@ -28,3 +28,12 @@ playwright-report
 
 # Cloudflare's runtime types for the sync Worker, made by `pnpm check:sync`
 sync/worker-configuration.d.ts
+
+# The design tool's working files: the choices it puts in front of people, and its sketches
+.impeccable/mocks/
+.impeccable/questions/
+.impeccable/live/
+.impeccable/review/
+# and its reports, which describe the site at one moment and go stale with the next change
+.impeccable/critique/
+.impeccable/audit/

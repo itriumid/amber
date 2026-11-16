@@ -17,6 +17,26 @@
 		{ action: 'Search', keys: [['/']], said: 'Slash' },
 		{ action: 'Show these shortcuts', keys: [['?']], said: 'Question mark' },
 		{
+			action: 'Go from task to task',
+			keys: [['↑'], ['↓']],
+			said: 'The up or down arrow, in the list'
+		},
+		{
+			action: 'Open a task',
+			keys: [['Enter']],
+			said: 'Enter, on a task'
+		},
+		{
+			action: 'Tick a task',
+			keys: [['Space']],
+			said: 'Space, on its checkbox'
+		},
+		{
+			action: 'Delete a task',
+			keys: [['Delete']],
+			said: 'Delete, on a task'
+		},
+		{
 			action: 'Move a task up or down',
 			keys: [
 				['Alt', '↑'],

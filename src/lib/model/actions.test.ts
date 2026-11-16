@@ -107,6 +107,18 @@ describe('categories', () => {
 		expect(categoryTree(context.records).map(({ children }) => children.length)).toEqual([2]);
 	});
 
+	it('makes a bucket list when asked, and subcategories follow their parent otherwise', () => {
+		const context = fresh();
+		const dreams = addCategory(context, 'Someday', null, true)!.category;
+		const plain = addCategory(context, 'Errands')!.category;
+		const sub = addCategory(context, 'Islands', dreams.identifier)!.category;
+		const chosen = addCategory(context, 'Chores', dreams.identifier, false)!.category;
+		expect(value(dreams, 'keepDone')).toBe(true);
+		expect(value(plain, 'keepDone')).toBe(false);
+		expect(value(sub, 'keepDone')).toBe(true);
+		expect(value(chosen, 'keepDone')).toBe(false);
+	});
+
 	it("moves a deleted subcategory's tasks to its parent, and back on undo", () => {
 		const context = fresh();
 		const top = addCategory(context, 'Travel')!.category;

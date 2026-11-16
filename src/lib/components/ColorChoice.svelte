@@ -10,7 +10,8 @@
 		onchange,
 		label
 	}: { value: Color | null; onchange: (color: Color | null) => void; label: string } = $props();
-	const name = `color-${Math.random().toString(36).slice(2)}`;
+	// Unique per instance, like every identifier here: the sidebar and its sheet can both draw one.
+	const name = $props.id();
 	const choices: (Color | null)[] = [null, ...COLORS];
 </script>
 

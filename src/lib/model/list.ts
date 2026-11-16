@@ -30,7 +30,7 @@ export interface CategoryValues {
 	/** A category inside another; only one level deep. */
 	parentIdentifier: string | null;
 	color: Color | null;
-	/** Bucket-list style: done tasks stay in view, with their date, instead of tucking away. */
+	/** A bucket list: its done tasks are achieved, kept on a shelf with their date, not folded away. */
 	keepDone: boolean;
 	order: string;
 	deleted: boolean;
