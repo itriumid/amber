@@ -497,7 +497,7 @@
 									>{/if}
 							</h2>
 							<ul class={section.shown.length ? tray : ''}>
-								{#each section.shown as task (task.identifier)}
+								{#each section.shown as task, index (task.identifier)}
 									<li
 										animate:flip={{ duration }}
 										in:arrive={{ key: task.identifier, bucket: section.bucket }}
@@ -508,6 +508,10 @@
 											showCategory={view.kind === 'tag'}
 											words={search.words}
 											movable={!searching}
+											first={index === 0}
+											last={index === section.shown.length - 1}
+											bucket={section.bucket}
+											hideTag={view.kind === 'tag' ? view.identifier : undefined}
 											onopen={openDetails}
 										/>
 									</li>
@@ -517,9 +521,15 @@
 								<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
 								     newest first, each with its collection label, never folded away. A dream ticked in
 								     the tray is carried onto the shelf, and back if it's unticked. -->
-								<section class="mt-6" aria-labelledby="achieved-{section.key}">
+								<!-- Set in under its own list's tray, with a hairline, so it reads as that list's shelf,
+								     not a section of its own. -->
+								<section
+									class="mt-4 ml-3 border-l border-border pt-1 pl-4 sm:ml-4"
+									aria-labelledby="achieved-{section.key}"
+								>
 									<h3 id="achieved-{section.key}" class="mb-2 {labelPlate}">
-										Achieved ({section.done.length})
+										{sections.length > 1 ? `Achieved in ${section.title}` : 'Achieved'} ({section
+											.done.length})
 									</h3>
 									<ul class="grid gap-2 sm:grid-cols-2">
 										{#each section.done as task (task.identifier)}
@@ -528,7 +538,7 @@
 												in:arrive={{ key: task.identifier, bucket: true }}
 												out:leave={{ key: task.identifier, bucket: true }}
 											>
-												<TaskRow {task} achieved movable={false} onopen={openDetails} />
+												<TaskRow {task} bucket achieved movable={false} onopen={openDetails} />
 											</li>
 										{/each}
 									</ul>
@@ -547,7 +557,12 @@
 									<ul class="mt-1">
 										{#each section.done as task (task.identifier)}
 											<li transition:slide={{ duration }}>
-												<TaskRow {task} movable={false} onopen={openDetails} />
+												<TaskRow
+													{task}
+													movable={false}
+													hideTag={view.kind === 'tag' ? view.identifier : undefined}
+													onopen={openDetails}
+												/>
 											</li>
 										{/each}
 									</ul>

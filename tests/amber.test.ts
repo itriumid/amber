@@ -108,7 +108,9 @@ test('keeps achieved dreams on a shelf, with their date, in a bucket list', asyn
 	await editor.getByRole('button', { name: 'Close' }).click();
 	await addTask(page, 'See the northern lights');
 	await addTask(page, 'Learn to sail');
-	await page.getByRole('checkbox', { name: 'Mark done: See the northern lights' }).check();
+	// In a bucket list, a task is achieved, not done.
+	await page.getByRole('checkbox', { name: 'Mark achieved: See the northern lights' }).check();
+	await expect(notice(page)).toContainText('Achieved: See the northern lights');
 	// Not folded into Done: on the Achieved shelf, with the date.
 	await expect(page.getByRole('heading', { name: 'Achieved (1)' })).toBeVisible();
 	await expect(page.getByText(/^Achieved \w+ \d+, \d{4}$|^Achieved \d+ \w+ \d{4}$/)).toBeVisible();
@@ -538,6 +540,66 @@ test('offers keyboard shortcuts only where there is a keyboard', async ({ page }
 	await lists(page);
 	const shown = page.getByRole('button', { name: 'Keyboard shortcuts' }).filter({ visible: true });
 	await expect(shown).toHaveCount(isPhone(page) ? 0 : 1);
+});
+
+test('keeps focus on a task as it moves, and moves nothing past the ends', async ({ page }) => {
+	test.skip(isPhone(page), 'A touch screen moves tasks from their menu.');
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await addTask(page, title);
+	const box = (title: string) => page.getByRole('checkbox', { name: `Mark done: ${title}` });
+	const order = () =>
+		page
+			.locator('main [data-task]')
+			.getByRole('button')
+			.filter({ hasText: /^(Alpha|Bravo|Charlie)$/ })
+			.allTextContents();
+	// Down twice in a row: focus stays on the task as it goes.
+	await box('Alpha').focus();
+	await page.keyboard.press('Alt+ArrowDown');
+	await expect(box('Alpha')).toBeFocused();
+	await page.keyboard.press('Alt+ArrowDown');
+	await expect(box('Alpha')).toBeFocused();
+	expect(await order()).toEqual(['Bravo', 'Charlie', 'Alpha']);
+	// At the bottom, Move down is off; the button that moved it there hands focus to the checkbox.
+	await expect(page.getByRole('button', { name: 'Move down: Alpha' })).toBeDisabled();
+	await expect(page.getByRole('button', { name: 'Move up: Bravo' })).toBeDisabled();
+	await page.getByRole('button', { name: 'Move down: Bravo' }).click();
+	await expect(page.getByRole('button', { name: 'Move down: Bravo' })).toBeFocused();
+	expect(await order()).toEqual(['Charlie', 'Bravo', 'Alpha']);
+	// Backspace corrects typing; it never deletes a task.
+	await box('Bravo').focus();
+	await page.keyboard.press('Backspace');
+	await expect(task(page, 'Bravo')).toBeVisible();
+});
+
+test("says achieved, not done, wherever a bucket list's dream shows", async ({ page }) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Someday');
+	await sidebar.locator('label', { has: page.getByRole('radio', { name: 'Bucket list' }) }).click();
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Swim in Lake Toba #water');
+	await page.getByRole('checkbox', { name: 'Mark achieved: Swim in Lake Toba' }).check();
+	// Found by a search, it's still achieved: not struck through, not "Done".
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('toba');
+	await expect(page.getByText(/^Achieved /)).toBeVisible();
+	await expect(task(page, 'Swim in Lake Toba')).not.toHaveCSS(
+		'text-decoration-line',
+		'line-through'
+	);
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('');
+	// Back on its shelf once the search is cleared, carried there from the list.
+	await expect(task(page, 'Swim in Lake Toba')).toHaveCount(1);
+	// In its details too.
+	await task(page, 'Swim in Lake Toba').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	await expect(details.getByRole('checkbox', { name: 'Achieved' })).toBeChecked();
+	await details.getByRole('button', { name: 'Close' }).click();
+	// In a tag's own list, the tag isn't said again on every task.
+	const again = await lists(page);
+	await again.getByRole('button', { name: /^#water/ }).click();
+	await expect(page.getByRole('heading', { level: 1, name: '#water' })).toBeVisible();
+	await expect(page.locator('main [data-task]').getByText('#water', { exact: true })).toHaveCount(
+		0
+	);
 });
 
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
@@ -1184,12 +1246,16 @@ test('gives every control a 44px target on a touch screen, without overlapping',
 		'New task',
 		'Mark done: First',
 		'First',
-		'Move up: Second',
+		'More: Second',
 		'Done (1)',
 		'Undo',
 		'Dismiss'
 	]);
 	await notice(page).getByRole('button', { name: 'Dismiss' }).click();
+	// A task's moves and Delete, in its menu.
+	await page.getByRole('button', { name: 'More: Second' }).click();
+	await expectTargets(page, ['Move up', 'Move down', 'Delete task']);
+	await page.keyboard.press('Escape');
 
 	// The lists, with a category and a tag to edit.
 	await addTask(page, 'Tagged #weekend');

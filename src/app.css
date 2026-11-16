@@ -73,6 +73,15 @@
 	--color-cat-blue: var(--cat-blue);
 	--color-cat-teal: var(--cat-teal);
 	--color-cat-lavender: var(--cat-lavender);
+	/* A dream just achieved arrives on the shelf edged in the ticked color, which fades to the
+		   usual edge. Only without reduced motion (motion-safe:). */
+	--animate-achieved: achieved 1.6s ease-out;
+}
+
+@keyframes achieved {
+	from {
+		border-color: var(--accent-edge);
+	}
 }
 
 html {

@@ -31,6 +31,13 @@
 	let { identifier, onclose }: { identifier: string | undefined; onclose: () => void } = $props();
 
 	const task = $derived(identifier ? get(amber.records, identifier, 'task') : undefined);
+	// In a bucket list, a task is achieved, not done: the same words as on its shelf.
+	const bucket = $derived.by(() => {
+		if (!task) return false;
+		const place = shownCategory(amber.records, task);
+		const category = place ? get(amber.records, place, 'category') : undefined;
+		return category ? value(category, 'keepDone') : false;
+	});
 	const tree = $derived(categoryTree(amber.records));
 	const tags = $derived(allTags(amber.records));
 	const steps = $derived(task ? stepsOf(amber.records, task.identifier) : []);
@@ -102,11 +109,18 @@
 		<div>
 			<Check
 				checked={value(task, 'done')}
-				label="Done"
+				label={bucket ? 'Achieved' : 'Done'}
 				onchange={(checked) =>
-					amber.act(checked ? 'Marked done' : 'Marked not done', (context) =>
-						setDone(context, task, checked)
-					)}><span aria-hidden="true">Done</span></Check
+					amber.act(
+						bucket
+							? checked
+								? 'Marked achieved'
+								: 'Marked not achieved'
+							: checked
+								? 'Marked done'
+								: 'Marked not done',
+						(context) => setDone(context, task, checked)
+					)}><span aria-hidden="true">{bucket ? 'Achieved' : 'Done'}</span></Check
 			>
 		</div>
 
