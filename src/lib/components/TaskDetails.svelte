@@ -1,6 +1,7 @@
 <!-- Everything about one task: its name, notes, category, tags and steps. Fields save when you leave
      them, and every change can be undone from the message that follows. -->
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
 	import {
@@ -22,6 +23,7 @@
 	} from '#lib/model/actions.js';
 	import { categoryTree, get, stepsOf, tags as allTags, value, LIMITS } from '#lib/model/list.js';
 	import { field, label, secondaryButton, touchTarget, touchText } from '#lib/styles.js';
+	import { rescueFocus } from '#lib/focus.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
 	import Sheet from './Sheet.svelte';
@@ -35,6 +37,19 @@
 
 	let newStep = $state('');
 	let newTag = $state('');
+
+	/**
+	 * Call before a step's button takes the step away (deleted, or made a task), so focus doesn't
+	 * fall to the top of the page: it goes to the same button on the step that takes its place, the
+	 * one before when it was the last, or the field for a new step when none are left.
+	 */
+	async function keepFocus(button: HTMLButtonElement) {
+		const row = button.closest('li');
+		const place = row ? [...row.querySelectorAll('button')].indexOf(button) : -1;
+		const neighbor = row?.nextElementSibling ?? row?.previousElementSibling;
+		await tick();
+		rescueFocus(neighbor?.querySelectorAll('button')[place], document.getElementById('new-step'));
+	}
 </script>
 
 <Sheet open={!!task} title="Task details" {onclose}>
@@ -220,17 +235,20 @@
 									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Make a task of: {text}"
 									title="Make a task of this step"
-									onclick={() =>
-										amber.act(`Made a task: ${text}`, (context) => promoteStep(context, step))}
-									><Icon name="promote" /></button
+									onclick={(event) => {
+										void keepFocus(event.currentTarget);
+										amber.act(`Made a task: ${text}`, (context) => promoteStep(context, step));
+									}}><Icon name="promote" /></button
 								>
 								<button
 									type="button"
 									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
 									aria-label="Delete step: {text}"
 									title="Delete step"
-									onclick={() => amber.act('Step deleted', (context) => deleteStep(context, step))}
-									><Icon name="trash" /></button
+									onclick={(event) => {
+										void keepFocus(event.currentTarget);
+										amber.act('Step deleted', (context) => deleteStep(context, step));
+									}}><Icon name="trash" /></button
 								>
 							</div>
 						</li>
