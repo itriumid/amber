@@ -2,7 +2,8 @@
 import type { Color } from './model/list';
 
 export const COLOR_NAMES: Record<Color, string> = {
-	rose: 'Rose',
+	// Saved as "rose" in lists already, so the key stays; the color shown is coral.
+	rose: 'Coral',
 	sage: 'Sage',
 	sand: 'Sand',
 	blue: 'Blue',
