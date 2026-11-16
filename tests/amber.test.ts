@@ -482,12 +482,14 @@ test('keeps focus nearby when a ticked task moves away, and after deleting one',
 	await page.keyboard.press('Space');
 	await expect(page.getByRole('checkbox', { name: 'Mark done: Second' })).toBeFocused();
 
-	// Deleting from the details: the title that opened them is gone, so focus goes to quick add.
+	// Deleting from the details: the title that opened them is gone, so focus goes to quick add,
+	// or on a touch screen to the list, where no on-screen keyboard comes up.
 	await task(page, 'First').focus();
 	await page.keyboard.press('Enter');
 	const details = page.getByRole('dialog', { name: 'Task details' });
 	await details.getByRole('button', { name: 'Delete task' }).click();
-	await expect(page.getByLabel('New task')).toBeFocused();
+	if (isPhone(page)) await expect(page.locator('#main')).toBeFocused();
+	else await expect(page.getByLabel('New task')).toBeFocused();
 });
 
 test('keeps focus in the details when a step goes away', async ({ page }) => {
@@ -1204,7 +1206,8 @@ test('reminds now and then to download a copy, and can be put off', async ({ pag
 	expect(await axeViolations(page)).toEqual([]);
 	await page.getByRole('button', { name: 'Not now' }).click();
 	await expect(never).toHaveCount(0);
-	await expect(page.getByLabel('New task')).toBeFocused();
+	if (isPhone(page)) await expect(page.locator('#main')).toBeFocused();
+	else await expect(page.getByLabel('New task')).toBeFocused();
 	await expect
 		.poll(async () => (await storedNote(page))?.since)
 		.toBeGreaterThan(Date.now() - 60_000);

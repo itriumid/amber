@@ -15,10 +15,14 @@ export function isLost(): boolean {
 	return !active || active === document.body || !active.isConnected;
 }
 
-/** Quick add when it's there, otherwise the list itself. */
-function home(): HTMLElement | null {
+/**
+ * Quick add when it's there, otherwise the list itself. On a touch screen, always the list: a
+ * focused field brings up the on-screen keyboard, which nobody asked for by ticking a task.
+ */
+export function home(): HTMLElement | null {
 	const quickAdd = document.getElementById('quick-add') as HTMLInputElement | null;
-	if (isShown(quickAdd) && !quickAdd.disabled) return quickAdd;
+	const touch = matchMedia('(pointer: coarse)').matches;
+	if (!touch && isShown(quickAdd) && !quickAdd.disabled) return quickAdd;
 	return document.getElementById('main');
 }
 

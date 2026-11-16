@@ -8,7 +8,7 @@
 	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
 	import { value, type Task } from '#lib/model/list.js';
 	import { tick, untrack } from 'svelte';
-	import { isShown } from '#lib/focus.js';
+	import { home, isShown } from '#lib/focus.js';
 	import { highlight } from '#lib/search.js';
 	import Check from './Check.svelte';
 	import Icon from './Icon.svelte';
@@ -122,7 +122,7 @@
 		const checkbox = (place: Element | null | undefined) =>
 			place?.querySelector<HTMLInputElement>('input[type="checkbox"]');
 		const target = [moved, ...neighbors].map(checkbox).find(isShown);
-		(target ?? document.getElementById('quick-add'))?.focus();
+		(target ?? home())?.focus();
 	}
 
 	/**
@@ -140,7 +140,7 @@
 		amber.act(`Deleted: ${title}`, (context) => deleteTask(context, task));
 		await tick();
 		// Not left to rescueFocus: the row slides away first, so focus isn't lost until it's gone.
-		(neighbors.find(isShown) ?? document.getElementById('quick-add'))?.focus();
+		(neighbors.find(isShown) ?? home())?.focus();
 	}
 
 	function onkeydown(event: KeyboardEvent) {
