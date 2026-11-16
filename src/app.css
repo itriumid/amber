@@ -65,6 +65,7 @@
 	--color-on-accent: var(--on-accent);
 	--color-accent-edge: var(--accent-edge);
 	--color-control-border: var(--control-border);
+	--color-focus: var(--focus);
 	--color-cat-rose: var(--cat-rose);
 	--color-cat-sage: var(--cat-sage);
 	--color-cat-sand: var(--cat-sand);

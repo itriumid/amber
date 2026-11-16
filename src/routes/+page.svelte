@@ -373,7 +373,7 @@
 									class="peer sr-only"
 								/>
 								<span
-									class="peer-focus-visible:outline-focus flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 motion-reduce:transition-none"
+									class="flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
 									>{choice.label}</span
 								>
 							</label>

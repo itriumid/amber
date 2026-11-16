@@ -27,7 +27,7 @@
 					onchange={() => onchange(choice)}
 				/>
 				<span
-					class="peer-focus-visible:outline-focus flex size-9 items-center justify-center rounded-full border-2 border-transparent text-xs transition-colors peer-checked:border-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 motion-reduce:transition-none"
+					class="flex size-9 items-center justify-center rounded-full border-2 border-transparent text-xs transition-colors peer-checked:border-text peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
 				>
 					{#if choice}
 						<span class="size-6 rounded-full {DOT[choice]}" aria-hidden="true"></span>
