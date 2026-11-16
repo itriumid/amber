@@ -117,7 +117,11 @@ test('adds steps to a task, and turns one into a task', async ({ page }) => {
 	await details.getByLabel('New step').press('Enter');
 	await details.getByLabel('New step').fill('Move the bed');
 	await details.getByLabel('New step').press('Enter');
-	await details.getByRole('button', { name: 'Make a task of: Buy paint' }).click();
+	// On a touch screen, a step's actions are in its menu.
+	if (isPhone(page)) {
+		await details.getByRole('button', { name: 'More: Buy paint' }).click();
+		await details.getByRole('button', { name: 'Make a task of this step' }).click();
+	} else await details.getByRole('button', { name: 'Make a task of: Buy paint' }).click();
 	await details.getByRole('button', { name: 'Close' }).click();
 	await expect(task(page, 'Buy paint')).toBeVisible();
 	await expect(page.getByText('0/1')).toBeVisible();
@@ -470,6 +474,20 @@ test('keeps focus in the details when a step goes away', async ({ page }) => {
 	for (const step of ['Pack', 'Clean', 'Hand back keys']) {
 		await details.getByLabel('New step').fill(step);
 		await details.getByLabel('New step').press('Enter');
+	}
+	if (isPhone(page)) {
+		// On a touch screen the actions are in each step's menu; focus goes to the next step's More.
+		const fromMenu = async (step: string, action: string) => {
+			await details.getByRole('button', { name: `More: ${step}` }).click();
+			await details.getByRole('button', { name: action, exact: true }).click();
+		};
+		await fromMenu('Pack', 'Delete step');
+		await expect(details.getByRole('button', { name: 'More: Clean' })).toBeFocused();
+		await fromMenu('Hand back keys', 'Make a task of this step');
+		await expect(details.getByRole('button', { name: 'More: Clean' })).toBeFocused();
+		await fromMenu('Clean', 'Delete step');
+		await expect(details.getByLabel('New step')).toBeFocused();
+		return;
 	}
 	// Deleted: focus moves to the same button on the step that took its place.
 	await details.getByRole('button', { name: 'Delete step: Pack' }).focus();
@@ -1028,7 +1046,9 @@ test('reminds now and then to download a copy, and can be put off', async ({ pag
 const targets = (page: Page) =>
 	page.evaluate(() => {
 		const dialog = document.querySelector<HTMLDialogElement>('dialog[open]');
-		const scope: ParentNode = dialog ?? document;
+		// The top layer is what a finger can reach: an open menu over a sheet, the sheet over the page.
+		const menu = document.querySelector(':popover-open');
+		const scope: ParentNode = menu ?? dialog ?? document;
 		if (dialog) dialog.scrollTop = 0;
 		else window.scrollTo({ top: 0, behavior: 'instant' });
 		const hitBox = (
@@ -1183,15 +1203,11 @@ test('gives every control a 44px target on a touch screen, without overlapping',
 	const details = page.getByRole('dialog', { name: 'Task details' });
 	await details.getByLabel('New step').fill('A step');
 	await details.getByLabel('New step').press('Enter');
-	await expectTargets(page, [
-		'Done',
-		'#weekend',
-		'Mark done: A step',
-		'Move up: A step',
-		'Move down: A step',
-		'Make a task of: A step',
-		'Delete step: A step'
-	]);
+	await expectTargets(page, ['Done', '#weekend', 'Mark done: A step', 'More: A step']);
+	// A step's actions, in its menu.
+	await details.getByRole('button', { name: 'More: A step' }).click();
+	await expectTargets(page, ['Move up', 'Move down', 'Make a task of this step', 'Delete step']);
+	await page.keyboard.press('Escape');
 	await details.getByRole('button', { name: 'Close' }).click();
 
 	// The other sheets.

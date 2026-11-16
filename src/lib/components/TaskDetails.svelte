@@ -41,15 +41,27 @@
 	/**
 	 * Call before a step's button takes the step away (deleted, or made a task), so focus doesn't
 	 * fall to the top of the page: it goes to the same button on the step that takes its place, the
-	 * one before when it was the last, or the field for a new step when none are left.
+	 * one before when it was the last, or the field for a new step when none are left. From the menu
+	 * on a touch screen, that's the next step's More button.
 	 */
 	async function keepFocus(button: HTMLButtonElement) {
 		const row = button.closest('li');
+		const fromMenu = !!button.closest('[popover]');
 		const place = row ? [...row.querySelectorAll('button')].indexOf(button) : -1;
 		const neighbor = row?.nextElementSibling ?? row?.previousElementSibling;
 		await tick();
-		rescueFocus(neighbor?.querySelectorAll('button')[place], document.getElementById('new-step'));
+		rescueFocus(
+			fromMenu
+				? neighbor?.querySelector<HTMLElement>('[data-more]')
+				: neighbor?.querySelectorAll('button')[place],
+			document.getElementById('new-step')
+		);
 	}
+
+	const iconButton =
+		'inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text';
+	const menuItem =
+		'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-base hover:bg-bg';
 </script>
 
 <Sheet open={!!task} title="Task details" {onclose}>
@@ -162,9 +174,11 @@
 		</fieldset>
 
 		<!-- A fieldset is as wide as its content by default; this one fits the sheet. A step's text keeps
-		     at least 12rem: where that and the buttons don't fit, as on a phone or with large text, the
-		     buttons move to a line of their own instead of squeezing it. Alt with the up or down arrow
-		     moves a step, as it moves a task. -->
+		     at least 12rem: where that and the buttons don't fit, as with large text, the buttons move to
+		     a line of their own instead of squeezing it. On a touch screen the four buttons are one More
+		     button, whose menu names the step and labels each action: four bare icons per step crowded
+		     every row and could be taken for the next step's. Alt with the up or down arrow moves a
+		     step, as it moves a task. -->
 		<fieldset class="min-w-0">
 			<legend class={label}>Steps <span class="font-normal text-muted">(optional)</span></legend>
 			{#if steps.length}
@@ -212,11 +226,11 @@
 								/>
 							</div>
 							<div
-								class="ml-auto flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
+								class="ml-auto flex opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:hidden"
 							>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+									class={iconButton}
 									aria-label="Move up: {text}"
 									title="Move up"
 									onclick={() => amber.act('Step moved', (context) => moveStep(context, step, -1))}
@@ -224,7 +238,7 @@
 								>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+									class={iconButton}
 									aria-label="Move down: {text}"
 									title="Move down"
 									onclick={() => amber.act('Step moved', (context) => moveStep(context, step, 1))}
@@ -232,7 +246,7 @@
 								>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+									class={iconButton}
 									aria-label="Make a task of: {text}"
 									title="Make a task of this step"
 									onclick={(event) => {
@@ -242,13 +256,59 @@
 								>
 								<button
 									type="button"
-									class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
+									class={iconButton}
 									aria-label="Delete step: {text}"
 									title="Delete step"
 									onclick={(event) => {
 										void keepFocus(event.currentTarget);
 										amber.act('Step deleted', (context) => deleteStep(context, step));
 									}}><Icon name="trash" /></button
+								>
+							</div>
+							<button
+								type="button"
+								data-more
+								class="ml-auto hidden size-11 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
+								aria-label="More: {text}"
+								popovertarget="step-menu-{step.identifier}"><Icon name="more" /></button
+							>
+							<div
+								id="step-menu-{step.identifier}"
+								popover
+								class="m-auto w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-2 text-text shadow-2xl backdrop:bg-black/40"
+							>
+								<p class="truncate px-3 pt-1 pb-2 text-sm text-muted">{text}</p>
+								<button
+									type="button"
+									class={menuItem}
+									onclick={(event) => {
+										event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover();
+										amber.act('Step moved', (context) => moveStep(context, step, -1));
+									}}><Icon name="up" /> Move up</button
+								>
+								<button
+									type="button"
+									class={menuItem}
+									onclick={(event) => {
+										event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover();
+										amber.act('Step moved', (context) => moveStep(context, step, 1));
+									}}><Icon name="down" /> Move down</button
+								>
+								<button
+									type="button"
+									class={menuItem}
+									onclick={(event) => {
+										void keepFocus(event.currentTarget);
+										amber.act(`Made a task: ${text}`, (context) => promoteStep(context, step));
+									}}><Icon name="promote" /> Make a task of this step</button
+								>
+								<button
+									type="button"
+									class={menuItem}
+									onclick={(event) => {
+										void keepFocus(event.currentTarget);
+										amber.act('Step deleted', (context) => deleteStep(context, step));
+									}}><Icon name="trash" /> Delete step</button
 								>
 							</div>
 						</li>
