@@ -456,6 +456,27 @@ test('keeps focus nearby when a ticked task moves away, and after deleting one',
 	await expect(page.getByLabel('New task')).toBeFocused();
 });
 
+test('keeps focus in the details when a step goes away', async ({ page }) => {
+	await addTask(page, 'Move house');
+	await task(page, 'Move house').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	for (const step of ['Pack', 'Clean', 'Hand back keys']) {
+		await details.getByLabel('New step').fill(step);
+		await details.getByLabel('New step').press('Enter');
+	}
+	// Deleted: focus moves to the same button on the step that took its place.
+	await details.getByRole('button', { name: 'Delete step: Pack' }).focus();
+	await page.keyboard.press('Enter');
+	await expect(details.getByRole('button', { name: 'Delete step: Clean' })).toBeFocused();
+	// The last step made a task: there's no step after it, so the one before.
+	await details.getByRole('button', { name: 'Make a task of: Hand back keys' }).focus();
+	await page.keyboard.press('Enter');
+	await expect(details.getByRole('button', { name: 'Make a task of: Clean' })).toBeFocused();
+	// None left: the field for a new step.
+	await page.keyboard.press('Enter');
+	await expect(details.getByLabel('New step')).toBeFocused();
+});
+
 test('outlines the control in focus, but not the whole list when focus falls back to it', async ({
 	page
 }) => {
