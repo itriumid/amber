@@ -29,7 +29,7 @@
 		TITLE
 	} from '#lib/content.js';
 	import { addTask, tagByName } from '#lib/model/actions.js';
-	import { get, value, LIMITS, type Task } from '#lib/model/list.js';
+	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, smallButton, touchTarget } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { rescueFocus } from '#lib/focus.js';
@@ -140,6 +140,7 @@
 		sections.every((section) => !section.shown.length && !section.done.length)
 	);
 	const duration = $derived(amber.reducedMotion ? 0 : 200);
+	const hasTags = $derived(allTags(amber.records).length > 0);
 
 	// Now and then, a reminder to download a copy: the copies kept here go if the browser's data is
 	// cleared. Not over a problem, which has its own way forward.
@@ -405,7 +406,7 @@
 							bind:value={newTask}
 							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
 							placeholder="Add a task"
-							aria-describedby="quick-add-hint"
+							aria-describedby={hasTags ? undefined : 'quick-add-hint'}
 							aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
 							maxlength={LIMITS.title + 200}
 							autocomplete="off"
@@ -419,9 +420,12 @@
 							<Icon name="plus" /> Add
 						</button>
 					</div>
-					<p id="quick-add-hint" class="mt-1.5 text-xs text-muted">
-						Words starting with # become tags: <span class="font-medium">#weekend</span>.
-					</p>
+					<!-- Until there's a tag in the list: by then, someone knows how tags are made. -->
+					{#if !hasTags}
+						<p id="quick-add-hint" class="mt-1.5 text-xs text-muted">
+							Words starting with # become tags: <span class="font-medium">#weekend</span>.
+						</p>
+					{/if}
 				</form>
 			{/if}
 			<!-- Said aloud as results change; empty while not searching. -->

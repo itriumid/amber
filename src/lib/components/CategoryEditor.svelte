@@ -93,7 +93,13 @@
 			>
 				<label for="new-subcategory" class={label}>Add a subcategory</label>
 				<div class="flex gap-2">
-					<input id="new-subcategory" class={field} bind:value={newChild} maxlength={LIMITS.name} />
+					<input
+						id="new-subcategory"
+						class={field}
+						placeholder="New subcategory"
+						bind:value={newChild}
+						maxlength={LIMITS.name}
+					/>
 					<button type="submit" class={secondaryButton} disabled={!newChild.trim()}>Add</button>
 				</div>
 			</form>
