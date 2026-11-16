@@ -34,7 +34,14 @@
 	let newChild = $state('');
 </script>
 
-<Sheet open={!!category} title={parent ? 'Subcategory' : 'Category'} {onclose}>
+<!-- Named for what's being edited, so a screen reader hears which one. -->
+<Sheet
+	open={!!category}
+	title={category
+		? `${parent ? 'Subcategory' : 'Category'}: ${value(category, 'name')}`
+		: 'Category'}
+	{onclose}
+>
 	{#if category}
 		<div>
 			<label for="category-name" class={label}>Name</label>

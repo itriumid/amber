@@ -391,10 +391,8 @@
 								{:else}
 									<p>{summarize(preview)}</p>
 									<div class="mt-3 flex gap-2">
-										<button
-											type="button"
-											class="{smallButton} border-accent-edge bg-accent font-semibold text-on-accent hover:bg-accent hover:opacity-85"
-											onclick={() => putBack(snapshot)}>Put it back</button
+										<button type="button" class={primaryButton} onclick={() => putBack(snapshot)}
+											>Put it back</button
 										>
 										<button
 											type="button"

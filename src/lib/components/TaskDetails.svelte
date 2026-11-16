@@ -217,7 +217,7 @@
 		     every row and could be taken for the next step's. Alt with the up or down arrow moves a
 		     step, as it moves a task. -->
 		<fieldset class="min-w-0">
-			<legend class={label}>Steps <span class="font-normal text-muted">(optional)</span></legend>
+			<legend class={label}>Steps</legend>
 			{#if steps.length}
 				<ul class="space-y-1">
 					{#each steps as step (step.identifier)}

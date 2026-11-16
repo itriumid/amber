@@ -76,7 +76,7 @@ test('ticks a task done, tucks it away, and undoes it', async ({ page }) => {
 		'Done: Water the plants'
 	);
 	await page.getByRole('button', { name: 'Undo' }).click();
-	await expect(page.getByText('Undone: “Done: Water the plants”')).toBeVisible();
+	await expect(page.getByText('Done: Water the plants (undone)')).toBeVisible();
 	await expect(page.getByText('Done (1)')).toHaveCount(0);
 	await expect(
 		page.getByRole('checkbox', { name: 'Mark done: Water the plants' })
@@ -688,8 +688,10 @@ test('names counts and steps the way they should be heard', async ({ page }) => 
 	await details.getByLabel('New step').press('Enter');
 	await details.getByRole('button', { name: 'Close' }).click();
 	await expect(page.getByRole('main').getByText('0 of 1 steps done')).toBeAttached();
+	// The steps are said with the title, then the hint: arrowing through the list never lands on
+	// the line under it.
 	await expect(task(page, 'Paint the bedroom')).toHaveAccessibleDescription(
-		"Opens the task's details."
+		"0 of 1 steps done . Opens the task's details."
 	);
 });
 

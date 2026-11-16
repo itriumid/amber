@@ -12,10 +12,11 @@ export const DESCRIPTION =
 
 export const PROMISE = 'Your lists stay on your device, and nobody else can read them.';
 export const PROMISE_DETAIL = 'No account, and it works offline.';
+// Said in the footer under every list, so it says what's true in as few words as it can.
 export const STORAGE_NOTE =
-	'Your lists live in this browser. Clearing its data for this site deletes them, so keep a copy of anything that matters.';
+	"They live in this browser: clearing this site's data deletes them, so keep a copy.";
 export const SYNC_NOTE =
-	'Syncing with another device passes an encrypted copy through our server for a few minutes, and only your devices can open it.';
+	'Sync passes an encrypted copy through our server for a few minutes; only your devices can open it.';
 // "Made by Itrium.", with Itrium linking to its site: the one link to it, kept out of the app's header.
 export const FOOTNOTE = { before: 'Made by', name: 'Itrium', after: '.' };
 

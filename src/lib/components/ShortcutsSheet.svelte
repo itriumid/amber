@@ -22,6 +22,16 @@
 			said: 'The up or down arrow, in the list'
 		},
 		{
+			action: 'Go along a task',
+			keys: [['←'], ['→']],
+			said: 'The left or right arrow, in the list'
+		},
+		{
+			action: 'Go to the first or last task',
+			keys: [['Home'], ['End']],
+			said: 'Home or End, in the list'
+		},
+		{
 			action: 'Open a task',
 			keys: [['Enter']],
 			said: 'Enter, on a task'

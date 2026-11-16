@@ -499,7 +499,7 @@
 							<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
 							<h2
 								id="section-{section.key}"
-								class="mb-2 {labelPlate} {sections.length > 1 ? '' : 'sr-only'}"
+								class="mb-2 {labelPlate} {sections.length > 1 || searching ? '' : 'sr-only'}"
 							>
 								{#if section.color}<span
 										class="size-2.5 rounded-full {DOT[section.color]}"
@@ -567,7 +567,7 @@
 										/>
 										Done ({section.done.length})
 									</summary>
-									<ul class="mt-1">
+									<ul class="mt-1 {tray}">
 										{#each section.done as task (task.identifier)}
 											<li transition:slide={{ duration }}>
 												<TaskRow
@@ -591,8 +591,7 @@
 	<!-- Room at the bottom so the message with Undo never covers the footer's link. -->
 	<footer class="mt-auto border-t border-border pt-8 pb-36 text-sm text-muted">
 		<p class="font-medium text-text">{PROMISE}</p>
-		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE}</p>
-		<p class="mt-1">{SYNC_NOTE}</p>
+		<p class="mt-1">{PROMISE_DETAIL} {STORAGE_NOTE} {SYNC_NOTE}</p>
 		<p class="mt-4">
 			{FOOTNOTE.before}
 			<a
