@@ -15,9 +15,12 @@ const CONTROL = 'input[type="checkbox"], button';
 const rowsIn = (container: HTMLElement) =>
 	[...container.querySelectorAll<HTMLElement>(ROW)].filter(isShown);
 
+// Only the controls that can be seen and used: not the move buttons a touch screen hides, the
+// More menu's items while it's closed, or a move button that's off at the end of the list.
 const controlsIn = (row: Element) =>
 	[...row.querySelectorAll<HTMLElement>(CONTROL)].filter(
-		(control) => control.closest(ROW) === row && !control.hasAttribute('disabled')
+		(control) =>
+			control.closest(ROW) === row && !control.hasAttribute('disabled') && isShown(control)
 	);
 
 /** The one control the list lets Tab land on. */

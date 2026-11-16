@@ -137,7 +137,7 @@
 			{/each}
 		</ul>
 		<form
-			class="mt-2 px-1"
+			class="mt-2"
 			onsubmit={(event) => {
 				event.preventDefault();
 				const made = amber.act('Category added', (context) =>
@@ -154,7 +154,7 @@
 			<div class="flex gap-1.5">
 				<input
 					id="{prefix}-new-category"
-					class="{field} py-2"
+					class="{field} min-w-0 py-2"
 					placeholder="New category"
 					bind:value={newCategory}
 					maxlength={LIMITS.name}
