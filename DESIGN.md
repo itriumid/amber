@@ -278,6 +278,9 @@ is friendly at text sizes and tightens neatly when bold for headings. No second 
 
 **The 16px on Touch Rule.** On a touch screen, fields are 16px text, or Safari zooms the page.
 
+**The One Exception Rule.** A sync code, and a link to the list, are set in the system's monospace
+font, where telling a 0 from an O matters more than the typeface. Nothing else uses it.
+
 **The Weight Not Size Rule.** Hierarchy inside the list comes from weight and muted color, not
 new sizes: a section heading is 0.875rem semibold, not a bigger font.
 
@@ -289,7 +292,8 @@ with a 32px gap; below that the sidebar moves into a sheet opened from the menu 
 header.
 
 The header wraps: Amber's icon and the wordmark on the left, search taking up to 28rem on the
-right, and on a phone the search bar on a line of its own, full width. The main column runs
+right, and on a phone the search bar on a line of its own, full width. Nothing else sits in the
+header; the link to Itrium is in the footer's last line. The main column runs
 headline, notices, the Any/Open/Done switch while searching, quick add, then sections spaced 32px
 apart, each a framed label over a tray. Slips have 10px × 12px padding and 12px between checkbox
 and text. Spacing follows Tailwind's 4px scale.
@@ -373,22 +377,26 @@ from slip to slip, Enter opens, Space ticks, Delete deletes with Undo.
 
 ### Achieved Shelf (signature)
 
-On a bucket list, achieved dreams leave the tray for a shelf below it, under the framed label
-"Achieved (n)": specimens in a grid (two across from 640px), each a surface block with a control
-edge, the dream in semibold and a collection label framed beneath, "Achieved" and the date. A
-dream ticked in the tray is carried onto the shelf over 450ms, and back when unticked; under
-reduced motion it simply appears.
+On a bucket list, achieved dreams leave the tray for a shelf set in under it with a hairline on
+its left, so it reads as that list's shelf: framed "Achieved (n)", or "Achieved in Someday (n)"
+where a page shows several lists. Specimens sit in a grid (two across from 640px): a surface block
+with a control edge and 16px padding, the dream in semibold at 1.125rem and a collection label
+framed beneath, "Achieved" and the date. A dream ticked in the tray is carried onto the shelf over
+450ms and arrives with its edge in deep rose, fading to the usual edge over 1.6s; under reduced
+motion it simply appears. Everywhere else, in search results and its details, a bucket list's
+done task is said as achieved, never struck through.
 
 ### Kind of List
 
 A two-way switch, To-do list or Bucket list, with one line saying what it means. It appears below
 the new-category field as a name is typed, and at the top of a category's editor.
 
-### Step Menu
+### Step and Task Menus
 
-With a mouse, a step's move, make-a-task and delete buttons sit beside it, shown on hover or
-focus. On a touch screen they are one More button per step, opening a menu that names the step and
-labels each action.
+With a mouse, a step's or a task's move buttons sit beside it, shown on hover or focus, and off
+(30% opacity) at the ends of its list. On a touch screen they are one More button per row, opening
+a menu that names the step or task and labels each action: Move up, Move down, and Make a task of
+this step or Delete step for a step, Delete task for a task.
 
 ### Inputs / Fields
 
