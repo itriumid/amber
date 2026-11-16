@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 2,
-	"generatedAt": "2026-11-16T10:24:57+00:00",
+	"generatedAt": "2026-11-16T10:52:17+00:00",
 	"title": "Design System: Amber",
 	"extensions": {
 		"colorMeta": {
@@ -285,6 +285,11 @@
 				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
 			},
 			{
+				"name": "carry",
+				"value": "crossfade 450ms cubic-out",
+				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
+			},
+			{
 				"name": "reduced-motion",
 				"value": "duration 0 / transition: none",
 				"purpose": "Every motion above has an instant version."
@@ -374,7 +379,7 @@
 			"refersTo": "toast",
 			"description": "Floating pill after an action, with Undo; the one in-flow shadow exception because it floats.",
 			"html": "<div class=\"ds-toast\" role=\"status\"><span>Done: Water the plants</span><button class=\"ds-toast-undo\">Undo</button><button class=\"ds-btn-icon-t\" aria-label=\"Dismiss\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button></div>",
-			"css": ".ds-toast{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 20px;border-radius:8px;border:1px solid var(--control-border);background:var(--surface);color:var(--text);font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-toast-undo{all:unset;min-height:32px;padding:0 12px;border-radius:8px;font-weight:600;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-toast-undo:hover{background:var(--bg)}.ds-toast-undo:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-btn-icon-t{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:9999px;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon-t:hover{background:var(--bg);color:var(--text)}"
+			"css": ".ds-toast{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 20px;border-radius:8px;border:1px solid var(--control-border);background:var(--surface);color:var(--text);font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-toast-undo{all:unset;min-height:32px;padding:0 12px;border-radius:8px;font-weight:600;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-toast-undo:hover{background:var(--bg)}.ds-toast-undo:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-btn-icon-t{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon-t:hover{background:var(--bg);color:var(--text)}"
 		},
 		{
 			"name": "Kind of List Switch",
