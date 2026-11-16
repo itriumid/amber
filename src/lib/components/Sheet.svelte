@@ -4,7 +4,7 @@
      underneath can't be reached. -->
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import { rescueFocus } from '#lib/focus.js';
+	import { isShown, rescueFocus } from '#lib/focus.js';
 	import { amber } from '#lib/amber.svelte.js';
 	import { noticePlace } from '#lib/notice.svelte.js';
 	import Icon from './Icon.svelte';
@@ -15,8 +15,16 @@
 		open,
 		title,
 		onclose,
+		focusField = true,
 		children
-	}: { open: boolean; title: string; onclose: () => void; children: Snippet } = $props();
+	}: {
+		open: boolean;
+		title: string;
+		onclose: () => void;
+		/** Whether opening it puts focus on its first field. Off where that field isn't the point. */
+		focusField?: boolean;
+		children: Snippet;
+	} = $props();
 	let dialog: HTMLDialogElement | undefined = $state();
 	let region: HTMLDivElement | undefined = $state();
 	let header: HTMLDivElement | undefined = $state();
@@ -25,7 +33,20 @@
 
 	$effect(() => {
 		if (!dialog) return;
-		if (open && !dialog.open) dialog.showModal();
+		if (open && !dialog.open) {
+			dialog.showModal();
+			// The browser puts focus on the first control, which is Close; every edit would start with
+			// a Tab past it. With a mouse or a trackpad, focus goes to the first field instead. Not on a
+			// touch screen, where a focused field brings up the on-screen keyboard over the sheet.
+			if (focusField && matchMedia('(pointer: fine)').matches) {
+				const first = [
+					...dialog.querySelectorAll<HTMLElement>(
+						'input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"]), textarea, select'
+					)
+				].find((element) => isShown(element) && !element.hasAttribute('disabled'));
+				first?.focus();
+			}
+		}
 		if (!open && dialog.open) dialog.close();
 	});
 

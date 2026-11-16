@@ -484,6 +484,17 @@ test('keeps focus in the details when a step goes away', async ({ page }) => {
 	await expect(details.getByLabel('New step')).toBeFocused();
 });
 
+test('opens a sheet on its first field with a mouse, and on Close on a touch screen', async ({
+	page
+}) => {
+	await addTask(page, 'Water the plants');
+	await task(page, 'Water the plants').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	// A focused field on a touch screen would bring up the keyboard over the sheet.
+	if (isPhone(page)) await expect(details.getByRole('button', { name: 'Close' })).toBeFocused();
+	else await expect(details.getByLabel('Task', { exact: true })).toBeFocused();
+});
+
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
 	page
 }) => {

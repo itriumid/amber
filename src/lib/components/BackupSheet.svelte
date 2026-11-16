@@ -172,7 +172,7 @@
      optional, and a password field first makes keeping a copy look like a security procedure. The
      copies this device keeps come last, with the one warning that they go if the browser's data is
      cleared. -->
-<Sheet {open} title="Back up and move" {onclose}>
+<Sheet {open} title="Back up and move" {onclose} focusField={false}>
 	<section aria-labelledby="{prefix}-file">
 		<h3 id="{prefix}-file" class={heading}>Keep a copy</h3>
 		<p class={hint}>
