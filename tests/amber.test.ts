@@ -127,6 +127,20 @@ test('adds steps to a task, and turns one into a task', async ({ page }) => {
 	await expect(page.getByText('0/1')).toBeVisible();
 });
 
+test("keeps a task's name when it's emptied, and says why", async ({ page }) => {
+	await addTask(page, 'Fix the gate');
+	await task(page, 'Fix the gate').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	const name = details.getByLabel('Task', { exact: true });
+	await name.fill('');
+	await name.press('Tab');
+	await expect(name).toHaveValue('Fix the gate');
+	await expect(details.getByRole('alert')).toHaveText(
+		'A task needs a name, so the one it had is kept.'
+	);
+	await expect(name).toHaveAccessibleDescription('A task needs a name, so the one it had is kept.');
+});
+
 test('deletes a category but keeps its tasks', async ({ page }) => {
 	const sidebar = await lists(page);
 	await sidebar.getByLabel('New category').fill('Home');

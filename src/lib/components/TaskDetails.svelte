@@ -36,6 +36,12 @@
 	const steps = $derived(task ? stepsOf(amber.records, task.identifier) : []);
 
 	let newStep = $state('');
+	let untitled = $state(false);
+	// A different task, or the same one opened again, starts without the message.
+	$effect(() => {
+		void identifier;
+		untitled = false;
+	});
 	let newTag = $state('');
 
 	/**
@@ -73,9 +79,24 @@
 				class={field}
 				value={value(task, 'title')}
 				maxlength={LIMITS.title}
-				onchange={(event) =>
-					amber.act('Renamed', (context) => setTitle(context, task, event.currentTarget.value))}
+				aria-describedby={untitled ? 'task-title-problem' : undefined}
+				oninput={() => (untitled = false)}
+				onchange={(event) => {
+					// A task needs a name. Emptied, the name it had is put back, and it's said why, rather
+					// than leaving a blank field that looks saved and isn't.
+					if (!event.currentTarget.value.trim()) {
+						event.currentTarget.value = value(task, 'title');
+						untitled = true;
+						return;
+					}
+					amber.act('Renamed', (context) => setTitle(context, task, event.currentTarget.value));
+				}}
 			/>
+			{#if untitled}
+				<p id="task-title-problem" class="mt-1.5 text-sm" role="alert">
+					A task needs a name, so the one it had is kept.
+				</p>
+			{/if}
 		</div>
 
 		<div>
