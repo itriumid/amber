@@ -858,6 +858,20 @@ test('asks before a sync deletes anything, and changes nothing when told not to'
 	await phoneContext.close();
 });
 
+test('keeps a note half written when the page goes away', async ({ page }) => {
+	await addTask(page, 'Plan the trip');
+	await task(page, 'Plan the trip').click();
+	const details = page.getByRole('dialog', { name: 'Task details' });
+	// Typed, and never left: the page reloads with the cursor still in the box.
+	await details.getByLabel('Notes').fill('Ask Sari about the ferry');
+	await page.reload();
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	await task(page, 'Plan the trip').click();
+	await expect(page.getByRole('dialog', { name: 'Task details' }).getByLabel('Notes')).toHaveValue(
+		'Ask Sari about the ferry'
+	);
+});
+
 test('joins a sync from a shared link, and a used code says so', async ({
 	page,
 	context,

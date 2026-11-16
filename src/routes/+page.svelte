@@ -233,9 +233,24 @@
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
+
+	/**
+	 * A field saves when it's left. Before the page goes away or out of sight (a reload, a closed
+	 * tab, a phone putting Amber in the background, where it may never come back), the field being
+	 * typed in saves as well, so a note half written isn't lost. Saving the same value again changes
+	 * nothing, so leaving the field afterward adds no second change to undo.
+	 */
+	function saveTyping() {
+		const field = document.activeElement;
+		const typing =
+			field instanceof HTMLTextAreaElement ||
+			(field instanceof HTMLInputElement && ['text', 'search', ''].includes(field.type));
+		if (typing) field.dispatchEvent(new Event('change', { bubbles: true }));
+	}
 </script>
 
-<svelte:window {onkeydown} onhashchange={() => amber.ready && takeLink()} />
+<svelte:window {onkeydown} onhashchange={() => amber.ready && takeLink()} onpagehide={saveTyping} />
+<svelte:document onvisibilitychange={() => document.visibilityState === 'hidden' && saveTyping()} />
 
 <Seo title={TITLE} description={DESCRIPTION} path="/" />
 
