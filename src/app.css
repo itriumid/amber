@@ -22,7 +22,8 @@
 	--control-border: #8a8a8a;
 	/* Category colors: Rhodonite's code colors plus a lavender, every one at least 4.5:1 on the page
 	   and on cards in both modes. Pink is left out on purpose: it marks focus and the main action. */
-	--cat-rose: #f58c9d;
+	/* Coral, saved as "rose": far enough from the pink accent not to be taken for it. */
+	--cat-rose: #f59a7f;
 	--cat-sage: #a9c9a0;
 	--cat-sand: #e6cf98;
 	--cat-blue: #9fb5d8;
@@ -43,7 +44,7 @@
 		--muted: #6b6b6b;
 		--accent-edge: #c46475;
 		--control-border: #767676;
-		--cat-rose: #b03a4f;
+		--cat-rose: #a8452a;
 		--cat-sage: #3f7339;
 		--cat-sand: #7f6216;
 		--cat-blue: #3a5f93;
@@ -65,6 +66,7 @@
 	--color-on-accent: var(--on-accent);
 	--color-accent-edge: var(--accent-edge);
 	--color-control-border: var(--control-border);
+	--color-focus: var(--focus);
 	--color-cat-rose: var(--cat-rose);
 	--color-cat-sage: var(--cat-sage);
 	--color-cat-sand: var(--cat-sand);

@@ -6,13 +6,17 @@
      space it covers is kept as scroll padding, so focus is scrolled clear of it, and as room at the
      end, so the last rows can be scrolled above it. The footer's padding is most of that room
      already; only what it lacks is added, and that is taken away only once it's out of sight, so
-     nothing on screen moves. -->
-<script lang="ts">
-	import { fly } from 'svelte/transition';
-	import { amber } from '#lib/amber.svelte.js';
-	import Icon from './Icon.svelte';
+     nothing on screen moves.
 
-	let paused = $state(false);
+     While a dialog is open, the message shows in it instead (Sheet.svelte), since the page under
+     an open dialog can't be reached; see notice.svelte.ts. -->
+<script lang="ts">
+	import { amber } from '#lib/amber.svelte.js';
+	import { noticePlace } from '#lib/notice.svelte.js';
+	import NoticeMessage from './NoticeMessage.svelte';
+
+	/** Shown on the page: there's a message, and no dialog to show it in. */
+	const shown = $derived(!!amber.notice && !noticePlace.top);
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let region: HTMLDivElement | undefined = $state();
 	let room: HTMLDivElement | undefined = $state();
@@ -22,7 +26,7 @@
 
 	/** How far up from the bottom of the screen the message reaches, gap included; 0 with none. */
 	function covered() {
-		if (!region || !amber.notice) return 0;
+		if (!region || !shown) return 0;
 		return Math.ceil(innerHeight - region.getBoundingClientRect().top) + GAP;
 	}
 
@@ -46,7 +50,7 @@
 
 	/** Scrolls the element with focus up, if the message covers it. Smooth unless motion is reduced. */
 	function keepClear(target: Element | null) {
-		if (!(target instanceof HTMLElement) || !region || !amber.notice) return;
+		if (!(target instanceof HTMLElement) || !region || !shown) return;
 		if (region.contains(target) || target.closest('dialog')) return;
 		// A whole task row, when focus is in one, so the task can be read as well as reached.
 		const box = (target.closest('[data-task]') ?? target).getBoundingClientRect();
@@ -58,7 +62,7 @@
 
 	// While the message shows, its room follows its height (a long message can wrap).
 	$effect(() => {
-		if (!amber.notice || !region) return;
+		if (!shown || !region) return;
 		const measure = () => reserve(covered());
 		measure();
 		const observer = new ResizeObserver(measure);
@@ -86,7 +90,7 @@
 		if (!inSight()) return reserve(0);
 		document.documentElement.style.removeProperty('--notice-room');
 		const later = () => {
-			if (amber.notice) return removeEventListener('scroll', later);
+			if (shown) return removeEventListener('scroll', later);
 			if (inSight()) return;
 			removeEventListener('scroll', later);
 			reserve(0);
@@ -97,7 +101,7 @@
 	$effect(() => {
 		const current = amber.notice;
 		clearTimeout(timer);
-		if (current && !paused) timer = setTimeout(() => (amber.notice = undefined), 6000);
+		if (current && !noticePlace.paused) timer = setTimeout(() => (amber.notice = undefined), 6000);
 		return () => clearTimeout(timer);
 	});
 </script>
@@ -114,31 +118,5 @@
 	class="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4"
 	role="status"
 >
-	{#if amber.notice}
-		{@const notice = amber.notice}
-		<div
-			class="pointer-events-auto flex items-center gap-3 rounded-full border border-control-border bg-surface py-2 pr-2 pl-5 text-sm shadow-lg pointer-coarse:py-1"
-			transition:fly={{ y: 16, duration: amber.reducedMotion ? 0 : 200 }}
-			onmouseenter={() => (paused = true)}
-			onmouseleave={() => (paused = false)}
-			onfocusin={() => (paused = true)}
-			onfocusout={() => (paused = false)}
-			role="presentation"
-		>
-			<span>{notice.message}</span>
-			{#if notice.changes.length && amber.history.at(-1) === notice}
-				<button
-					type="button"
-					class="min-h-8 rounded-full px-3 font-semibold underline underline-offset-4 hover:bg-bg pointer-coarse:min-h-11"
-					onclick={() => amber.undo()}>Undo</button
-				>
-			{/if}
-			<button
-				type="button"
-				class="inline-flex size-8 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-text pointer-coarse:size-11"
-				aria-label="Dismiss"
-				onclick={() => (amber.notice = undefined)}><Icon name="close" /></button
-			>
-		</div>
-	{/if}
+	{#if shown}<NoticeMessage />{/if}
 </div>

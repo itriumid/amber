@@ -184,12 +184,15 @@
 	}
 
 	function onkeydown(event: KeyboardEvent) {
-		if (isTyping(event.target) || document.querySelector('dialog[open]')) return;
+		// In a field, Ctrl or ⌘ with Z belongs to the field: it undoes typing there.
+		if (isTyping(event.target)) return;
+		// Undo works in a dialog too: that's where steps and tags are taken off.
 		if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
 			event.preventDefault();
 			amber.undo();
 			return;
 		}
+		if (document.querySelector('dialog[open]')) return;
 		// Single keys (N, / and ?) can be turned off in Keyboard shortcuts: pressed by mistake, or
 		// heard by speech input as a word, they'd do something nobody asked for.
 		if (!settings.singleKeyShortcuts || event.metaKey || event.ctrlKey || event.altKey) return;
@@ -317,7 +320,7 @@
 			<div role="status">
 				{#if updates.ready}
 					<div
-						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface p-3 text-sm"
+						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
 						transition:slide={{ duration }}
 					>
 						<p>A new version of Amber is ready.</p>
@@ -331,15 +334,19 @@
 			</div>
 
 			{#if amber.problem}
-				<div class="mt-4 rounded-lg border-l-4 border-accent-edge bg-surface p-3 text-sm">
-					<p role="alert">{amber.problem}</p>
-					{#if amber.unsaved}
-						<button
-							type="button"
-							class="mt-3 {smallButton}"
-							onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
-						>
-					{/if}
+				<!-- A problem gets the stronger control edge and a sign, apart from the calmer notes. -->
+				<div class="mt-4 flex gap-3 rounded-lg border border-control-border bg-surface p-3 text-sm">
+					<Icon name="alert" class="mt-0.5 size-4 shrink-0" />
+					<div class="min-w-0">
+						<p role="alert">{amber.problem}</p>
+						{#if amber.unsaved}
+							<button
+								type="button"
+								class="mt-3 {smallButton}"
+								onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
+							>
+						{/if}
+					</div>
 				</div>
 			{/if}
 
@@ -373,7 +380,7 @@
 									class="peer sr-only"
 								/>
 								<span
-									class="peer-focus-visible:outline-focus flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 motion-reduce:transition-none"
+									class="flex min-h-9 items-center rounded-full px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
 									>{choice.label}</span
 								>
 							</label>
@@ -487,7 +494,7 @@
 									<ul class="mt-1">
 										{#each section.done as task (task.identifier)}
 											<li transition:slide={{ duration }}>
-												<TaskRow {task} onopen={openDetails} />
+												<TaskRow {task} movable={false} onopen={openDetails} />
 											</li>
 										{/each}
 									</ul>

@@ -1,8 +1,8 @@
 <!-- A tag's name and color, and deleting it. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
-	import { deleteTag, renameTag, setTagColor } from '#lib/model/actions.js';
-	import { get, value, LIMITS } from '#lib/model/list.js';
+	import { clean, deleteTag, renameTag, setTagColor } from '#lib/model/actions.js';
+	import { findTag, get, value, LIMITS } from '#lib/model/list.js';
 	import { field, label, secondaryButton } from '#lib/styles.js';
 	import ColorChoice from './ColorChoice.svelte';
 	import Icon from './Icon.svelte';
@@ -10,6 +10,14 @@
 
 	let { identifier, onclose }: { identifier: string | undefined; onclose: () => void } = $props();
 	const tag = $derived(identifier ? get(amber.records, identifier, 'tag') : undefined);
+
+	/** The other tag that already has the name typed, if renaming stopped on one. */
+	let clash: string | undefined = $state();
+	// A different tag, or none, starts without the error.
+	$effect(() => {
+		void identifier;
+		clash = undefined;
+	});
 </script>
 
 <Sheet open={!!tag} title="Tag" {onclose}>
@@ -21,16 +29,25 @@
 				class={field}
 				value={value(tag, 'name')}
 				maxlength={LIMITS.name}
+				aria-invalid={clash ? 'true' : undefined}
+				aria-describedby={clash ? 'tag-name-error' : undefined}
+				oninput={() => (clash = undefined)}
 				onchange={(event) => {
-					const changed = amber.act('Renamed', (context) =>
-						renameTag(context, tag, event.currentTarget.value)
-					);
-					if (!changed?.length) event.currentTarget.value = value(tag, 'name');
+					const typed = event.currentTarget.value;
+					const changed = amber.act('Renamed', (context) => renameTag(context, tag, typed));
+					if (changed?.length) return;
+					// Kept as typed when the name is taken, so it can be changed; put back otherwise.
+					const name = clean(typed, LIMITS.name).replace(/^#/, '');
+					const other = name ? findTag(amber.records, name) : undefined;
+					if (other && other.identifier !== tag.identifier) clash = value(other, 'name');
+					else event.currentTarget.value = value(tag, 'name');
 				}}
 			/>
-			<p class="mt-1.5 text-sm text-muted">
-				Another tag with the same name can't be made; pick a different one.
-			</p>
+			{#if clash}
+				<p id="tag-name-error" class="mt-1.5 text-sm" role="alert">
+					There's already a tag called #{clash}. Pick a different name.
+				</p>
+			{/if}
 		</div>
 		<ColorChoice
 			label="Color"

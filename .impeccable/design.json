@@ -1,0 +1,453 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-11-16T04:38:20+00:00",
+	"title": "Design System: Amber",
+	"extensions": {
+		"colorMeta": {
+			"pastel-pink": {
+				"role": "primary",
+				"displayName": "Pastel Pink",
+				"canonical": "oklch(86.5% 0.074 7.1)",
+				"tonalRamp": [
+					"#170509",
+					"#371b21",
+					"#5b353d",
+					"#81525b",
+					"#a9707b",
+					"#c9959e",
+					"#e9bbc3",
+					"#ffe3e9"
+				]
+			},
+			"deep-rose": {
+				"role": "primary",
+				"displayName": "Deep Rose",
+				"canonical": "oklch(62.0% 0.123 10.1)",
+				"tonalRamp": [
+					"#1e0006",
+					"#42121c",
+					"#692a37",
+					"#934453",
+					"#bf6071",
+					"#de8996",
+					"#fdb1bc",
+					"#ffdbe3"
+				]
+			},
+			"graphite": {
+				"role": "neutral",
+				"displayName": "Graphite",
+				"canonical": "oklch(28.9% 0 0)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"graphite-surface": {
+				"role": "neutral",
+				"displayName": "Graphite Surface"
+			},
+			"graphite-border": {
+				"role": "neutral",
+				"displayName": "Graphite Border"
+			},
+			"off-white": {
+				"role": "neutral",
+				"displayName": "Off-White"
+			},
+			"muted-gray": {
+				"role": "neutral",
+				"displayName": "Muted Gray"
+			},
+			"control-edge": {
+				"role": "neutral",
+				"displayName": "Control Edge"
+			},
+			"on-pink": {
+				"role": "neutral",
+				"displayName": "Graphite on Pink"
+			},
+			"paper": {
+				"role": "neutral",
+				"displayName": "Paper"
+			},
+			"paper-surface": {
+				"role": "neutral",
+				"displayName": "Paper Surface"
+			},
+			"paper-border": {
+				"role": "neutral",
+				"displayName": "Paper Border"
+			},
+			"muted-gray-light": {
+				"role": "neutral",
+				"displayName": "Muted Gray (light mode)"
+			},
+			"control-edge-light": {
+				"role": "neutral",
+				"displayName": "Control Edge (light mode)"
+			},
+			"cat-rose": {
+				"role": "category",
+				"displayName": "Coral (saved as rose)",
+				"canonical": "oklch(76.9% 0.118 38.5)"
+			},
+			"cat-sage": {
+				"role": "category",
+				"displayName": "Sage",
+				"canonical": "oklch(80.1% 0.066 138.8)",
+				"tonalRamp": [
+					"#050e03",
+					"#1b2a16",
+					"#35482f",
+					"#506949",
+					"#6e8c66",
+					"#93ae8c",
+					"#bad1b3",
+					"#e2f5dc"
+				]
+			},
+			"cat-sand": {
+				"role": "category",
+				"displayName": "Sand",
+				"canonical": "oklch(86.1% 0.076 87.9)",
+				"tonalRamp": [
+					"#110a00",
+					"#2e2307",
+					"#4e401c",
+					"#715f33",
+					"#95804c",
+					"#b6a376",
+					"#d8c8a1",
+					"#fbedcd"
+				]
+			},
+			"cat-blue": {
+				"role": "category",
+				"displayName": "Blue",
+				"canonical": "oklch(76.8% 0.056 259.6)",
+				"tonalRamp": [
+					"#050b16",
+					"#1b2536",
+					"#354358",
+					"#51627d",
+					"#6f83a4",
+					"#94a6c4",
+					"#bacae4",
+					"#e2f0ff"
+				]
+			},
+			"cat-teal": {
+				"role": "category",
+				"displayName": "Teal",
+				"canonical": "oklch(81.5% 0.052 185.4)",
+				"tonalRamp": [
+					"#010e0d",
+					"#112a27",
+					"#294945",
+					"#426a65",
+					"#5e8d86",
+					"#86afa9",
+					"#afd2cc",
+					"#d9f6f1"
+				]
+			},
+			"cat-lavender": {
+				"role": "category",
+				"displayName": "Lavender",
+				"canonical": "oklch(79.2% 0.070 302.0)",
+				"tonalRamp": [
+					"#0e0817",
+					"#292036",
+					"#473b59",
+					"#67597e",
+					"#8a79a5",
+					"#ac9dc5",
+					"#cfc2e5",
+					"#f3e9ff"
+				]
+			},
+			"cat-rose-light": {
+				"role": "category",
+				"displayName": "Coral (light mode)"
+			},
+			"cat-sage-light": {
+				"role": "category",
+				"displayName": "Sage (light mode)"
+			},
+			"cat-sand-light": {
+				"role": "category",
+				"displayName": "Sand (light mode)"
+			},
+			"cat-blue-light": {
+				"role": "category",
+				"displayName": "Blue (light mode)"
+			},
+			"cat-teal-light": {
+				"role": "category",
+				"displayName": "Teal (light mode)"
+			},
+			"cat-lavender-light": {
+				"role": "category",
+				"displayName": "Lavender (light mode)"
+			}
+		},
+		"typographyMeta": {
+			"headline": {
+				"displayName": "Headline",
+				"purpose": "The current list's name; one per page."
+			},
+			"wordmark": {
+				"displayName": "Wordmark",
+				"purpose": "\"Amber\" in the header."
+			},
+			"title": {
+				"displayName": "Title",
+				"purpose": "Sheet titles; card headings at 1.125rem."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Task titles."
+			},
+			"body-small": {
+				"displayName": "Body Small",
+				"purpose": "Buttons, fields, sidebar, section headings (600), notices, footer."
+			},
+			"meta": {
+				"displayName": "Meta",
+				"purpose": "The muted line under a task, and hints."
+			},
+			"label": {
+				"displayName": "Label",
+				"purpose": "Uppercase sidebar group labels only."
+			}
+		},
+		"themes": {
+			"default": "dark",
+			"light": "Chosen by prefers-color-scheme; *-light tokens replace their dark counterparts, accent-edge becomes deep-rose and focus becomes graphite."
+		},
+		"shadows": [
+			{
+				"name": "floating-message",
+				"value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+				"purpose": "The Undo message."
+			},
+			{
+				"name": "sheet",
+				"value": "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+				"purpose": "Dialogs, over a rgb(0 0 0 / 0.5) backdrop."
+			}
+		],
+		"focus": {
+			"value": "outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 4px",
+			"purpose": "Every focusable element; pink on graphite, graphite on paper."
+		},
+		"motion": [
+			{
+				"name": "ease-standard",
+				"value": "cubic-bezier(0.4, 0, 0.2, 1) 150ms",
+				"purpose": "Color and opacity changes on hover (Tailwind default)."
+			},
+			{
+				"name": "tick-draw",
+				"value": "stroke-dashoffset 300ms ease-out",
+				"purpose": "The checkbox's tick drawing in."
+			},
+			{
+				"name": "check-fill",
+				"value": "background-color, border-color 200ms",
+				"purpose": "The checkbox filling pink."
+			},
+			{
+				"name": "toast-fly",
+				"value": "fly y 16px, 200ms",
+				"purpose": "The Undo message arriving and leaving."
+			},
+			{
+				"name": "list-reorder",
+				"value": "Svelte flip and slide",
+				"purpose": "Rows moving, arriving and leaving."
+			},
+			{
+				"name": "reduced-motion",
+				"value": "duration 0 / transition: none",
+				"purpose": "Every motion above has an instant version."
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "sm",
+				"value": "640px",
+				"purpose": "Wider gutters; sheets become a right-hand panel."
+			},
+			{
+				"name": "md",
+				"value": "768px",
+				"purpose": "Sidebar appears beside the list."
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Primary Button",
+			"kind": "button",
+			"refersTo": "button-primary",
+			"description": "The one main action in a view: pink pill, graphite text.",
+			"html": "<button class=\"ds-btn-primary\">Download a copy</button>",
+			"css": ".ds-btn-primary{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:9999px;border:1px solid var(--accent-edge);background:var(--accent);color:var(--on-accent);padding:12px 24px;font-size:14px;line-height:20px;font-weight:600;cursor:pointer;transition:opacity 150ms cubic-bezier(.4,0,.2,1)}.ds-btn-primary:hover{opacity:.85}.ds-btn-primary:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:9999px}.ds-btn-primary:disabled{opacity:.5;cursor:not-allowed}"
+		},
+		{
+			"name": "Secondary Button",
+			"kind": "button",
+			"refersTo": "button-secondary",
+			"description": "Every other action: edged pill, no fill.",
+			"html": "<button class=\"ds-btn-secondary\">Not now</button>",
+			"css": ".ds-btn-secondary{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:9999px;border:1px solid var(--control-border);background:transparent;color:var(--text);padding:12px 24px;font-size:14px;line-height:20px;font-weight:500;cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1)}.ds-btn-secondary:hover{background:var(--bg)}.ds-btn-secondary:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}"
+		},
+		{
+			"name": "Icon Button",
+			"kind": "button",
+			"refersTo": "button-icon",
+			"description": "Round muted control for move, close and dismiss.",
+			"html": "<button class=\"ds-btn-icon\" aria-label=\"Move up\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m18 15-6-6-6 6\"/></svg></button>",
+			"css": ".ds-btn-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9999px;border:0;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon:hover{background:var(--bg);color:var(--text)}.ds-btn-icon:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}"
+		},
+		{
+			"name": "Field",
+			"kind": "input",
+			"refersTo": "input-field",
+			"description": "Text input with a findable 3:1 edge.",
+			"html": "<input class=\"ds-field\" type=\"text\" placeholder=\"Add a task\">",
+			"css": ".ds-field{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;width:100%;border-radius:8px;border:1px solid var(--control-border);background:var(--bg);color:var(--text);padding:10px 12px;font-size:14px;line-height:20px}.ds-field::placeholder{color:var(--muted)}.ds-field:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:8px}"
+		},
+		{
+			"name": "Checkbox",
+			"kind": "custom",
+			"refersTo": "checkbox",
+			"description": "Round checkbox; ticked, it fills pink and the tick draws itself in.",
+			"html": "<label class=\"ds-check\"><input type=\"checkbox\" checked aria-label=\"Mark not done: Water the plants\"><span class=\"ds-check-tick\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg></span></label>",
+			"css": ".ds-check{display:inline-grid;place-items:center;width:28px;height:28px;cursor:pointer}.ds-check input{grid-area:1/1;appearance:none;-webkit-appearance:none;margin:0;width:24px;height:24px;border-radius:9999px;border:2px solid var(--control-border);cursor:pointer;transition:background-color 200ms,border-color 200ms}.ds-check input:checked{background:var(--accent);border-color:var(--accent-edge)}.ds-check input:focus-visible{outline:2px solid var(--focus);outline-offset:3px}.ds-check-tick{grid-area:1/1;width:14px;height:14px;color:var(--on-accent);pointer-events:none;opacity:0}.ds-check-tick svg{width:14px;height:14px;display:block}.ds-check-tick path{stroke-dasharray:24;stroke-dashoffset:24;transition:stroke-dashoffset 300ms ease-out}.ds-check input:checked+.ds-check-tick{opacity:1}.ds-check input:checked+.ds-check-tick path{stroke-dashoffset:0}@media (prefers-reduced-motion:reduce){.ds-check input,.ds-check-tick path{transition:none}}"
+		},
+		{
+			"name": "Task Row",
+			"kind": "custom",
+			"refersTo": "task-row",
+			"description": "A task: lifts into a card under the pointer; meta line in muted small text.",
+			"html": "<div class=\"ds-row\"><span class=\"ds-row-check\"></span><div class=\"ds-row-body\"><button class=\"ds-row-title\">Book the ferry to Karimunjawa</button><div class=\"ds-row-meta\"><span class=\"ds-row-tag\"><span class=\"ds-dot\"></span>#travel</span><span>2/5 steps</span></div></div><button class=\"ds-row-move\" aria-label=\"Move up\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m18 15-6-6-6 6\"/></svg></button></div>",
+			"css": ".ds-row{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:flex;align-items:flex-start;gap:12px;padding:8px;border-radius:12px;border:1px solid transparent;color:var(--text);transition:background-color 150ms,border-color 150ms}.ds-row:hover{background:var(--surface);border-color:var(--border)}.ds-row-check{flex:none;width:24px;height:24px;margin-top:2px;border-radius:9999px;border:2px solid var(--control-border)}.ds-row-body{flex:1;min-width:0}.ds-row-title{all:unset;display:block;font-size:16px;line-height:28px;cursor:pointer;border-radius:6px}.ds-row-title:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-row-meta{display:flex;gap:12px;margin-top:2px;font-size:12px;line-height:16px;color:var(--muted)}.ds-row-tag{display:inline-flex;align-items:center;gap:4px}.ds-dot{width:8px;height:8px;border-radius:9999px;background:var(--cat-teal)}.ds-row-move{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:9999px;background:transparent;color:var(--muted);opacity:0;cursor:pointer;transition:opacity 150ms}.ds-row:hover .ds-row-move,.ds-row:focus-within .ds-row-move{opacity:1}.ds-row-move:hover{background:var(--bg);color:var(--text)}"
+		},
+		{
+			"name": "Sidebar Item",
+			"kind": "nav",
+			"refersTo": "nav-item",
+			"description": "A place in the sidebar; current place keeps the surface fill and goes semibold.",
+			"html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-current\" href=\"#\"><span class=\"ds-nav-dot\"></span><span class=\"ds-nav-name\">Travel</span><span class=\"ds-nav-count\">4</span></a><a class=\"ds-nav-item\" href=\"#\"><span class=\"ds-nav-name\">All tasks</span><span class=\"ds-nav-count\">12</span></a></nav>",
+			"css": ".ds-nav{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:flex;flex-direction:column;gap:2px;width:240px}.ds-nav-item{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border-radius:8px;font-size:14px;color:var(--text);text-decoration:none;transition:background-color 150ms}.ds-nav-item:hover{background:var(--surface)}.ds-nav-item:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-nav-current{background:var(--surface);font-weight:600}.ds-nav-dot{width:10px;height:10px;border-radius:9999px;background:var(--cat-sand)}.ds-nav-name{flex:1}.ds-nav-count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:400}"
+		},
+		{
+			"name": "Undo Message",
+			"kind": "custom",
+			"refersTo": "toast",
+			"description": "Floating pill after an action, with Undo; the one in-flow shadow exception because it floats.",
+			"html": "<div class=\"ds-toast\" role=\"status\"><span>Done: Water the plants</span><button class=\"ds-toast-undo\">Undo</button><button class=\"ds-btn-icon-t\" aria-label=\"Dismiss\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button></div>",
+			"css": ".ds-toast{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 20px;border-radius:9999px;border:1px solid var(--control-border);background:var(--surface);color:var(--text);font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-toast-undo{all:unset;min-height:32px;padding:0 12px;border-radius:9999px;font-weight:600;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-toast-undo:hover{background:var(--bg)}.ds-toast-undo:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-btn-icon-t{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:9999px;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon-t:hover{background:var(--bg);color:var(--text)}"
+		},
+		{
+			"name": "Open/Done Switch",
+			"kind": "chip",
+			"refersTo": "segmented",
+			"description": "Pill segmented control; the chosen option inverts to text-on-page colors.",
+			"html": "<fieldset class=\"ds-seg\"><legend class=\"ds-sr\">Show</legend><label><input type=\"radio\" name=\"ds-show\" checked><span>Open</span></label><label><input type=\"radio\" name=\"ds-show\"><span>Done</span></label></fieldset>",
+			"css": ".ds-seg{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;margin:0;padding:2px;border:1px solid var(--control-border);border-radius:9999px}.ds-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.ds-seg input{position:absolute;opacity:0}.ds-seg span{display:flex;align-items:center;min-height:36px;padding:0 16px;border-radius:9999px;font-size:14px;color:var(--text);cursor:pointer;transition:background-color 150ms}.ds-seg input:checked+span{background:var(--text);color:var(--bg);font-weight:600}.ds-seg input:focus-visible+span{outline:2px solid var(--focus);outline-offset:3px;}"
+		},
+		{
+			"name": "Card",
+			"kind": "card",
+			"refersTo": "card",
+			"description": "Flat container: surface fill, hairline, 16px corners, no shadow.",
+			"html": "<section class=\"ds-card\"><h3 class=\"ds-card-h\">Back up and move</h3><p class=\"ds-card-p\">Download your list as a file, or make a link to open on another device.</p></section>",
+			"css": ".ds-card{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;border-radius:16px;border:1px solid var(--border);background:var(--surface);padding:20px;color:var(--text);max-width:360px}.ds-card-h{margin:0 0 16px;font-size:18px;line-height:28px;font-weight:600}.ds-card-p{margin:0;font-size:14px;line-height:20px;color:var(--muted)}"
+		}
+	],
+	"narrative": {
+		"northStar": "Rhodonite in Hand",
+		"overview": "Amber is a piece of rhodonite: dense graphite stone with one pink vein running through it. The stone is everything you see at rest: graphite page, a slightly lighter graphite card, quiet gray words. The vein is pastel pink, and it only shows where something matters right now: the one main action, the box you just ticked, the words your search found, the thing that has focus. Hold the interface and it should feel calm, cool and solid, with color reserved for meaning.\n\nIt is a working surface, used daily and quickly, so density is moderate and the hierarchy is plain: a page heading, sections marked by a thin colored edge, and rows of tasks. Personality lives in small tactile moments rather than in decoration: a round checkbox whose tick draws itself in, a row that lifts into a card under the pointer, an Undo message that slides up from the bottom. Everything has a reduced-motion version that simply appears.\n\nDark is the default stone (the `:root` values); light mode is the same stone in daylight, chosen by the system, with the pink line deepened to deep rose and focus drawn in graphite so both stay visible on white.\n\n- Graphite and off-white, with a single pink accent that always means something. - Flat surfaces separated by tone and hairline borders; shadows only on what floats. - Pills for actions, soft corners for containers, round for anything ticked. - One typeface, Plus Jakarta Sans, at a small set of sizes and weights. - Every control has an edge people can find (3:1), and every color meets level AA in both modes.",
+		"keyCharacteristics": [
+			"Graphite and off-white, with a single pink accent that always means something.",
+			"Flat surfaces separated by tone and hairline borders; shadows only on what floats.",
+			"Pills for actions, soft corners for containers, round for anything ticked.",
+			"One typeface, Plus Jakarta Sans, at a small set of sizes and weights.",
+			"Every control has an edge people can find (3:1), and every color meets level AA in both modes."
+		],
+		"rules": [
+			{
+				"name": "The One Vein Rule",
+				"body": "Pink marks one kind of thing at a time: the primary action, the ticked state, the found words, or focus. It is never decoration, never a background wash, never a heading color. If a screen has two pink buttons, one of them is wrong.",
+				"section": "colors"
+			},
+			{
+				"name": "The Graphite-on-Pink Rule",
+				"body": "Text on pink is graphite. Pastel pink is never text on a light background.",
+				"section": "colors"
+			},
+			{
+				"name": "The No Pink Category Rule",
+				"body": "Pink is not a category color; it would compete with focus and the main action.",
+				"section": "colors"
+			},
+			{
+				"name": "The 16px on Touch Rule",
+				"body": "On a touch screen, fields are 16px text, or Safari zooms the page.",
+				"section": "typography"
+			},
+			{
+				"name": "The Weight Not Size Rule",
+				"body": "Hierarchy inside the list comes from weight and muted color, not new sizes: a section heading is 0.875rem semibold, not a bigger font.",
+				"section": "typography"
+			},
+			{
+				"name": "The Wrap, Don't Squeeze Rule",
+				"body": "Rows and bars use `flex-wrap` with minimum widths in rem. At 200% text, move buttons, the Add button and the search field drop to their own line; words are never crushed.",
+				"section": "layout"
+			},
+			{
+				"name": "The 44px Finger Rule",
+				"body": "On a coarse pointer every target reaches 44px, through an invisible layer around the control, so the drawing and the layout stay the same size.",
+				"section": "layout"
+			},
+			{
+				"name": "The Shadow Means Floating Rule",
+				"body": "Nothing that stays in the page's flow casts a shadow. If it has a shadow, it is modal or transient.",
+				"section": "elevation"
+			},
+			{
+				"name": "The Graphite Chosen Rule",
+				"body": "Something chosen (a tag on a task, the Any/Open/Done switch) fills with the text color and shows a check. Pink stays for ticked, found, focused and the main action.",
+				"section": "colors"
+			}
+		],
+		"dos": [
+			"Do take every color from the tokens in `src/app.css`; both modes are defined there.",
+			"Do keep pink to one meaning per moment, with graphite text on it and deep rose for pink lines in light mode.",
+			"Do give every control a 3:1 edge (`control-edge`) and every target 44px on touch.",
+			"Do separate surfaces by tone and hairline; add a shadow only to something that floats.",
+			"Do pair every transition with `motion-reduce` so it appears instantly instead.",
+			"Do use Tailwind classes; inline styles and `data:` URLs are blocked by the Content-Security-Policy."
+		],
+		"donts": [
+			"Don't use pink as text on a light background, as decoration, or as a category color.",
+			"Don't use black (`#000000`) for text or surfaces; graphite is `#2b2b2b`.",
+			"Don't add a second typeface or load fonts from another domain.",
+			"Don't put shadows on cards, rows or anything in the page's flow.",
+			"Don't squeeze rows at large text; let them wrap.",
+			"Don't use category colors as fills behind text.",
+			"Don't redraw, recolor or stretch the Itrium logo files; they are copies from the brand assets."
+		]
+	}
+}

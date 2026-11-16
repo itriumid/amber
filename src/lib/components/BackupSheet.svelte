@@ -5,7 +5,7 @@
 	import { backups } from '#lib/backups.svelte.js';
 	import { isLink, LINK_PREFIX } from '#lib/links.js';
 	import { listSnapshots, type Snapshot } from '#lib/storage.js';
-	import { field, label, smallButton } from '#lib/styles.js';
+	import { field, label, smallButton, touchTarget } from '#lib/styles.js';
 	import {
 		fileName,
 		isNothing,
@@ -144,25 +144,46 @@
 	}
 </script>
 
+<!-- What's already kept comes first, then taking the list somewhere, then bringing one in. The
+     passphrase is folded away: it's optional, and an empty password field first makes keeping a
+     copy look like a security procedure. -->
 <Sheet {open} title="Back up and move" {onclose}>
-	<div>
-		<label for="{prefix}-passphrase" class={label}
-			>Passphrase <span class="font-normal text-muted">(optional)</span></label
-		>
-		<input
-			id="{prefix}-passphrase"
-			type="password"
-			class={field}
-			bind:value={passphrase}
-			oninput={() => (link = undefined)}
-			autocomplete="new-password"
-			aria-describedby="{prefix}-passphrase-hint"
-		/>
-		<p id="{prefix}-passphrase-hint" class="mt-1.5 {hint}">
-			Locks the file and the link. Nobody can open them without it, us included, so keep it
-			somewhere safe.
+	{#if snapshots.length}
+		<p class="text-sm">
+			{snapshots.length === 1 ? 'One copy' : `${snapshots.length} copies`} of your list kept on this device,
+			the latest from {when.format(snapshots[0].takenAt)}. They're listed at the end.
 		</p>
-	</div>
+	{/if}
+
+	<details class="group" open={!!passphrase}>
+		<summary
+			class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg text-sm font-medium {touchTarget}"
+		>
+			<Icon name="lock" class="size-4" />
+			Lock the file and the link
+			<span class="font-normal text-muted">(optional)</span>
+			<Icon
+				name="down"
+				class="ml-auto size-4 text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
+			/>
+		</summary>
+		<div class="mt-2">
+			<label for="{prefix}-passphrase" class={label}>Passphrase</label>
+			<input
+				id="{prefix}-passphrase"
+				type="password"
+				class={field}
+				bind:value={passphrase}
+				oninput={() => (link = undefined)}
+				autocomplete="new-password"
+				aria-describedby="{prefix}-passphrase-hint"
+			/>
+			<p id="{prefix}-passphrase-hint" class="mt-1.5 {hint}">
+				Nobody can open the file or the link without it, us included, so keep it somewhere safe.
+				Changing it means making the link again.
+			</p>
+		</div>
+	</details>
 
 	<section aria-labelledby="{prefix}-file">
 		<h3 id="{prefix}-file" class={heading}>Keep a copy</h3>
@@ -192,11 +213,12 @@
 		<h3 id="{prefix}-link" class={heading}>Move with a link</h3>
 		<p class={hint}>
 			The link holds the whole list. Open it on another device to bring the list there. It never
-			passes through a server of ours.
+			passes through a server of ours. To keep two of your devices in step, use Sync with another
+			device instead.
 		</p>
 		{#if !passphrase}
 			<p class="mt-2 text-sm">
-				Anyone with the link can read the list. Add a passphrase to lock it.
+				Anyone with the link can read the list. Lock it with a passphrase above.
 			</p>
 		{/if}
 		<div class="mt-3 flex flex-wrap gap-2">
@@ -232,7 +254,7 @@
 			it.
 		</p>
 		<label
-			class="{smallButton} has-focus-visible:outline-focus mt-3 cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-offset-2"
+			class="{smallButton} mt-3 cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"
 		>
 			Open a file
 			<input
