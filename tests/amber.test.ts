@@ -573,6 +573,8 @@ test('syncs two devices with a code, both ways', async ({ page, context, browser
 	const code = await laptopSheet
 		.getByText(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/)
 		.textContent();
+	// How long the code has left, in minutes.
+	await expect(laptopSheet.getByText(/for 10 more minutes/)).toBeVisible();
 	expect(await axeViolations(page)).toEqual([]);
 
 	const phone = await phoneContext.newPage();

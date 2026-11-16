@@ -20,6 +20,8 @@ const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const LENGTH = 16;
 /** How often the device that started asks whether the reply has arrived. */
 export const POLL_EVERY = 3_000;
+/** How long a code works: the mailbox empties itself after this, used or not. */
+export { LIFETIME };
 
 export interface Mailbox {
 	/** What the server knows it by: a hash of the code. */

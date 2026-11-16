@@ -10,6 +10,7 @@
 		collect,
 		fetchList,
 		leave,
+		LIFETIME,
 		readCode,
 		reply,
 		showCode,
@@ -34,7 +35,7 @@
 	type Stage =
 		| { kind: 'choose' }
 		| { kind: 'working'; message: string }
-		| { kind: 'waiting'; code: string; mailbox: Mailbox }
+		| { kind: 'waiting'; code: string; mailbox: Mailbox; until: number }
 		| { kind: 'done'; message: string; detail: string }
 		| { kind: 'newer' }
 		| { kind: 'problem'; message: string };
@@ -47,6 +48,19 @@
 	/** Phones and some desktops can hand the link to another app, which beats the clipboard. */
 	let canShare = $state(false);
 	let stop: AbortController | undefined;
+
+	// While a code waits, the time it has left, in whole minutes: a countdown in seconds would be
+	// read out by a screen reader every second, and it's minutes that tell someone whether to hurry.
+	let now = $state(Date.now());
+	$effect(() => {
+		if (stage.kind !== 'waiting') return;
+		now = Date.now();
+		const timer = setInterval(() => (now = Date.now()), 5_000);
+		return () => clearInterval(timer);
+	});
+	const minutesLeft = $derived(
+		stage.kind === 'waiting' ? Math.max(1, Math.ceil((stage.until - now) / 60_000)) : 0
+	);
 
 	const heading = 'mb-1 text-base font-semibold';
 	const hint = 'text-sm text-muted';
@@ -100,7 +114,7 @@
 			stage = { kind: 'problem', message: PROBLEMS[left.problem] };
 			return;
 		}
-		stage = { kind: 'waiting', ...left };
+		stage = { kind: 'waiting', ...left, until: Date.now() + LIFETIME };
 		stop = new AbortController();
 		const outcome = await collect(left.mailbox, stop.signal);
 		if (!outcome) return;
@@ -246,8 +260,9 @@
 			<p class="sr-only" role="status">{copied ? 'Link copied' : ''}</p>
 		</div>
 		<p class="text-sm" role="status">
-			Waiting for the other device… The code works once, for ten minutes. Keep this open until it's
-			done.
+			Waiting for the other device… The code works once, for {minutesLeft === 1
+				? 'less than a minute'
+				: `${minutesLeft} more minutes`}. Keep this open until it's done.
 		</p>
 	{:else if stage.kind === 'done'}
 		<div role="status">
