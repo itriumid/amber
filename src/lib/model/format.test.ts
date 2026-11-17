@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { FORMAT_VERSION, migrate, readEntity } from './format';
 import { categoryTree, tagsOf, stepsOf, value, type Entity } from './list';
 import { tasksShownIn } from './actions';
+import { openLock, unseal } from '../sealing';
 
 // Every list ever written must keep opening. A file per format version lives in fixtures/, and each
 // one is loaded here, for good: never delete one, never edit one.
@@ -47,6 +48,51 @@ describe('the data format', () => {
 		});
 	}
 
+	it('opens the locked list in format 2 with its passphrase or its recovery code', async () => {
+		const file = JSON.parse(
+			readFileSync(new URL('./fixtures/format-2.json', import.meta.url), 'utf8')
+		);
+		const records = Object.fromEntries(
+			(migrate(file.records, file.format).map(readEntity) as Entity[]).map((entity) => [
+				entity.identifier,
+				entity
+			])
+		);
+		const lock = value(records['cat-vault'] as Entity<'category'>, 'lock')!;
+		const task = records['task-pin'] as Entity<'task'>;
+		// The plain fields hold nothing; the sealed ones hold it all.
+		expect(value(task, 'title')).toBe('');
+		for (const secret of ['fixture passphrase', 'abcd efgh jkmn pqrs tvwx yz01']) {
+			const key = (await openLock(lock, secret))!;
+			expect(await unseal(key, 'task-pin', 'sealedTitle', value(task, 'sealedTitle')!)).toBe(
+				'Bank PIN'
+			);
+			expect(await unseal(key, 'task-pin', 'sealedNotes', value(task, 'sealedNotes')!)).toBe(
+				'4821'
+			);
+			const step = records['step-pin'] as Entity<'step'>;
+			expect(await unseal(key, 'step-pin', 'sealedText', value(step, 'sealedText')!)).toBe(
+				'Change it every year'
+			);
+		}
+		expect(await openLock(lock, 'not the passphrase')).toBeUndefined();
+	});
+
+	it('adds the locked-list fields to a format 1 list, empty, and earlier than any edit', () => {
+		const file = JSON.parse(
+			readFileSync(new URL('./fixtures/format-1.json', import.meta.url), 'utf8')
+		);
+		const migrated = migrate(file.records, 1) as {
+			kind: string;
+			fields: Record<string, { value: unknown; stamp: string }>;
+		}[];
+		const category = migrated.find((record) => record.kind === 'category')!;
+		const task = migrated.find((record) => record.kind === 'task')!;
+		expect(category.fields.lock.value).toBeNull();
+		expect(task.fields.sealedTitle.value).toBeNull();
+		expect(task.fields.sealedNotes.stamp < task.fields.title.stamp).toBe(true);
+	});
+
 	it('refuses a list from a newer format instead of guessing', () => {
 		expect(() => migrate([], FORMAT_VERSION + 1)).toThrow(/newer Amber/);
 	});
@@ -63,6 +109,8 @@ describe('the data format', () => {
 				categoryIdentifier: { value: null, stamp: '0000ll7bk.0000.a' },
 				order: { value: 'V', stamp: '0000ll7bk.0000.a' },
 				deleted: { value: false, stamp: '0000ll7bk.0000.a' },
+				sealedTitle: { value: null, stamp: '0000ll7bk.0000.a' },
+				sealedNotes: { value: null, stamp: '0000ll7bk.0000.a' },
 				dueAt: { value: 1, stamp: '0000ll7bk.0000.a' }
 			}
 		});
