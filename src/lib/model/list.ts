@@ -8,6 +8,7 @@
 import { Clock, type Stamp } from './clock';
 import { newIdentifier } from './identifiers';
 import { keyBetween } from './order';
+import type { Lock, Sealed } from '../sealing';
 
 export const COLORS = ['rose', 'sage', 'sand', 'blue', 'teal', 'lavender'] as const;
 export type Color = (typeof COLORS)[number];
@@ -23,6 +24,9 @@ export interface TaskValues {
 	categoryIdentifier: string | null;
 	order: string;
 	deleted: boolean;
+	/** In a locked list, the title and notes sealed with its key; the plain ones are then empty. */
+	sealedTitle: Sealed | null;
+	sealedNotes: Sealed | null;
 }
 
 export interface CategoryValues {
@@ -34,6 +38,8 @@ export interface CategoryValues {
 	keepDone: boolean;
 	order: string;
 	deleted: boolean;
+	/** A locked list's key, wrapped by its passphrase and its recovery code (docs/locked-lists.md). */
+	lock: Lock | null;
 }
 
 export interface TagValues {
@@ -49,6 +55,8 @@ export interface StepValues {
 	done: boolean;
 	order: string;
 	deleted: boolean;
+	/** In a locked list, the step's text sealed; the plain text is then empty. */
+	sealedText: Sealed | null;
 }
 
 /** A tag on a task. Its own record, so tagging on one device and untagging on another merge. */

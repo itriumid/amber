@@ -7,12 +7,16 @@
 // - A list written by a newer format than this Amber knows is opened read-only, never rewritten.
 // - fixtures/ holds a list from each format version; tests load every one, forever.
 
-import { parseStamp } from './clock';
+import { formatStamp, parseStamp } from './clock';
+import { isLock, isSealedValue } from '../sealing';
 import { isOrderKey } from './order';
 import { COLORS, LIMITS, type Entity, type Kind, type Register } from './list';
 
 /** The format this version of Amber writes. Bump it only with a migration, and a new fixture. */
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
+
+/** Earlier than any edit: a default a migration adds, which any real edit on any device beats. */
+const BEGINNING = formatStamp(0, 0, 'migration');
 
 type Check = (value: unknown) => boolean;
 const text =
@@ -28,6 +32,9 @@ const colorOrNull: Check = (value) => value === null || COLORS.includes(value as
 const timeOrNull: Check = (value) =>
 	value === null || (typeof value === 'number' && Number.isFinite(value) && value >= 0);
 const order: Check = isOrderKey;
+// A locked list's parts (docs/locked-lists.md): null on everything that isn't locked.
+const sealedOrNull: Check = (value) => value === null || isSealedValue(value);
+const lockOrNull: Check = (value) => value === null || isLock(value);
 
 /** Every field each kind must have in this format, and what its value must look like. */
 const SHAPES: Record<Kind, Record<string, Check>> = {
@@ -38,7 +45,9 @@ const SHAPES: Record<Kind, Record<string, Check>> = {
 		doneAt: timeOrNull,
 		categoryIdentifier: identifierOrNull,
 		order,
-		deleted: flag
+		deleted: flag,
+		sealedTitle: sealedOrNull,
+		sealedNotes: sealedOrNull
 	},
 	category: {
 		name: text(LIMITS.name),
@@ -46,10 +55,18 @@ const SHAPES: Record<Kind, Record<string, Check>> = {
 		color: colorOrNull,
 		keepDone: flag,
 		order,
-		deleted: flag
+		deleted: flag,
+		lock: lockOrNull
 	},
 	tag: { name: text(LIMITS.name), color: colorOrNull, deleted: flag },
-	step: { taskIdentifier: identifier, text: text(LIMITS.step), done: flag, order, deleted: flag },
+	step: {
+		taskIdentifier: identifier,
+		text: text(LIMITS.step),
+		done: flag,
+		order,
+		deleted: flag,
+		sealedText: sealedOrNull
+	},
 	tagging: { taskIdentifier: identifier, tagIdentifier: identifier, on: flag, deleted: flag }
 };
 
@@ -95,8 +112,19 @@ export function readEntity(raw: unknown): Entity | undefined {
  * default stamped at the start of time, so any real edit on any device wins over it.
  */
 const MIGRATIONS: Record<number, (raw: Record<string, unknown>) => void> = {
-	// 1 → 2 would go here, for example:
-	// 1: (raw) => { if (raw.kind === 'task') (raw.fields as Record<string, unknown>).dueAt ??= { value: null, stamp: BEGINNING }; }
+	// 1 → 2: locked lists. A category may have a lock, and a task's title and notes and a step's text
+	// may be sealed. Nothing was locked before, so every one starts as null.
+	1: (raw) => {
+		const fields = raw.fields as Record<string, unknown>;
+		if (!isRecord(fields)) return;
+		const add = (field: string) => (fields[field] ??= { value: null, stamp: BEGINNING });
+		if (raw.kind === 'category') add('lock');
+		if (raw.kind === 'task') {
+			add('sealedTitle');
+			add('sealedNotes');
+		}
+		if (raw.kind === 'step') add('sealedText');
+	}
 };
 
 export function migrate(raw: unknown[], fromVersion: number): unknown[] {

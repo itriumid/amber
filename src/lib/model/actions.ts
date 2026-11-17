@@ -137,7 +137,9 @@ export function addTask(
 		doneAt: null,
 		categoryIdentifier,
 		order: endOf(siblings),
-		deleted: false
+		deleted: false,
+		sealedTitle: null,
+		sealedNotes: null
 	});
 	const changes = [change, ...tagByName(context, task, tagNames)];
 	return { task, changes };
@@ -309,7 +311,9 @@ export function addCategory(
 		color: parent ? value(parent, 'color') : nextColor(context.records),
 		keepDone: bucket ?? (parent ? value(parent, 'keepDone') : false),
 		order: endOf(siblings),
-		deleted: false
+		deleted: false,
+		// Every locked list has its own key: a subcategory doesn't take its parent's lock.
+		lock: null
 	});
 	return { category, changes: [change] };
 }
@@ -372,7 +376,8 @@ export function addStep(context: Context, task: Task, text: string): Change[] {
 			text: cleaned,
 			done: false,
 			order: endOf(stepsOf(context.records, task.identifier)),
-			deleted: false
+			deleted: false,
+			sealedText: null
 		}).change
 	];
 }
@@ -410,7 +415,9 @@ export function promoteStep(
 		doneAt: value(step, 'done') ? Date.now() : null,
 		categoryIdentifier,
 		order: endOf(tasksShownIn(context.records, categoryIdentifier)),
-		deleted: false
+		deleted: false,
+		sealedTitle: null,
+		sealedNotes: null
 	});
 	const tagChanges = alive(context.records, 'tag')
 		.filter((tag) => hasTag(context.records, parent, tag))
