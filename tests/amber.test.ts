@@ -688,6 +688,41 @@ test('drags a task to a new place: by its grip with a mouse, by holding it on a 
 	await expect.poll(order).toEqual(['Alpha', 'Bravo', 'Charlie']);
 });
 
+test('acts on several tasks at once, with one Undo', async ({ page }) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	const all = await lists(page);
+	await all.getByRole('button', { name: /^All tasks/ }).click();
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await addTask(page, title);
+	const bar = page.getByRole('group', { name: 'Selected tasks' });
+
+	// Chosen by the box or by the title; Escape leaves without doing anything.
+	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	await page.getByRole('checkbox', { name: 'Select: Alpha' }).check();
+	await task(page, 'Bravo').click();
+	await expect(bar.getByText('2 selected')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(bar).toHaveCount(0);
+
+	// Moved together, then deleted together, and one Undo brings both back.
+	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	await page.getByRole('checkbox', { name: 'Select: Alpha' }).check();
+	await page.getByRole('checkbox', { name: 'Select: Bravo' }).check();
+	await bar.getByLabel('Move to a category').selectOption({ label: 'Home' });
+	await expect(notice(page)).toContainText('Moved 2 tasks to Home');
+	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	await bar.getByRole('button', { name: 'Select all' }).click();
+	await expect(bar.getByText('3 selected')).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
+	await bar.getByRole('button', { name: 'Delete' }).click();
+	await expect(notice(page)).toContainText('Deleted 3 tasks');
+	await expect(task(page, 'Charlie')).toHaveCount(0);
+	await notice(page).getByRole('button', { name: 'Undo' }).click();
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await expect(task(page, title)).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
+});
+
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
 	page
 }) => {

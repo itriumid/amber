@@ -25,6 +25,9 @@
 		achieved = false,
 		hideTag,
 		color = null,
+		selecting = false,
+		selected = false,
+		onselect,
 		onopen
 	}: {
 		task: Task;
@@ -43,6 +46,10 @@
 		hideTag?: string;
 		/** Its list's color: the empty checkbox is edged in it, tying the task to its section's label. */
 		color?: Color | null;
+		/** Choosing tasks to act on together: a square box chooses, and the title chooses too. */
+		selecting?: boolean;
+		selected?: boolean;
+		onselect?: (task: Task) => void;
 		onopen: (task: Task) => void;
 	} = $props();
 
@@ -200,18 +207,37 @@
 	     the buttons are taller, so they hang into the row's padding instead of pushing it open. -->
 	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
 		<div>
-			<Check
-				ring={color ? EDGE[color] : undefined}
-				checked={done}
-				label={bucket
-					? done
-						? `Mark not achieved: ${title}`
-						: `Mark achieved: ${title}`
-					: done
-						? `Mark not done: ${title}`
-						: `Mark done: ${title}`}
-				onchange={toggle}
-			/>
+			{#if selecting}
+				<!-- Square, and filled in the text color when chosen: a choice, not a task ticked off. -->
+				<label
+					class="inline-grid size-7 cursor-pointer place-items-center pointer-coarse:-m-2 pointer-coarse:p-2"
+				>
+					<input
+						type="checkbox"
+						class="peer col-start-1 row-start-1 size-5 cursor-pointer appearance-none rounded-sm border-2 border-control-border checked:border-text checked:bg-text"
+						checked={selected}
+						aria-label="Select: {title}"
+						onchange={() => onselect?.(task)}
+					/>
+					<Icon
+						name="check"
+						class="pointer-events-none col-start-1 row-start-1 size-3.5 text-bg opacity-0 peer-checked:opacity-100"
+					/>
+				</label>
+			{:else}
+				<Check
+					ring={color ? EDGE[color] : undefined}
+					checked={done}
+					label={bucket
+						? done
+							? `Mark not achieved: ${title}`
+							: `Mark achieved: ${title}`
+						: done
+							? `Mark not done: ${title}`
+							: `Mark done: ${title}`}
+					onchange={toggle}
+				/>
+			{/if}
 		</div>
 		<div class="min-w-0 flex-1">
 			<button
@@ -224,7 +250,8 @@
 							? 'text-base text-muted line-through decoration-1'
 							: 'text-base'}"
 				aria-describedby={meta ? `${menuIdentifier}-meta task-open-hint` : 'task-open-hint'}
-				onclick={() => onopen(task)}
+				aria-pressed={selecting ? selected : undefined}
+				onclick={() => (selecting ? onselect?.(task) : onopen(task))}
 			>
 				<!-- A found word keeps the strike-through of a done task's title. -->
 				{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { crossfade, fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -31,6 +31,7 @@
 	} from '#lib/content.js';
 	import { addTask, categoryMention, placeTask, tagByName } from '#lib/model/actions.js';
 	import { sortable } from '#lib/sortable.js';
+	import SelectionBar from '#lib/components/SelectionBar.svelte';
 	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
@@ -210,6 +211,17 @@
 	}
 
 	function onkeydown(event: KeyboardEvent) {
+		// Escape leaves choosing tasks, unless a dialog or a field has it.
+		if (
+			selecting &&
+			event.key === 'Escape' &&
+			!isTyping(event.target) &&
+			!document.querySelector('dialog[open]')
+		) {
+			event.preventDefault();
+			finishSelecting();
+			return;
+		}
 		// In a field, Ctrl or ⌘ with Z belongs to the field: it undoes typing there.
 		if (isTyping(event.target)) return;
 		// Undo works in a dialog too: that's where steps and tags are taken off.
@@ -244,6 +256,29 @@
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
+
+	// Choosing tasks to act on together. Cleared when the place in view changes: a choice made in one
+	// list shouldn't act on tasks that can no longer be seen.
+	let selecting = $state(false);
+	let selected = $state<string[]>([]);
+	const toggleSelected = (task: Task) =>
+		(selected = selected.includes(task.identifier)
+			? selected.filter((identifier) => identifier !== task.identifier)
+			: [...selected, task.identifier]);
+	function finishSelecting() {
+		selecting = false;
+		selected = [];
+		// The bar's button that had focus goes with the bar.
+		void tick().then(() => rescueFocus());
+	}
+	const selectAll = () =>
+		(selected = sections.flatMap((section) =>
+			[...section.shown, ...section.done].map((task) => task.identifier)
+		));
+	$effect(() => {
+		void view;
+		untrack(finishSelecting);
+	});
 
 	// While a dragged task is put in its place, the list re-sorts at once: it's already where it was
 	// dropped, and sliding it in again from its old place would look like it jumped back first.
@@ -372,6 +407,16 @@
 					>
 						<Icon name="edit" />
 					</button>
+				{/if}
+				{#if !isEmpty && !amber.readOnly}
+					<!-- Choosing several tasks to tick, move or delete at once (SelectionBar). -->
+					<button
+						type="button"
+						class="ml-auto {smallButton}"
+						aria-pressed={selecting}
+						onclick={() => (selecting ? finishSelecting() : (selecting = true))}
+						>{selecting ? 'Cancel' : 'Select'}</button
+					>
 				{/if}
 			</div>
 
@@ -553,7 +598,10 @@
 											{task}
 											showCategory={view.kind === 'tag'}
 											words={search.words}
-											movable={!searching}
+											movable={!searching && !selecting}
+											{selecting}
+											selected={selected.includes(task.identifier)}
+											onselect={toggleSelected}
 											first={index === 0}
 											last={index === section.shown.length - 1}
 											bucket={section.bucket}
@@ -620,6 +668,9 @@
 				{/each}
 			{/if}
 		</main>
+		{#if selecting}
+			<SelectionBar {selected} onselectall={selectAll} onfinish={finishSelecting} />
+		{/if}
 	</div>
 
 	<!-- Room at the bottom so the message with Undo never covers the footer's link. -->
