@@ -169,6 +169,20 @@ test('offers a bucket list as a category is started, and names what a sheet edit
 	await expect(page.getByRole('heading', { level: 2, name: /Home/ })).toBeVisible();
 });
 
+test('puts a task in a category named with @, and says where it went', async ({ page }) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Bucket list');
+	await sidebar.getByLabel('New category').press('Enter');
+	// From another category's view: the task goes where it was sent, and it's said.
+	const again = await lists(page);
+	await again.getByRole('button', { name: /^No category/ }).click();
+	await addTask(page, '@bucket list Learn to sail #water');
+	await expect(notice(page)).toContainText('Added to Bucket list');
+	const back = await lists(page);
+	await back.getByRole('button', { name: /^Bucket list/ }).click();
+	await expect(task(page, 'Learn to sail')).toBeVisible();
+});
+
 test('deletes a category but keeps its tasks', async ({ page }) => {
 	const sidebar = await lists(page);
 	await sidebar.getByLabel('New category').fill('Home');

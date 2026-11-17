@@ -52,6 +52,34 @@ export function parseQuickAdd(text: string): { title: string; tagNames: string[]
 	};
 }
 
+/**
+ * A category named in quick add with @: "@Home Fix the gate", or "@Bucket list Learn to sail" for
+ * a name with spaces. The longest category name the words after @ begin with wins, ignoring case
+ * and accents' case. An @ that names no category is left in the title as typed, so an address or
+ * a handle isn't eaten.
+ */
+export function categoryMention(
+	records: Records,
+	text: string
+): { categoryIdentifier: string; text: string } | undefined {
+	const names = alive(records, 'category')
+		.map((category) => ({ category, name: value(category, 'name').toLocaleLowerCase() }))
+		.sort((a, b) => b.name.length - a.name.length);
+	for (const match of text.matchAll(/(^|\s)@/g)) {
+		const start = match.index + match[0].length;
+		const rest = text.slice(start).toLocaleLowerCase();
+		const found = names.find(
+			({ name }) => rest.startsWith(name) && /^(\s|$)/.test(rest.slice(name.length))
+		);
+		if (found)
+			return {
+				categoryIdentifier: found.category.identifier,
+				text: text.slice(0, start - 1) + text.slice(start + found.name.length)
+			};
+	}
+	return undefined;
+}
+
 /* ─── Tasks ─── */
 
 /** Which category a task shows in: a deleted subcategory's tasks show in its parent. */
@@ -96,6 +124,8 @@ export function addTask(
 	text: string,
 	categoryIdentifier: string | null
 ): { task: Task; changes: Change[] } | undefined {
+	const mention = categoryMention(context.records, text);
+	if (mention) ({ categoryIdentifier, text } = mention);
 	const { title, tagNames } = parseQuickAdd(text);
 	if (!title) return undefined;
 	const siblings = tasksShownIn(context.records, categoryIdentifier);

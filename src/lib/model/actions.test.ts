@@ -3,6 +3,7 @@ import {
 	addCategory,
 	addStep,
 	addTask,
+	categoryMention,
 	deleteCategory,
 	deleteTask,
 	moveTask,
@@ -21,6 +22,27 @@ import { fresh } from './testing';
 const titles = (tasks: Entity<'task'>[]) => tasks.map((task) => value(task, 'title'));
 
 describe('quick add', () => {
+	it('puts a task in the category named with @, the longest name first', () => {
+		const context = fresh();
+		const home = addCategory(context, 'Home')!.category;
+		const bucket = addCategory(context, 'Bucket list')!.category;
+		addCategory(context, 'Bucket');
+		const fix = addTask(context, 'Fix the gate @home #weekend', null)!.task;
+		expect(value(fix, 'title')).toBe('Fix the gate');
+		expect(value(fix, 'categoryIdentifier')).toBe(home.identifier);
+		const sail = addTask(context, '@Bucket list Learn to sail', home.identifier)!.task;
+		expect(value(sail, 'title')).toBe('Learn to sail');
+		expect(value(sail, 'categoryIdentifier')).toBe(bucket.identifier);
+	});
+
+	it('leaves an @ that names no category, or sits inside a word, in the title', () => {
+		const context = fresh();
+		addCategory(context, 'Home');
+		expect(categoryMention(context.records, 'Email sari@home.id')).toBeUndefined();
+		expect(categoryMention(context.records, 'Ask @Homeowners')).toBeUndefined();
+		expect(value(addTask(context, 'Call @Dana', null)!.task, 'title')).toBe('Call @Dana');
+	});
+
 	it('takes #words as tags and the rest as the task', () => {
 		expect(parseQuickAdd('Buy milk #errands  #Home today')).toEqual({
 			title: 'Buy milk today',

@@ -29,7 +29,7 @@
 		SYNC_NOTE,
 		TITLE
 	} from '#lib/content.js';
-	import { addTask, tagByName } from '#lib/model/actions.js';
+	import { addTask, categoryMention, tagByName } from '#lib/model/actions.js';
 	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
@@ -182,7 +182,17 @@
 	function add(event: SubmitEvent) {
 		event.preventDefault();
 		const tagView = view.kind === 'tag' ? get(amber.records, view.identifier, 'tag') : undefined;
-		const added = amber.act('Task added', (context) => {
+		// Named with @, the task goes to that category, which may not be the one in view: it's said
+		// where, so a task that leaves the screen isn't a task that vanished.
+		const mention = categoryMention(amber.records, newTask);
+		const mentioned = mention
+			? get(amber.records, mention.categoryIdentifier, 'category')
+			: undefined;
+		const said =
+			mentioned && mention?.categoryIdentifier !== target
+				? `Added to ${value(mentioned, 'name')}`
+				: 'Task added';
+		const added = amber.act(said, (context) => {
 			const result = addTask(context, newTask, target);
 			if (result && tagView)
 				result.changes.push(...tagByName(context, result.task, [value(tagView, 'name')]));
@@ -457,7 +467,8 @@
 					<!-- Until there's a tag in the list: by then, someone knows how tags are made. -->
 					{#if !hasTags}
 						<p id="quick-add-hint" class="mt-1.5 text-xs text-muted">
-							Words starting with # become tags: <span class="font-medium">#weekend</span>.
+							<span class="font-medium">#weekend</span> makes a tag, and
+							<span class="font-medium">@Home</span> puts the task in that category.
 						</p>
 					{/if}
 				</form>
