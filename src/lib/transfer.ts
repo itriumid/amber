@@ -41,24 +41,28 @@ export type Reading =
 export const LINK_LIMIT = 60_000;
 
 /** The work it takes to try one passphrase: OWASP's 2023 advice for PBKDF2 with SHA-256. */
-const ITERATIONS = 600_000;
+export const ITERATIONS = 600_000;
 
 /* ─── Encryption ─── */
 
-function fromBase64Url(text: string): Uint8Array<ArrayBuffer> {
+export function fromBase64Url(text: string): Uint8Array<ArrayBuffer> {
 	const binary = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
 	return Uint8Array.from(binary, (character) => character.charCodeAt(0));
 }
 
 /** Large buffers, a chunk at a time: spreading a whole one into btoa overflows the call stack. */
-function bytesToBase64Url(bytes: Uint8Array): string {
+export function bytesToBase64Url(bytes: Uint8Array): string {
 	let binary = '';
 	for (let start = 0; start < bytes.length; start += 0x8000)
 		binary += String.fromCharCode(...bytes.subarray(start, start + 0x8000));
 	return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function keyFrom(passphrase: string, salt: Uint8Array<ArrayBuffer>, iterations: number) {
+export async function keyFrom(
+	passphrase: string,
+	salt: Uint8Array<ArrayBuffer>,
+	iterations: number
+) {
 	const material = await crypto.subtle.importKey(
 		'raw',
 		new TextEncoder().encode(passphrase.normalize('NFC')),
