@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { crossfade, fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
@@ -29,7 +29,9 @@
 		SYNC_NOTE,
 		TITLE
 	} from '#lib/content.js';
-	import { addTask, tagByName } from '#lib/model/actions.js';
+	import { addTask, categoryMention, placeTask, tagByName } from '#lib/model/actions.js';
+	import { sortable } from '#lib/sortable.js';
+	import SelectionBar from '#lib/components/SelectionBar.svelte';
 	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
@@ -182,7 +184,17 @@
 	function add(event: SubmitEvent) {
 		event.preventDefault();
 		const tagView = view.kind === 'tag' ? get(amber.records, view.identifier, 'tag') : undefined;
-		const added = amber.act('Task added', (context) => {
+		// Named with @, the task goes to that category, which may not be the one in view: it's said
+		// where, so a task that leaves the screen isn't a task that vanished.
+		const mention = categoryMention(amber.records, newTask);
+		const mentioned = mention
+			? get(amber.records, mention.categoryIdentifier, 'category')
+			: undefined;
+		const said =
+			mentioned && mention?.categoryIdentifier !== target
+				? `Added to ${value(mentioned, 'name')}`
+				: 'Task added';
+		const added = amber.act(said, (context) => {
 			const result = addTask(context, newTask, target);
 			if (result && tagView)
 				result.changes.push(...tagByName(context, result.task, [value(tagView, 'name')]));
@@ -199,6 +211,17 @@
 	}
 
 	function onkeydown(event: KeyboardEvent) {
+		// Escape leaves choosing tasks, unless a dialog or a field has it.
+		if (
+			selecting &&
+			event.key === 'Escape' &&
+			!isTyping(event.target) &&
+			!document.querySelector('dialog[open]')
+		) {
+			event.preventDefault();
+			finishSelecting();
+			return;
+		}
 		// In a field, Ctrl or ⌘ with Z belongs to the field: it undoes typing there.
 		if (isTyping(event.target)) return;
 		// Undo works in a dialog too: that's where steps and tags are taken off.
@@ -233,6 +256,41 @@
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
+
+	// Choosing tasks to act on together. Cleared when the place in view changes: a choice made in one
+	// list shouldn't act on tasks that can no longer be seen.
+	let selecting = $state(false);
+	let selected = $state<string[]>([]);
+	const toggleSelected = (task: Task) =>
+		(selected = selected.includes(task.identifier)
+			? selected.filter((identifier) => identifier !== task.identifier)
+			: [...selected, task.identifier]);
+	function finishSelecting() {
+		selecting = false;
+		selected = [];
+		// The bar's button that had focus goes with the bar.
+		void tick().then(() => rescueFocus());
+	}
+	const selectAll = () =>
+		(selected = sections.flatMap((section) =>
+			[...section.shown, ...section.done].map((task) => task.identifier)
+		));
+	$effect(() => {
+		void view;
+		untrack(finishSelecting);
+	});
+
+	// While a dragged task is put in its place, the list re-sorts at once: it's already where it was
+	// dropped, and sliding it in again from its old place would look like it jumped back first.
+	let placing = $state(false);
+	async function place(identifier: string, index: number) {
+		const task = get(amber.records, identifier, 'task');
+		if (!task) return;
+		placing = true;
+		amber.act('Moved', (context) => placeTask(context, task, index));
+		await tick();
+		placing = false;
+	}
 
 	/**
 	 * A field saves when it's left. Before the page goes away or out of sight (a reload, a closed
@@ -350,6 +408,16 @@
 						<Icon name="edit" />
 					</button>
 				{/if}
+				{#if !isEmpty && !amber.readOnly}
+					<!-- Choosing several tasks to tick, move or delete at once (SelectionBar). -->
+					<button
+						type="button"
+						class="ml-auto {smallButton}"
+						aria-pressed={selecting}
+						onclick={() => (selecting ? finishSelecting() : (selecting = true))}
+						>{selecting ? 'Cancel' : 'Select'}</button
+					>
+				{/if}
 			</div>
 
 			<!-- Always there, so screen readers hear the offer when it appears. -->
@@ -457,7 +525,8 @@
 					<!-- Until there's a tag in the list: by then, someone knows how tags are made. -->
 					{#if !hasTags}
 						<p id="quick-add-hint" class="mt-1.5 text-xs text-muted">
-							Words starting with # become tags: <span class="font-medium">#weekend</span>.
+							<span class="font-medium">#weekend</span> makes a tag, and
+							<span class="font-medium">@Home</span> puts the task in that category.
 						</p>
 					{/if}
 				</form>
@@ -511,10 +580,17 @@
 								{#if searching}<span class="font-normal tabular-nums">{section.shown.length}</span
 									>{/if}
 							</h2>
-							<ul class={section.shown.length ? tray : ''}>
+							<ul
+								class={section.shown.length ? tray : ''}
+								{@attach sortable({
+									onplace: (identifier, index) => void place(identifier, index),
+									enabled: () => !searching
+								})}
+							>
 								{#each section.shown as task, index (task.identifier)}
 									<li
-										animate:flip={{ duration }}
+										class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:bg-surface data-dragging:shadow-xl"
+										animate:flip={{ duration: placing ? 0 : duration }}
 										in:arrive={{ key: task.identifier, bucket: section.bucket }}
 										out:leave={{ key: task.identifier, bucket: section.bucket }}
 									>
@@ -522,7 +598,10 @@
 											{task}
 											showCategory={view.kind === 'tag'}
 											words={search.words}
-											movable={!searching}
+											movable={!searching && !selecting}
+											{selecting}
+											selected={selected.includes(task.identifier)}
+											onselect={toggleSelected}
 											first={index === 0}
 											last={index === section.shown.length - 1}
 											bucket={section.bucket}
@@ -589,6 +668,9 @@
 				{/each}
 			{/if}
 		</main>
+		{#if selecting}
+			<SelectionBar {selected} onselectall={selectAll} onfinish={finishSelecting} />
+		{/if}
 	</div>
 
 	<!-- Room at the bottom so the message with Undo never covers the footer's link. -->

@@ -403,11 +403,30 @@ With a mouse, a step's or a task's move buttons sit beside it, shown on hover or
 a menu that names the step or task and labels each action: Move up, Move down, and Make a task of
 this step or Delete step for a step, Delete task for a task.
 
+### Dragging
+
+A task can be dragged to a new place in its list: with a mouse by a grip of six dots at its left
+edge, shown on hover; on a touch screen by holding it for 450ms, then moving. The task lifts (the
+surface tone, `shadow-xl`: it floats, so it may cast a shadow), the others slide 150ms to make room,
+and letting go puts it there as one change with Undo, re-sorting at once rather than sliding it in
+again. Escape puts it back. Keyboard and screen-reader moves stay as they are.
+
+### Selection
+
+"Select" beside the page heading turns on choosing tasks. Each task's round box becomes a square
+one, filled in the text color when chosen (a choice, not a task ticked off), and the title chooses
+too. A bar floats at the bottom of the screen, 8px corners, the surface tone with a control edge
+and `shadow-lg`: the count, then Select all, Mark done, Move to (a native select of categories),
+Delete and Cancel, all small buttons. Each action is one change with one Undo, said when the bar
+has gone. Escape leaves.
+
 ### Inputs / Fields
 
 - **Style:** page-colored fill, 1px control edge, 8px corners, 10px × 12px padding, 0.875rem text
   (16px on touch), muted placeholder.
 - **Focus:** the global focus outline (pink on graphite, graphite on paper), 3px offset.
+- **Quick add:** a #word makes a tag and an @ followed by a category's name puts the task in
+  that category, said in the hint under it until the list has a tag.
 - **Search:** the one field drawn the way every list app draws it: 12px corners, the surface
   tone, body-size text, a magnifier inside on the left and a clear button inside on the right.
   Full width on its own line on a phone, up to 28rem in the header from 640px.

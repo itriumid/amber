@@ -3,9 +3,11 @@ import {
 	addCategory,
 	addStep,
 	addTask,
+	categoryMention,
 	deleteCategory,
 	deleteTask,
 	moveTask,
+	placeTask,
 	parseQuickAdd,
 	promoteStep,
 	setCategory,
@@ -21,6 +23,27 @@ import { fresh } from './testing';
 const titles = (tasks: Entity<'task'>[]) => tasks.map((task) => value(task, 'title'));
 
 describe('quick add', () => {
+	it('puts a task in the category named with @, the longest name first', () => {
+		const context = fresh();
+		const home = addCategory(context, 'Home')!.category;
+		const bucket = addCategory(context, 'Bucket list')!.category;
+		addCategory(context, 'Bucket');
+		const fix = addTask(context, 'Fix the gate @home #weekend', null)!.task;
+		expect(value(fix, 'title')).toBe('Fix the gate');
+		expect(value(fix, 'categoryIdentifier')).toBe(home.identifier);
+		const sail = addTask(context, '@Bucket list Learn to sail', home.identifier)!.task;
+		expect(value(sail, 'title')).toBe('Learn to sail');
+		expect(value(sail, 'categoryIdentifier')).toBe(bucket.identifier);
+	});
+
+	it('leaves an @ that names no category, or sits inside a word, in the title', () => {
+		const context = fresh();
+		addCategory(context, 'Home');
+		expect(categoryMention(context.records, 'Email sari@home.id')).toBeUndefined();
+		expect(categoryMention(context.records, 'Ask @Homeowners')).toBeUndefined();
+		expect(value(addTask(context, 'Call @Dana', null)!.task, 'title')).toBe('Call @Dana');
+	});
+
 	it('takes #words as tags and the rest as the task', () => {
 		expect(parseQuickAdd('Buy milk #errands  #Home today')).toEqual({
 			title: 'Buy milk today',
@@ -94,6 +117,22 @@ describe('tasks', () => {
 		expect(value(task, 'title')).toBe('New name');
 		undo(context, renamed);
 		expect(value(task, 'title')).toBe('Old');
+	});
+});
+
+describe('placing', () => {
+	it('puts a task anywhere among its open neighbours, with one change', () => {
+		const context = fresh();
+		const [a, b, c, d] = ['A', 'B', 'C', 'D'].map((title) => addTask(context, title, null)!.task);
+		const order = () => titles(tasksShownIn(context.records, null));
+		expect(placeTask(context, a, 2)).toHaveLength(1);
+		expect(order()).toEqual(['B', 'C', 'A', 'D']);
+		placeTask(context, d, 0);
+		expect(order()).toEqual(['D', 'B', 'C', 'A']);
+		// Where it already is: nothing to change.
+		expect(placeTask(context, b, 1)).toEqual([]);
+		expect(placeTask(context, c, 99)).toHaveLength(1);
+		expect(order()).toEqual(['D', 'B', 'A', 'C']);
 	});
 });
 

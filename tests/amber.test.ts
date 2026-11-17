@@ -169,6 +169,20 @@ test('offers a bucket list as a category is started, and names what a sheet edit
 	await expect(page.getByRole('heading', { level: 2, name: /Home/ })).toBeVisible();
 });
 
+test('puts a task in a category named with @, and says where it went', async ({ page }) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Bucket list');
+	await sidebar.getByLabel('New category').press('Enter');
+	// From another category's view: the task goes where it was sent, and it's said.
+	const again = await lists(page);
+	await again.getByRole('button', { name: /^No category/ }).click();
+	await addTask(page, '@bucket list Learn to sail #water');
+	await expect(notice(page)).toContainText('Added to Bucket list');
+	const back = await lists(page);
+	await back.getByRole('button', { name: /^Bucket list/ }).click();
+	await expect(task(page, 'Learn to sail')).toBeVisible();
+});
+
 test('deletes a category but keeps its tasks', async ({ page }) => {
 	const sidebar = await lists(page);
 	await sidebar.getByLabel('New category').fill('Home');
@@ -621,6 +635,92 @@ test("says achieved, not done, wherever a bucket list's dream shows", async ({ p
 	await expect(page.locator('main [data-task]').getByText('#water', { exact: true })).toHaveCount(
 		0
 	);
+});
+
+test('drags a task to a new place: by its grip with a mouse, by holding it on a touch screen', async ({
+	page
+}) => {
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await addTask(page, title);
+	const order = () =>
+		page
+			.locator('main [data-task]')
+			.getByRole('button')
+			.filter({ hasText: /^(Alpha|Bravo|Charlie)$/ })
+			.allTextContents();
+	// Measured once the rows have finished sliding in.
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	const box = async (title: string) =>
+		(await page.locator('main li', { hasText: title }).boundingBox())!;
+	const alpha = await box('Alpha');
+	const charlie = await box('Charlie');
+	if (isPhone(page)) {
+		// A real touch: held still for a moment, then moved, then lifted.
+		const touch = await page.context().newCDPSession(page);
+		const point = (y: number) => [{ x: alpha.x + alpha.width / 2, y }];
+		await touch.send('Input.dispatchTouchEvent', {
+			type: 'touchStart',
+			touchPoints: point(alpha.y + 20)
+		});
+		await page.waitForTimeout(600);
+		for (let step = 1; step <= 8; step++)
+			await touch.send('Input.dispatchTouchEvent', {
+				type: 'touchMove',
+				touchPoints: point(
+					alpha.y + 20 + ((charlie.y + charlie.height - 10 - alpha.y - 20) * step) / 8
+				)
+			});
+		await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+	} else {
+		await page.locator('main li', { hasText: 'Alpha' }).hover();
+		const grip = (await page
+			.locator('main li', { hasText: 'Alpha' })
+			.locator('[data-drag]')
+			.boundingBox())!;
+		await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(grip.x + grip.width / 2, charlie.y + charlie.height - 10, { steps: 8 });
+		await page.mouse.up();
+	}
+	await expect.poll(order).toEqual(['Bravo', 'Charlie', 'Alpha']);
+	// One change, with Undo.
+	await expect(notice(page)).toContainText('Moved');
+	await notice(page).getByRole('button', { name: 'Undo' }).click();
+	await expect.poll(order).toEqual(['Alpha', 'Bravo', 'Charlie']);
+});
+
+test('acts on several tasks at once, with one Undo', async ({ page }) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	const all = await lists(page);
+	await all.getByRole('button', { name: /^All tasks/ }).click();
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await addTask(page, title);
+	const bar = page.getByRole('group', { name: 'Selected tasks' });
+
+	// Chosen by the box or by the title; Escape leaves without doing anything.
+	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	await page.getByRole('checkbox', { name: 'Select: Alpha' }).check();
+	await task(page, 'Bravo').click();
+	await expect(bar.getByText('2 selected')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(bar).toHaveCount(0);
+
+	// Moved together, then deleted together, and one Undo brings both back.
+	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	await page.getByRole('checkbox', { name: 'Select: Alpha' }).check();
+	await page.getByRole('checkbox', { name: 'Select: Bravo' }).check();
+	await bar.getByLabel('Move to a category').selectOption({ label: 'Home' });
+	await expect(notice(page)).toContainText('Moved 2 tasks to Home');
+	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	await bar.getByRole('button', { name: 'Select all' }).click();
+	await expect(bar.getByText('3 selected')).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
+	await bar.getByRole('button', { name: 'Delete' }).click();
+	await expect(notice(page)).toContainText('Deleted 3 tasks');
+	await expect(task(page, 'Charlie')).toHaveCount(0);
+	await notice(page).getByRole('button', { name: 'Undo' }).click();
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await expect(task(page, title)).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
 });
 
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({

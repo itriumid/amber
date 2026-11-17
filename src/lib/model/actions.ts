@@ -22,6 +22,7 @@ import {
 	type Tag,
 	type Task
 } from './list';
+import { keyBetween } from './order';
 
 /** Trims, collapses runs of spaces, and cuts at `limit` characters. */
 export function clean(text: string, limit: number): string {
@@ -50,6 +51,34 @@ export function parseQuickAdd(text: string): { title: string; tagNames: string[]
 		title: clean(title, LIMITS.title),
 		tagNames: tagNames.map((name) => clean(name, LIMITS.name))
 	};
+}
+
+/**
+ * A category named in quick add with @: "@Home Fix the gate", or "@Bucket list Learn to sail" for
+ * a name with spaces. The longest category name the words after @ begin with wins, ignoring case
+ * and accents' case. An @ that names no category is left in the title as typed, so an address or
+ * a handle isn't eaten.
+ */
+export function categoryMention(
+	records: Records,
+	text: string
+): { categoryIdentifier: string; text: string } | undefined {
+	const names = alive(records, 'category')
+		.map((category) => ({ category, name: value(category, 'name').toLocaleLowerCase() }))
+		.sort((a, b) => b.name.length - a.name.length);
+	for (const match of text.matchAll(/(^|\s)@/g)) {
+		const start = match.index + match[0].length;
+		const rest = text.slice(start).toLocaleLowerCase();
+		const found = names.find(
+			({ name }) => rest.startsWith(name) && /^(\s|$)/.test(rest.slice(name.length))
+		);
+		if (found)
+			return {
+				categoryIdentifier: found.category.identifier,
+				text: text.slice(0, start - 1) + text.slice(start + found.name.length)
+			};
+	}
+	return undefined;
 }
 
 /* ─── Tasks ─── */
@@ -96,6 +125,8 @@ export function addTask(
 	text: string,
 	categoryIdentifier: string | null
 ): { task: Task; changes: Change[] } | undefined {
+	const mention = categoryMention(context.records, text);
+	if (mention) ({ categoryIdentifier, text } = mention);
 	const { title, tagNames } = parseQuickAdd(text);
 	if (!title) return undefined;
 	const siblings = tasksShownIn(context.records, categoryIdentifier);
@@ -137,6 +168,25 @@ export function moveTask(context: Context, task: Task, direction: -1 | 1): Chang
 	);
 	const order = stepKey(siblings, task, direction);
 	return order ? keep(update(context, task, { order })) : [];
+}
+
+/**
+ * Puts a task at a place among the tasks it's shown with that are done, or not done, like it:
+ * `index` counts those others, so 0 is the top. A key between its new neighbours' is its only
+ * change, as with moving one place.
+ */
+export function placeTask(context: Context, task: Task, index: number): Change[] {
+	const done = value(task, 'done');
+	const others = tasksShownIn(context.records, shownCategory(context.records, task)).filter(
+		(other) => value(other, 'done') === done && other.identifier !== task.identifier
+	);
+	const place = Math.max(0, Math.min(index, others.length));
+	const before = others[place - 1]?.fields.order.value ?? null;
+	const after = others[place]?.fields.order.value ?? null;
+	if (before !== null && after !== null && before >= after) return [];
+	const current = value(task, 'order');
+	if ((before === null || current > before) && (after === null || current < after)) return [];
+	return keep(update(context, task, { order: keyBetween(before, after) }));
 }
 
 export function setCategory(

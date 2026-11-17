@@ -24,7 +24,8 @@
 		install: 'M12 4v11M7 10l5 5 5-5M5 20h14',
 		sync: 'M20 11a8 8 0 00-14.3-4.9L4 8M4 3v5h5M4 13a8 8 0 0014.3 4.9L20 16M20 21v-5h-5',
 		keyboard: 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10',
-		more: 'M5 12h.01M12 12h.01M19 12h.01'
+		more: 'M5 12h.01M12 12h.01M19 12h.01',
+		grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01'
 	} as const;
 
 	let { name, class: className = 'size-4' }: { name: keyof typeof PATHS; class?: string } =
