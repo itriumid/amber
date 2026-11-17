@@ -294,7 +294,8 @@ a 15rem sidebar (lists, categories, tags, and the quiet actions below them) sits
 with a 32px gap; below that the sidebar moves into a sheet opened from the menu button in the
 header.
 
-The header wraps: Amber's icon and the wordmark on the left, search taking up to 28rem on the
+The header wraps: Amber's mark (a drop of resin with a tick kept inside it, pink on Itrium's
+graphite tile, the family's frame) and the wordmark on the left, search taking up to 28rem on the
 right, and on a phone the search bar on a line of its own, full width. Nothing else sits in the
 header; the link to Itrium is in the footer's last line. The main column runs
 headline, notices, the Any/Open/Done switch while searching, quick add, then sections spaced 32px

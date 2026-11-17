@@ -162,7 +162,8 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   before committing it.
 - **`static/.well-known/security.txt` expires.** A test fails a month before its `Expires` date.
 - **Brand files** (`src/lib/*.svg`, the icons and `og-image.png` in `static/`) are copies from
-  `~/Itrium/Assets`. Regenerate them there, never edit them here.
+  `~/Itrium/Assets`. Regenerate them there, never edit them here. Amber's own mark and the icons
+  made from it come from `source/amber.py`, into `~/Itrium/Assets/amber/web/`.
 - **SvelteKit 3:** configuration is passed to `sveltekit()` in `vite.config.ts` (there's no
   `svelte.config.js`), and `#lib` replaces `$lib`.
 
