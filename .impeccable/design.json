@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 2,
-	"generatedAt": "2026-11-17T04:00:44+00:00",
+	"generatedAt": "2026-11-17T04:31:46+00:00",
 	"title": "Design System: Amber",
 	"extensions": {
 		"colorMeta": {
@@ -288,6 +288,11 @@
 				"name": "carry",
 				"value": "crossfade 450ms cubic-out",
 				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
+			},
+			{
+				"name": "drag-make-room",
+				"value": "transform 150ms ease-out",
+				"purpose": "Tasks sliding aside for one being dragged."
 			},
 			{
 				"name": "reduced-motion",
