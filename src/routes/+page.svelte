@@ -29,7 +29,8 @@
 		SYNC_NOTE,
 		TITLE
 	} from '#lib/content.js';
-	import { addTask, categoryMention, tagByName } from '#lib/model/actions.js';
+	import { addTask, categoryMention, placeTask, tagByName } from '#lib/model/actions.js';
+	import { sortable } from '#lib/sortable.js';
 	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
@@ -243,6 +244,18 @@
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
+
+	// While a dragged task is put in its place, the list re-sorts at once: it's already where it was
+	// dropped, and sliding it in again from its old place would look like it jumped back first.
+	let placing = $state(false);
+	async function place(identifier: string, index: number) {
+		const task = get(amber.records, identifier, 'task');
+		if (!task) return;
+		placing = true;
+		amber.act('Moved', (context) => placeTask(context, task, index));
+		await tick();
+		placing = false;
+	}
 
 	/**
 	 * A field saves when it's left. Before the page goes away or out of sight (a reload, a closed
@@ -522,10 +535,17 @@
 								{#if searching}<span class="font-normal tabular-nums">{section.shown.length}</span
 									>{/if}
 							</h2>
-							<ul class={section.shown.length ? tray : ''}>
+							<ul
+								class={section.shown.length ? tray : ''}
+								{@attach sortable({
+									onplace: (identifier, index) => void place(identifier, index),
+									enabled: () => !searching
+								})}
+							>
 								{#each section.shown as task, index (task.identifier)}
 									<li
-										animate:flip={{ duration }}
+										class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:bg-surface data-dragging:shadow-xl"
+										animate:flip={{ duration: placing ? 0 : duration }}
 										in:arrive={{ key: task.identifier, bucket: section.bucket }}
 										out:leave={{ key: task.identifier, bucket: section.bucket }}
 									>

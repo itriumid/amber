@@ -7,6 +7,7 @@ import {
 	deleteCategory,
 	deleteTask,
 	moveTask,
+	placeTask,
 	parseQuickAdd,
 	promoteStep,
 	setCategory,
@@ -116,6 +117,22 @@ describe('tasks', () => {
 		expect(value(task, 'title')).toBe('New name');
 		undo(context, renamed);
 		expect(value(task, 'title')).toBe('Old');
+	});
+});
+
+describe('placing', () => {
+	it('puts a task anywhere among its open neighbours, with one change', () => {
+		const context = fresh();
+		const [a, b, c, d] = ['A', 'B', 'C', 'D'].map((title) => addTask(context, title, null)!.task);
+		const order = () => titles(tasksShownIn(context.records, null));
+		expect(placeTask(context, a, 2)).toHaveLength(1);
+		expect(order()).toEqual(['B', 'C', 'A', 'D']);
+		placeTask(context, d, 0);
+		expect(order()).toEqual(['D', 'B', 'C', 'A']);
+		// Where it already is: nothing to change.
+		expect(placeTask(context, b, 1)).toEqual([]);
+		expect(placeTask(context, c, 99)).toHaveLength(1);
+		expect(order()).toEqual(['D', 'B', 'A', 'C']);
 	});
 });
 

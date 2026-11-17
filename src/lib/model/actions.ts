@@ -22,6 +22,7 @@ import {
 	type Tag,
 	type Task
 } from './list';
+import { keyBetween } from './order';
 
 /** Trims, collapses runs of spaces, and cuts at `limit` characters. */
 export function clean(text: string, limit: number): string {
@@ -167,6 +168,25 @@ export function moveTask(context: Context, task: Task, direction: -1 | 1): Chang
 	);
 	const order = stepKey(siblings, task, direction);
 	return order ? keep(update(context, task, { order })) : [];
+}
+
+/**
+ * Puts a task at a place among the tasks it's shown with that are done, or not done, like it:
+ * `index` counts those others, so 0 is the top. A key between its new neighbours' is its only
+ * change, as with moving one place.
+ */
+export function placeTask(context: Context, task: Task, index: number): Change[] {
+	const done = value(task, 'done');
+	const others = tasksShownIn(context.records, shownCategory(context.records, task)).filter(
+		(other) => value(other, 'done') === done && other.identifier !== task.identifier
+	);
+	const place = Math.max(0, Math.min(index, others.length));
+	const before = others[place - 1]?.fields.order.value ?? null;
+	const after = others[place]?.fields.order.value ?? null;
+	if (before !== null && after !== null && before >= after) return [];
+	const current = value(task, 'order');
+	if ((before === null || current > before) && (after === null || current < after)) return [];
+	return keep(update(context, task, { order: keyBetween(before, after) }));
 }
 
 export function setCategory(

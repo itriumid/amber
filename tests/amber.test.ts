@@ -637,6 +637,57 @@ test("says achieved, not done, wherever a bucket list's dream shows", async ({ p
 	);
 });
 
+test('drags a task to a new place: by its grip with a mouse, by holding it on a touch screen', async ({
+	page
+}) => {
+	for (const title of ['Alpha', 'Bravo', 'Charlie']) await addTask(page, title);
+	const order = () =>
+		page
+			.locator('main [data-task]')
+			.getByRole('button')
+			.filter({ hasText: /^(Alpha|Bravo|Charlie)$/ })
+			.allTextContents();
+	// Measured once the rows have finished sliding in.
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	const box = async (title: string) =>
+		(await page.locator('main li', { hasText: title }).boundingBox())!;
+	const alpha = await box('Alpha');
+	const charlie = await box('Charlie');
+	if (isPhone(page)) {
+		// A real touch: held still for a moment, then moved, then lifted.
+		const touch = await page.context().newCDPSession(page);
+		const point = (y: number) => [{ x: alpha.x + alpha.width / 2, y }];
+		await touch.send('Input.dispatchTouchEvent', {
+			type: 'touchStart',
+			touchPoints: point(alpha.y + 20)
+		});
+		await page.waitForTimeout(600);
+		for (let step = 1; step <= 8; step++)
+			await touch.send('Input.dispatchTouchEvent', {
+				type: 'touchMove',
+				touchPoints: point(
+					alpha.y + 20 + ((charlie.y + charlie.height - 10 - alpha.y - 20) * step) / 8
+				)
+			});
+		await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+	} else {
+		await page.locator('main li', { hasText: 'Alpha' }).hover();
+		const grip = (await page
+			.locator('main li', { hasText: 'Alpha' })
+			.locator('[data-drag]')
+			.boundingBox())!;
+		await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(grip.x + grip.width / 2, charlie.y + charlie.height - 10, { steps: 8 });
+		await page.mouse.up();
+	}
+	await expect.poll(order).toEqual(['Bravo', 'Charlie', 'Alpha']);
+	// One change, with Undo.
+	await expect(notice(page)).toContainText('Moved');
+	await notice(page).getByRole('button', { name: 'Undo' }).click();
+	await expect.poll(order).toEqual(['Alpha', 'Bravo', 'Charlie']);
+});
+
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
 	page
 }) => {
