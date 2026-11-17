@@ -236,10 +236,13 @@
 							>{isAchieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
 						>{/if}
 					{#if category}<span>{category}</span>{/if}
+					<!-- Tags as small framed labels, the cabinet's own way of naming things. -->
 					{#each tags as tag (tag.identifier)}
-						{@const color = value(tag, 'color')}
-						<span class="inline-flex items-center gap-1">
-							{#if color}<span class="size-2 rounded-full {DOT[color]}" aria-hidden="true"
+						{@const tagColor = value(tag, 'color')}
+						<span
+							class="inline-flex items-center gap-1 rounded-sm border border-border px-1.5 py-px"
+						>
+							{#if tagColor}<span class="size-2 rounded-full {DOT[tagColor]}" aria-hidden="true"
 								></span>{/if}#{value(tag, 'name')}
 						</span>
 					{/each}
