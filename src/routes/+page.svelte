@@ -6,6 +6,9 @@
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT, PLATE } from '#lib/colors.js';
 	import CategoryEditor from '#lib/components/CategoryEditor.svelte';
+	import LockSheet from '#lib/components/LockSheet.svelte';
+	import UnlockSheet from '#lib/components/UnlockSheet.svelte';
+	import { locks } from '#lib/locks.svelte.js';
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
@@ -29,7 +32,13 @@
 		SYNC_NOTE,
 		TITLE
 	} from '#lib/content.js';
-	import { addTask, categoryMention, placeTask, tagByName } from '#lib/model/actions.js';
+	import {
+		addTask,
+		categoryMention,
+		isLockedList,
+		placeTask,
+		tagByName
+	} from '#lib/model/actions.js';
 	import { sortable } from '#lib/sortable.js';
 	import SelectionBar from '#lib/components/SelectionBar.svelte';
 	import { categoryTree, get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
@@ -55,6 +64,14 @@
 	let syncCode = $state<string>();
 	let bringing = $state<Source>();
 	let installSteps = $state<Way>();
+	// Locked lists: the one being locked (or the name of a new one), and the one being opened.
+	let locking = $state<string>();
+	let lockingNew = $state<string>();
+	let unlocking = $state<string>();
+	// What open locked lists say, opened again whenever the list changes.
+	$effect(() => {
+		if (amber.ready) void locks.refresh(amber.records);
+	});
 	// The sheets for syncing, backing up, bringing in and installing load the first time they're opened:
 	// most visits never need them, or the code they bring (compression, encryption). Once loaded
 	// they stay, so closing one returns focus where it was, as a dialog should.
@@ -139,9 +156,15 @@
 		return category ? value(category, 'name') : 'All tasks';
 	});
 	const target = $derived(view.kind === 'category' ? view.identifier : null);
-	const isEmpty = $derived(
-		sections.every((section) => !section.shown.length && !section.done.length)
-	);
+	// In a locked list, quick add seals what it adds, and needs the list open.
+	const targetLocked = $derived(amber.ready && isLockedList(amber.records, target));
+	const targetOpen = $derived(targetLocked && locks.isOpen(target));
+	// A locked list in its own place shows even when it's empty: that's where it's opened.
+	const isShownSection = (section: (typeof sections)[number]) =>
+		section.shown.length > 0 ||
+		section.done.length > 0 ||
+		(section.locked && view.kind === 'category' && !searching);
+	const isEmpty = $derived(!sections.some(isShownSection));
 	const duration = $derived(amber.reducedMotion ? 0 : 200);
 	// The signature move: on a bucket list, a ticked dream is carried from the tray onto the
 	// Achieved shelf (and back), so where it went is seen, not guessed. Everything else slides.
@@ -183,6 +206,14 @@
 
 	function add(event: SubmitEvent) {
 		event.preventDefault();
+		// Inside a locked list, # and @ are off: what's typed is the title, sealed as it's added.
+		if (targetLocked) {
+			if (!targetOpen || !target) return;
+			const title = newTask;
+			newTask = '';
+			void locks.addTask(target, title);
+			return;
+		}
 		const tagView = view.kind === 'tag' ? get(amber.records, view.identifier, 'tag') : undefined;
 		// Named with @, the task goes to that category, which may not be the one in view: it's said
 		// where, so a task that leaves the screen isn't a task that vanished.
@@ -190,6 +221,22 @@
 		const mentioned = mention
 			? get(amber.records, mention.categoryIdentifier, 'category')
 			: undefined;
+		// Into a locked list from elsewhere: sealed if it's open, and otherwise it asks to open it
+		// first, keeping what was typed.
+		if (mentioned && value(mentioned, 'lock')) {
+			if (!locks.isOpen(mentioned.identifier)) {
+				amber.notice = {
+					message: `Open ${value(mentioned, 'name')} first, to add to it`,
+					changes: []
+				};
+				unlocking = mentioned.identifier;
+				return;
+			}
+			const title = mention!.text;
+			newTask = '';
+			void locks.addTask(mentioned.identifier, title);
+			return;
+		}
 		// An @ that names no category stays in the title; it's said, so a typo isn't missed.
 		const unknown = mention ? undefined : newTask.match(/(?:^|\s)@([\p{L}\p{N}_-]+)/u)?.[1];
 		const said =
@@ -289,9 +336,12 @@
 	}
 	// Only the tasks that show a box to choose: done ones folded away and dreams on the shelf aren't
 	// chosen without being seen.
+	// A locked list's tasks are never chosen with others: what's said after would have to name them.
 	const selectAll = () =>
 		(selected = sections.flatMap((section) =>
-			section.shown.filter((task) => !value(task, 'done')).map((task) => task.identifier)
+			section.locked
+				? []
+				: section.shown.filter((task) => !value(task, 'done')).map((task) => task.identifier)
 		));
 	$effect(() => {
 		void view;
@@ -408,6 +458,7 @@
 					onsync={openSync}
 					oninstall={offerInstall}
 					onshortcuts={openShortcuts}
+					onlocknew={(name) => (lockingNew = name)}
 				/>
 			{/if}
 		</aside>
@@ -522,12 +573,14 @@
 							bind:this={quickAdd}
 							bind:value={newTask}
 							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
-							placeholder="Add a task"
+							placeholder={targetLocked && !targetOpen
+								? `Open ${heading} to add to it`
+								: 'Add a task'}
 							aria-describedby="quick-add-hint"
 							aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
 							maxlength={LIMITS.title + 200}
 							autocomplete="off"
-							disabled={!amber.ready || amber.readOnly}
+							disabled={!amber.ready || amber.readOnly || (targetLocked && !targetOpen)}
 						/>
 						<button
 							type="submit"
@@ -542,12 +595,16 @@
 					     away, leaving quick add would move the list under the pointer mid-click. -->
 					<p
 						id="quick-add-hint"
-						class="mt-1.5 text-xs text-muted {hasTags
+						class="mt-1.5 text-xs text-muted {hasTags && !targetLocked
 							? 'invisible group-focus-within/quick:visible'
 							: ''}"
 					>
-						<span class="font-medium">#weekend</span> makes a tag, and
-						<span class="font-medium">@Home</span> puts the task in that category.
+						{#if targetLocked}
+							Encrypted as it's added. # and @ are off in a locked list.
+						{:else}
+							<span class="font-medium">#weekend</span> makes a tag, and
+							<span class="font-medium">@Home</span> puts the task in that category.
+						{/if}
 					</p>
 				</form>
 			{/if}
@@ -586,7 +643,10 @@
 				{/if}
 
 				{#each sections as section (section.key)}
-					{#if section.shown.length || section.done.length}
+					{#if isShownSection(section)}
+						{@const open = section.locked && locks.isOpen(section.categoryIdentifier)}
+						{@const closed = section.locked && !open}
+						{@const inside = section.shown.length + section.done.length}
 						<section class="mt-8" aria-labelledby="section-{section.key}">
 							<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
 							<h2
@@ -601,91 +661,131 @@
 									></span>{/if}
 								{section.title}
 								{#if section.bucket}<span aria-hidden="true">·</span> Bucket list{/if}
+								{#if section.locked}<span aria-hidden="true">·</span> Locked list{/if}
 								{#if searching}<span class="font-normal tabular-nums">{section.shown.length}</span
 									>{/if}
 							</h2>
-							<ul
-								class={section.shown.length ? tray : ''}
-								{@attach sortable({
-									onplace: (identifier, index) => void place(identifier, index),
-									enabled: () => !searching && !selecting
-								})}
-							>
-								{#each section.shown as task, index (task.identifier)}
-									<li
-										class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:rounded-md data-dragging:bg-surface data-dragging:shadow-xl data-dragging:outline data-dragging:outline-control-border"
-										animate:flip={{ duration: placing ? 0 : duration }}
-										in:arrive={{ key: task.identifier, bucket: section.bucket }}
-										out:leave={{ key: task.identifier, bucket: section.bucket }}
+							{#if section.locked}
+								<!-- Its state and the one button that changes it, seen whether or not the label
+								     above is: on its own page, a list's label is for screen readers only. -->
+								<div
+									class="mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
+								>
+									<Icon name={open ? 'unlock' : 'lock'} class="size-4 shrink-0" />
+									<p class="min-w-0 flex-[1_1_14rem]">
+										{open
+											? 'Open. It locks again when Amber is hidden, and after five minutes without use.'
+											: inside
+												? `Locked, with ${inside} ${tasksWord(inside)} inside.`
+												: 'Locked, and empty so far.'}
+									</p>
+									<button
+										type="button"
+										class={smallButton}
+										aria-label="{open ? 'Lock' : 'Open'} {section.title}"
+										onclick={() => {
+											if (!section.categoryIdentifier) return;
+											if (open) locks.close(section.categoryIdentifier);
+											else unlocking = section.categoryIdentifier;
+										}}>{open ? 'Lock' : 'Open'}</button
 									>
-										<TaskRow
-											{task}
-											showCategory={view.kind === 'tag'}
-											words={search.words}
-											movable={!searching && !selecting}
-											{selecting}
-											selected={selected.includes(task.identifier)}
-											onselect={toggleSelected}
-											first={index === 0}
-											last={index === section.shown.length - 1}
-											bucket={section.bucket}
-											color={section.color}
-											hideTag={view.kind === 'tag' ? view.identifier : undefined}
-											onopen={openDetails}
-										/>
-									</li>
-								{/each}
-							</ul>
-							{#if section.done.length && section.bucket}
-								<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
+								</div>
+							{/if}
+							{#if !closed}
+								<ul
+									class={section.shown.length ? tray : ''}
+									{@attach sortable({
+										onplace: (identifier, index) => void place(identifier, index),
+										enabled: () => !searching && !selecting
+									})}
+								>
+									{#each section.shown as task, index (task.identifier)}
+										<li
+											class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:rounded-md data-dragging:bg-surface data-dragging:shadow-xl data-dragging:outline data-dragging:outline-control-border"
+											animate:flip={{ duration: placing ? 0 : duration }}
+											in:arrive={{ key: task.identifier, bucket: section.bucket }}
+											out:leave={{ key: task.identifier, bucket: section.bucket }}
+										>
+											<TaskRow
+												{task}
+												showCategory={view.kind === 'tag'}
+												words={search.words}
+												movable={!searching && !selecting}
+												selecting={selecting && !section.locked}
+												selected={selected.includes(task.identifier)}
+												onselect={toggleSelected}
+												lockedIn={section.locked ? section.title : undefined}
+												position={index + 1}
+												first={index === 0}
+												last={index === section.shown.length - 1}
+												bucket={section.bucket}
+												color={section.color}
+												hideTag={view.kind === 'tag' ? view.identifier : undefined}
+												onopen={openDetails}
+											/>
+										</li>
+									{/each}
+								</ul>
+								{#if section.done.length && section.bucket}
+									<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
 								     newest first, each with its collection label, never folded away. A dream ticked in
 								     the tray is carried onto the shelf, and back if it's unticked. -->
-								<!-- Set in under its own list's tray, with a hairline, so it reads as that list's shelf,
+									<!-- Set in under its own list's tray, with a hairline, so it reads as that list's shelf,
 								     not a section of its own. -->
-								<section
-									class="mt-4 ml-3 border-l border-border pt-1 pl-4 sm:ml-4"
-									aria-labelledby="achieved-{section.key}"
-								>
-									<h3 id="achieved-{section.key}" class="mb-2 {labelPlate}">
-										{sections.length > 1 ? `Achieved in ${section.title}` : 'Achieved'} ({section
-											.done.length})
-									</h3>
-									<ul class="grid gap-2 sm:grid-cols-2">
-										{#each section.done as task (task.identifier)}
-											<li
-												animate:flip={{ duration }}
-												in:arrive={{ key: task.identifier, bucket: true }}
-												out:leave={{ key: task.identifier, bucket: true }}
-											>
-												<TaskRow {task} bucket achieved movable={false} onopen={openDetails} />
-											</li>
-										{/each}
-									</ul>
-								</section>
-							{:else if section.done.length}
-								<details class="group mt-2">
-									<summary
-										class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text {touchTarget}"
+									<section
+										class="mt-4 ml-3 border-l border-border pt-1 pl-4 sm:ml-4"
+										aria-labelledby="achieved-{section.key}"
 									>
-										<Icon
-											name="down"
-											class="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
-										/>
-										Done ({section.done.length})
-									</summary>
-									<ul class="mt-1 {tray}">
-										{#each section.done as task (task.identifier)}
-											<li transition:slide={{ duration }}>
-												<TaskRow
-													{task}
-													movable={false}
-													hideTag={view.kind === 'tag' ? view.identifier : undefined}
-													onopen={openDetails}
-												/>
-											</li>
-										{/each}
-									</ul>
-								</details>
+										<h3 id="achieved-{section.key}" class="mb-2 {labelPlate}">
+											{sections.length > 1 ? `Achieved in ${section.title}` : 'Achieved'} ({section
+												.done.length})
+										</h3>
+										<ul class="grid gap-2 sm:grid-cols-2">
+											{#each section.done as task (task.identifier)}
+												<li
+													animate:flip={{ duration }}
+													in:arrive={{ key: task.identifier, bucket: true }}
+													out:leave={{ key: task.identifier, bucket: true }}
+												>
+													<TaskRow
+														{task}
+														bucket
+														achieved
+														movable={false}
+														lockedIn={section.locked ? section.title : undefined}
+														onopen={openDetails}
+													/>
+												</li>
+											{/each}
+										</ul>
+									</section>
+								{:else if section.done.length}
+									<details class="group mt-2">
+										<summary
+											class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text {touchTarget}"
+										>
+											<Icon
+												name="down"
+												class="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+											/>
+											Done ({section.done.length})
+										</summary>
+										<ul class="mt-1 {tray}">
+											{#each section.done as task, index (task.identifier)}
+												<li transition:slide={{ duration }}>
+													<TaskRow
+														{task}
+														movable={false}
+														lockedIn={section.locked ? section.title : undefined}
+														position={section.shown.length + index + 1}
+														hideTag={view.kind === 'tag' ? view.identifier : undefined}
+														onopen={openDetails}
+													/>
+												</li>
+											{/each}
+										</ul>
+									</details>
+								{/if}
 							{/if}
 						</section>
 					{/if}
@@ -739,6 +839,10 @@
 			onsync={openSync}
 			oninstall={offerInstall}
 			onshortcuts={openShortcuts}
+			onlocknew={(name) => {
+				listsOpen = false;
+				lockingNew = name;
+			}}
 		/>
 	{/if}
 </Sheet>
@@ -749,7 +853,22 @@
 	identifier={openCategory}
 	onclose={() => (openCategory = undefined)}
 	onopen={(identifier) => (view = { kind: 'category', identifier })}
+	onlock={(identifier) => {
+		openCategory = undefined;
+		locking = identifier;
+	}}
+	onopenlock={(identifier) => {
+		openCategory = undefined;
+		unlocking = identifier;
+	}}
 />
+<LockSheet
+	identifier={locking}
+	newName={lockingNew}
+	onclose={() => (locking = lockingNew = undefined)}
+	onlocked={(identifier) => (view = { kind: 'category', identifier })}
+/>
+<UnlockSheet identifier={unlocking} onclose={() => (unlocking = undefined)} />
 <TagEditor identifier={openTag} onclose={() => (openTag = undefined)} />
 {#if loaded.sync}
 	{#await import('#lib/components/SyncSheet.svelte') then { default: SyncSheet }}

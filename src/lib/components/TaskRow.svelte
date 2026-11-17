@@ -1,9 +1,12 @@
 <!-- One task in the list. Ticking it, opening it and moving it are all here. From the keyboard,
      wherever focus is in the row: Alt with the up or down arrow moves it, Enter opens it, and Delete
      deletes it, with Undo. In search results the words found are marked, and moving is off: with
-     tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. -->
+     tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. In an open
+     locked list a task shows as dots until it's revealed, one at a time, and has Copy; what's said
+     after a change never has its title (docs/locked-lists.md). -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
+	import { locks } from '#lib/locks.svelte.js';
 	import { DOT, EDGE } from '#lib/colors.js';
 	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
 	import { value, type Color, type Task } from '#lib/model/list.js';
@@ -27,6 +30,8 @@
 		color = null,
 		selecting = false,
 		selected = false,
+		lockedIn,
+		position = 1,
 		onselect,
 		onopen
 	}: {
@@ -49,11 +54,30 @@
 		/** Choosing tasks to act on together: a square box chooses, and the title chooses too. */
 		selecting?: boolean;
 		selected?: boolean;
+		/** The name of the locked list it's in, when it is. */
+		lockedIn?: string;
+		/** Its place in its list, from 1: what names it while its title is hidden. */
+		position?: number;
 		onselect?: (task: Task) => void;
 		onopen: (task: Task) => void;
 	} = $props();
 
-	const title = $derived(value(task, 'title'));
+	const revealed = $derived(!!lockedIn && locks.revealed === task.identifier);
+	const masked = $derived(!!lockedIn && !revealed);
+	// In a locked list, controls are named by place while the title is hidden, so neither the screen
+	// nor a screen reader says it until it's revealed.
+	const title = $derived(
+		lockedIn ? (revealed ? locks.title(task) : `Hidden entry ${position}`) : value(task, 'title')
+	);
+	// What's said after a change: never a locked task's title, which would stay on screen with Undo.
+	const spoken = $derived(lockedIn ? `a task in ${lockedIn}` : title);
+	let copied = $state(false);
+	async function copy() {
+		await locks.copy(locks.title(task));
+		copied = true;
+		amber.notice = { message: 'Copied. Cleared from the clipboard in 30 seconds.', changes: [] };
+		setTimeout(() => (copied = false), 2000);
+	}
 	const done = $derived(value(task, 'done'));
 	const doneAt = $derived(value(task, 'doneAt'));
 	const isAchieved = $derived(achieved || (bucket && done));
@@ -65,7 +89,9 @@
 	const steps = $derived(amber.index.steps.get(task.identifier) ?? []);
 	const stepsDone = $derived(steps.filter((step) => value(step, 'done')).length);
 	const category = $derived(showCategory ? categoryLabel(amber.records, task) : undefined);
-	const hasNotes = $derived(value(task, 'notes').trim().length > 0);
+	const hasNotes = $derived(
+		(lockedIn ? locks.notes(task) : value(task, 'notes')).trim().length > 0
+	);
 	// Just achieved, it arrives on the shelf marked for a moment; one already there doesn't.
 	// Read once, as the specimen appears: it's the arrival that's marked, not later changes.
 	const fresh = untrack(() => achieved && Date.now() - (value(task, 'doneAt') ?? 0) < 3000);
@@ -117,11 +143,11 @@
 		const neighbors = [item?.nextElementSibling, item?.previousElementSibling];
 		const said = bucket
 			? checked
-				? `Achieved: ${title}`
-				: `Not achieved: ${title}`
+				? `Achieved: ${spoken}`
+				: `Not achieved: ${spoken}`
 			: checked
-				? `Done: ${title}`
-				: `Not done: ${title}`;
+				? `Done: ${spoken}`
+				: `Not done: ${spoken}`;
 		amber.act(said, (context) => setDone(context, task, checked));
 		await tick();
 		// Ticking can move the task (into Done, or back out). Focus follows it when it can still be
@@ -148,7 +174,7 @@
 			fromMenu ? neighbor?.querySelector<HTMLElement>('[data-more]') : controlsOf(neighbor)[place]
 		);
 		row?.querySelector<HTMLElement>('[popover]')?.hidePopover();
-		amber.act(`Deleted: ${title}`, (context) => deleteTask(context, task));
+		amber.act(`Deleted: ${spoken}`, (context) => deleteTask(context, task));
 		await tick();
 		// Not left to rescueFocus: the row slides away first, so focus isn't lost until it's gone.
 		(neighbors.find(isShown) ?? home())?.focus();
@@ -207,7 +233,7 @@
 	     the buttons are taller, so they hang into the row's padding instead of pushing it open. -->
 	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
 		<div>
-			{#if selecting}
+			{#if selecting && !lockedIn}
 				<!-- Square, and filled in the text color when chosen: a choice, not a task ticked off. -->
 				<label
 					class="inline-grid size-7 cursor-pointer place-items-center pointer-coarse:-m-2 pointer-coarse:p-2"
@@ -253,12 +279,19 @@
 				aria-pressed={selecting ? selected : undefined}
 				onclick={() => (selecting ? onselect?.(task) : onopen(task))}
 			>
-				<!-- A found word keeps the strike-through of a done task's title. -->
-				{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
-							class="rounded-sm bg-accent text-on-accent {done && !isAchieved
-								? 'line-through decoration-1'
-								: ''}">{piece.text}</mark
-						>{:else}{piece.text}{/if}{/each}
+				{#if masked}
+					<!-- Dots on screen, its place for a screen reader: said as one piece. -->
+					<span aria-hidden="true" class="tracking-widest">••••••••••</span><span class="sr-only"
+						>{title}</span
+					>
+				{:else}
+					<!-- A found word keeps the strike-through of a done task's title. -->
+					{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
+								class="rounded-sm bg-accent text-on-accent {done && !isAchieved
+									? 'line-through decoration-1'
+									: ''}">{piece.text}</mark
+							>{:else}{piece.text}{/if}{/each}
+				{/if}
 			</button>
 			<!-- Read with the title as its description, so moving through the list by arrow, which never
 			     lands here, still says a task's date, tags, steps and notes. -->
@@ -298,12 +331,32 @@
 			{/if}
 		</div>
 	</div>
+	{#if lockedIn}
+		<!-- Always shown, on any screen: they're what an entry in a locked list is for. -->
+		<div class="-my-0.5 ml-auto flex shrink-0 gap-0.5">
+			<button
+				type="button"
+				class="{moveButton} pointer-coarse:size-11"
+				aria-label="Reveal: {title}"
+				aria-pressed={revealed}
+				onclick={() => locks.reveal(task.identifier)}><Icon name="eye" /></button
+			>
+			<button
+				type="button"
+				class="{moveButton} pointer-coarse:size-11"
+				aria-label="Copy: {title}"
+				onclick={() => void copy()}><Icon name={copied ? 'check' : 'copy'} /></button
+			>
+		</div>
+	{/if}
 	{#if movable}
 		<!-- With a mouse, the move buttons beside the task, shown on hover or focus, and off at the ends
 		     of the list. On a touch screen they'd crowd every row, so the moves and Delete are in one
 		     More menu that names the task, as a step's are. -->
 		<div
-			class="-my-0.5 ml-auto flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
+			class="-my-0.5 {lockedIn
+				? ''
+				: 'ml-auto'} flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
 		>
 			<button
 				type="button"
@@ -323,7 +376,9 @@
 		<button
 			type="button"
 			data-more
-			class="-my-2 -mr-1 ml-auto hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
+			class="-my-2 -mr-1 {lockedIn
+				? ''
+				: 'ml-auto'} hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
 			aria-label="More: {title}"
 			popovertarget={menuIdentifier}><Icon name="more" class="size-5 stroke-[3.5]" /></button
 		>
