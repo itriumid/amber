@@ -5,7 +5,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { amber } from '#lib/amber.svelte.js';
-	import { deleteTask, setCategory, setDone } from '#lib/model/actions.js';
+	import { deleteTask, setCategory, setDone, shownCategory } from '#lib/model/actions.js';
 	import { categoryTree, get, value, type Task } from '#lib/model/list.js';
 	import type { Context, Change } from '#lib/model/list.js';
 	import { noticePlace } from '#lib/notice.svelte.js';
@@ -28,11 +28,31 @@
 	);
 	const tree = $derived(categoryTree(amber.records));
 	const tasksWord = (count: number) => (count === 1 ? 'task' : 'tasks');
+	// When every chosen task is in a bucket list, ticking them is achieving them, said as it is when
+	// one is ticked.
+	const allDreams = $derived(
+		tasks.length > 0 &&
+			tasks.every((task) => {
+				const place = shownCategory(amber.records, task);
+				const category = place ? get(amber.records, place, 'category') : undefined;
+				return category ? value(category, 'keepDone') : false;
+			})
+	);
 
 	$effect(() => {
 		untrack(() => noticePlace.opened('selection'));
 		return () => noticePlace.closed('selection');
 	});
+
+	async function remove() {
+		const chosen = tasks;
+		if (!chosen.length) return;
+		// Several at once is a lot at once: a copy is kept first, as the Back up sheet promises.
+		if (chosen.length > 1) await amber.keepCopy(`Before deleting ${chosen.length} tasks`);
+		act(`Deleted ${chosen.length} ${tasksWord(chosen.length)}`, (context, task) =>
+			deleteTask(context, task)
+		);
+	}
 
 	function act(message: string, change: (context: Context, task: Task) => Change[]) {
 		const chosen = tasks;
@@ -62,8 +82,10 @@
 		class={smallButton}
 		disabled={!tasks.length}
 		onclick={() =>
-			act(`Marked ${tasks.length} done`, (context, task) => setDone(context, task, true))}
-		>Mark done</button
+			act(
+				allDreams ? `Marked ${tasks.length} achieved` : `Marked ${tasks.length} done`,
+				(context, task) => setDone(context, task, true)
+			)}>{allDreams ? 'Mark achieved' : 'Mark done'}</button
 	>
 	<label for="{prefix}-move" class="sr-only">Move to a category</label>
 	<select
@@ -82,14 +104,8 @@
 			{/each}
 		{/each}
 	</select>
-	<button
-		type="button"
-		class={smallButton}
-		disabled={!tasks.length}
-		onclick={() =>
-			act(`Deleted ${tasks.length} ${tasksWord(tasks.length)}`, (context, task) =>
-				deleteTask(context, task)
-			)}>Delete</button
+	<button type="button" class={smallButton} disabled={!tasks.length} onclick={() => void remove()}
+		>Delete</button
 	>
 	<button type="button" class={smallButton} onclick={onfinish}>Cancel</button>
 </div>

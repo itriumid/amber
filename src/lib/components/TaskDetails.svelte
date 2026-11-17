@@ -77,15 +77,24 @@
 		'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-base hover:bg-bg';
 </script>
 
-<Sheet open={!!task} title="Task details" {onclose}>
+<!-- Named for the task it shows, as the category and tag sheets are. -->
+<Sheet open={!!task} title={task ? `Task: ${value(task, 'title')}` : 'Task'} {onclose}>
 	{#if task}
 		<div>
 			<label for="task-title" class={label}>Task</label>
-			<input
+			<!-- A text area that grows with the title, so a long one wraps instead of running off the edge
+			     of a phone. A title is one line, so Enter saves it rather than starting a new one. -->
+			<textarea
 				id="task-title"
-				class={field}
+				class="{field} field-sizing-content resize-none"
+				rows="1"
 				value={value(task, 'title')}
 				maxlength={LIMITS.title}
+				onkeydown={(event) => {
+					if (event.key !== 'Enter') return;
+					event.preventDefault();
+					event.currentTarget.blur();
+				}}
 				aria-describedby={untitled ? 'task-title-problem' : undefined}
 				oninput={() => (untitled = false)}
 				onchange={(event) => {
@@ -97,8 +106,7 @@
 						return;
 					}
 					amber.act('Renamed', (context) => setTitle(context, task, event.currentTarget.value));
-				}}
-			/>
+				}}></textarea>
 			{#if untitled}
 				<p id="task-title-problem" class="mt-1.5 text-sm" role="alert">
 					A task needs a name, so the one it had is kept.

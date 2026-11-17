@@ -121,7 +121,7 @@ test('keeps achieved dreams on a shelf, with their date, in a bucket list', asyn
 test('adds steps to a task, and turns one into a task', async ({ page }) => {
 	await addTask(page, 'Paint the bedroom');
 	await task(page, 'Paint the bedroom').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	await details.getByLabel('New step').fill('Buy paint');
 	await details.getByLabel('New step').press('Enter');
 	await details.getByLabel('New step').fill('Move the bed');
@@ -139,7 +139,7 @@ test('adds steps to a task, and turns one into a task', async ({ page }) => {
 test("keeps a task's name when it's emptied, and says why", async ({ page }) => {
 	await addTask(page, 'Fix the gate');
 	await task(page, 'Fix the gate').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	const name = details.getByLabel('Task', { exact: true });
 	await name.fill('');
 	await name.press('Tab');
@@ -172,6 +172,7 @@ test('offers a bucket list as a category is started, and names what a sheet edit
 test('puts a task in a category named with @, and says where it went', async ({ page }) => {
 	const sidebar = await lists(page);
 	await sidebar.getByLabel('New category').fill('Bucket list');
+	await sidebar.locator('label', { has: page.getByRole('radio', { name: 'Bucket list' }) }).click();
 	await sidebar.getByLabel('New category').press('Enter');
 	// From another category's view: the task goes where it was sent, and it's said.
 	const again = await lists(page);
@@ -181,6 +182,15 @@ test('puts a task in a category named with @, and says where it went', async ({ 
 	const back = await lists(page);
 	await back.getByRole('button', { name: /^Bucket list/ }).click();
 	await expect(task(page, 'Learn to sail')).toBeVisible();
+	// A bucket list says so on its drawer, before anything on it is achieved.
+	await expect(
+		(await lists(page)).getByRole('button', { name: /^Bucket list bucket list/ })
+	).toBeVisible();
+	if (isPhone(page)) await page.keyboard.press('Escape');
+	// An @ that names no category stays in the title, and it's said.
+	await addTask(page, '@Groceries Buy milk');
+	await expect(notice(page)).toContainText('No category is called Groceries.');
+	await expect(task(page, '@Groceries Buy milk')).toBeVisible();
 });
 
 test('deletes a category but keeps its tasks', async ({ page }) => {
@@ -205,7 +215,7 @@ test('has no accessibility problems axe can find, in a list, a search and a dial
 	expect(await axeViolations(page)).toEqual([]);
 	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('');
 	await task(page, 'Another task').click();
-	await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
+	await expect(page.getByRole('dialog', { name: /^Task: / })).toBeVisible();
 	expect(await axeViolations(page)).toEqual([]);
 });
 
@@ -519,7 +529,7 @@ test('keeps focus nearby when a ticked task moves away, and after deleting one',
 	// or on a touch screen to the list, where no on-screen keyboard comes up.
 	await task(page, 'First').focus();
 	await page.keyboard.press('Enter');
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	await details.getByRole('button', { name: 'Delete task' }).click();
 	if (isPhone(page)) await expect(page.locator('#main')).toBeFocused();
 	else await expect(page.getByLabel('New task')).toBeFocused();
@@ -528,7 +538,7 @@ test('keeps focus nearby when a ticked task moves away, and after deleting one',
 test('keeps focus in the details when a step goes away', async ({ page }) => {
 	await addTask(page, 'Move house');
 	await task(page, 'Move house').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	for (const step of ['Pack', 'Clean', 'Hand back keys']) {
 		await details.getByLabel('New step').fill(step);
 		await details.getByLabel('New step').press('Enter');
@@ -565,7 +575,7 @@ test('opens a sheet on its first field with a mouse, and on Close on a touch scr
 }) => {
 	await addTask(page, 'Water the plants');
 	await task(page, 'Water the plants').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	// A focused field on a touch screen would bring up the keyboard over the sheet.
 	if (isPhone(page)) await expect(details.getByRole('button', { name: 'Close' })).toBeFocused();
 	else await expect(details.getByLabel('Task', { exact: true })).toBeFocused();
@@ -625,7 +635,7 @@ test("says achieved, not done, wherever a bucket list's dream shows", async ({ p
 	await expect(task(page, 'Swim in Lake Toba')).toHaveCount(1);
 	// In its details too.
 	await task(page, 'Swim in Lake Toba').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	await expect(details.getByRole('checkbox', { name: 'Achieved' })).toBeChecked();
 	await details.getByRole('button', { name: 'Close' }).click();
 	// In a tag's own list, the tag isn't said again on every task.
@@ -699,9 +709,13 @@ test('acts on several tasks at once, with one Undo', async ({ page }) => {
 
 	// Chosen by the box or by the title; Escape leaves without doing anything.
 	await page.getByRole('button', { name: 'Select', exact: true }).click();
+	// Focus starts on the first task's box.
+	await expect(page.getByRole('checkbox', { name: 'Select: Alpha' })).toBeFocused();
 	await page.getByRole('checkbox', { name: 'Select: Alpha' }).check();
 	await task(page, 'Bravo').click();
 	await expect(bar.getByText('2 selected')).toBeVisible();
+	// Escape leaves, even with focus on a box.
+	await page.getByRole('checkbox', { name: 'Select: Alpha' }).focus();
 	await page.keyboard.press('Escape');
 	await expect(bar).toHaveCount(0);
 
@@ -711,16 +725,22 @@ test('acts on several tasks at once, with one Undo', async ({ page }) => {
 	await page.getByRole('checkbox', { name: 'Select: Bravo' }).check();
 	await bar.getByLabel('Move to a category').selectOption({ label: 'Home' });
 	await expect(notice(page)).toContainText('Moved 2 tasks to Home');
+	// A done task, folded away, isn't chosen by Select all.
+	await addTask(page, 'Delta');
+	await page.getByRole('checkbox', { name: 'Mark done: Delta' }).click();
 	await page.getByRole('button', { name: 'Select', exact: true }).click();
 	await bar.getByRole('button', { name: 'Select all' }).click();
 	await expect(bar.getByText('3 selected')).toBeVisible();
 	expect(await axeViolations(page)).toEqual([]);
 	await bar.getByRole('button', { name: 'Delete' }).click();
 	await expect(notice(page)).toContainText('Deleted 3 tasks');
+	await expect(page.getByText('Done (1)')).toBeVisible();
 	await expect(task(page, 'Charlie')).toHaveCount(0);
 	await notice(page).getByRole('button', { name: 'Undo' }).click();
 	for (const title of ['Alpha', 'Bravo', 'Charlie']) await expect(task(page, title)).toBeVisible();
 	expect(await axeViolations(page)).toEqual([]);
+	// Deleting several kept a copy first, as the Back up sheet says it does.
+	await expect((await backup(page)).getByText(/^Before deleting 3 tasks/)).toBeVisible();
 });
 
 test('goes through the list with the arrow keys, one Tab stop for the whole list', async ({
@@ -755,13 +775,14 @@ test('goes through the list with the arrow keys, one Tab stop for the whole list
 
 	// Enter opens a task, Space ticks it, Delete deletes it with Undo.
 	await page.keyboard.press('Enter');
-	await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
+	await expect(page.getByRole('dialog', { name: /^Task: / })).toBeVisible();
 	await page.keyboard.press('Escape');
 	await box('First').focus();
 	await page.keyboard.press('Delete');
 	await expect(task(page, 'First')).toHaveCount(0);
 	await expect(box('Second')).toBeFocused();
-	await page.getByRole('button', { name: 'Undo' }).click();
+	// Ctrl or Cmd with Z works with focus on a task's checkbox: it isn't a text field.
+	await page.keyboard.press('ControlOrMeta+z');
 	await expect(task(page, 'First')).toBeVisible();
 });
 
@@ -783,7 +804,7 @@ test('names counts and steps the way they should be heard', async ({ page }) => 
 	await expect(sidebar.getByRole('button', { name: 'All tasks 1 to do' })).toBeVisible();
 	if (isPhone(page)) await page.keyboard.press('Escape');
 	await task(page, 'Paint the bedroom').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	await details.getByLabel('New step').fill('Buy rollers');
 	await details.getByLabel('New step').press('Enter');
 	await details.getByRole('button', { name: 'Close' }).click();
@@ -917,7 +938,7 @@ test('names what bringing a list in would delete, instead of saying nothing is l
 		.click();
 	await task(other, 'Old chore').click();
 	await other
-		.getByRole('dialog', { name: 'Task details' })
+		.getByRole('dialog', { name: /^Task: / })
 		.getByRole('button', { name: 'Delete task' })
 		.click();
 	const back = await download(other);
@@ -966,7 +987,7 @@ test('asks before a sync deletes anything, and changes nothing when told not to'
 	// The phone deletes it; the next sync would delete it here too, so it asks first.
 	await task(phone, 'Shared').click();
 	await phone
-		.getByRole('dialog', { name: 'Task details' })
+		.getByRole('dialog', { name: /^Task: / })
 		.getByRole('button', { name: 'Delete task' })
 		.click();
 	const laptopSheet = await sync();
@@ -984,13 +1005,13 @@ test('asks before a sync deletes anything, and changes nothing when told not to'
 test('keeps a note half written when the page goes away', async ({ page }) => {
 	await addTask(page, 'Plan the trip');
 	await task(page, 'Plan the trip').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	// Typed, and never left: the page reloads with the cursor still in the box.
 	await details.getByLabel('Notes').fill('Ask Sari about the ferry');
 	await page.reload();
 	await expect(page.getByLabel('New task')).toBeEnabled();
 	await task(page, 'Plan the trip').click();
-	await expect(page.getByRole('dialog', { name: 'Task details' }).getByLabel('Notes')).toHaveValue(
+	await expect(page.getByRole('dialog', { name: /^Task: / }).getByLabel('Notes')).toHaveValue(
 		'Ask Sari about the ferry'
 	);
 });
@@ -1517,7 +1538,7 @@ test('gives every control a 44px target on a touch screen, without overlapping',
 
 	// A task's details, with a tag and a step.
 	await task(page, 'Home task').click();
-	const details = page.getByRole('dialog', { name: 'Task details' });
+	const details = page.getByRole('dialog', { name: /^Task: / });
 	await details.getByLabel('New step').fill('A step');
 	await details.getByLabel('New step').press('Enter');
 	await expectTargets(page, ['Done', '#weekend', 'Mark done: A step', 'More: A step']);
@@ -1595,7 +1616,7 @@ test('draws the tick when a box is checked, and hides it when not, in both theme
 	await addTask(page, 'Tick me');
 	// In the task's details the box stays put when ticked, instead of moving to Done.
 	await task(page, 'Tick me').click();
-	const box = page.getByRole('dialog', { name: 'Task details' }).getByRole('checkbox', {
+	const box = page.getByRole('dialog', { name: /^Task: / }).getByRole('checkbox', {
 		name: 'Done'
 	});
 	const drawn = () =>

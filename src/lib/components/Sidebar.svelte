@@ -59,7 +59,7 @@
 	const prefix = $props.id();
 </script>
 
-{#snippet place(target: View, name: string, color: string | null, indent = false)}
+{#snippet place(target: View, name: string, color: string | null, indent = false, bucket = false)}
 	{@const count = openCount(amber.records, target)}
 	<button
 		type="button"
@@ -69,6 +69,10 @@
 	>
 		{#if color}<span class="size-2.5 shrink-0 rounded-full {color}" aria-hidden="true"></span>{/if}
 		<span class="min-w-0 flex-1 truncate">{name}</span>
+		<!-- A bucket list says so from the start, before anything on it is achieved. -->
+		{#if bucket}<Icon name="star" class="size-3.5 shrink-0 opacity-70" /><span class="sr-only"
+				>bucket list</span
+			>{/if}
 		{#if count}<span
 				class="rounded-sm border px-1.5 text-xs tabular-nums {isCurrent(target)
 					? 'border-bg/40'
@@ -103,7 +107,9 @@
 						{@render place(
 							{ kind: 'category', identifier: category.identifier },
 							value(category, 'name'),
-							color ? DOT[color] : null
+							color ? DOT[color] : null,
+							false,
+							value(category, 'keepDone')
 						)}
 						<button
 							type="button"
@@ -121,7 +127,8 @@
 										{ kind: 'category', identifier: child.identifier },
 										value(child, 'name'),
 										childColor ? DOT[childColor] : null,
-										true
+										true,
+										value(child, 'keepDone')
 									)}
 									<button
 										type="button"
