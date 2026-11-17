@@ -180,12 +180,14 @@
 	data-task={task.identifier}
 	class="group flex flex-wrap items-start gap-3 transition-colors motion-reduce:transition-none {achieved
 		? `h-full rounded-md border border-control-border bg-surface p-4 ${fresh ? 'motion-safe:animate-achieved' : ''}`
-		: 'px-3 py-2.5 hover:bg-border/50'}"
+		: 'px-3 py-3 hover:bg-border/50'}"
 	{onkeydown}
 >
-	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead. -->
+	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead.
+	     The checkbox (28px), the title's first line (28px) and the buttons share one line's middle:
+	     the buttons are taller, so they hang into the row's padding instead of pushing it open. -->
 	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
-		<div class="pt-0.5">
+		<div>
 			<Check
 				checked={done}
 				label={bucket
@@ -258,7 +260,7 @@
 		     of the list. On a touch screen they'd crowd every row, so the moves and Delete are in one
 		     More menu that names the task, as a step's are. -->
 		<div
-			class="ml-auto flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
+			class="-my-0.5 ml-auto flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
 		>
 			<button
 				type="button"
@@ -278,7 +280,7 @@
 		<button
 			type="button"
 			data-more
-			class="ml-auto hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
+			class="-my-2 -mr-1 ml-auto hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
 			aria-label="More: {title}"
 			popovertarget={menuIdentifier}><Icon name="more" class="size-5 stroke-[3.5]" /></button
 		>
