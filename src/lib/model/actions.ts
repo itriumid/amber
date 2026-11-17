@@ -360,7 +360,14 @@ export function deleteCategory(context: Context, category: Category): Change[] {
 	const children = alive(context.records, 'category').filter(
 		(child) => value(child, 'parentIdentifier') === category.identifier
 	);
+	// A locked list's tasks can't be read anywhere else, so they go with it rather than moving to a
+	// list that would show them sealed.
+	const going = new Set([category, ...children].map((each) => each.identifier));
+	const sealed = alive(context.records, 'task').filter(
+		(task) => going.has(shownCategory(context.records, task) ?? '') && !!value(task, 'sealedTitle')
+	);
 	return [
+		...sealed.flatMap((task) => keep(update(context, task, { deleted: true }))),
 		...children.flatMap((child) => keep(update(context, child, { deleted: true }))),
 		...keep(update(context, category, { deleted: true }))
 	];
@@ -626,4 +633,9 @@ export function moveOutOfLocked(
 			);
 	}
 	return changes;
+}
+
+/** A locked list's lock, re-wrapped by a new passphrase. */
+export function setLock(context: Context, category: Category, lock: Lock): Change[] {
+	return keep(update(context, category, { lock }));
 }

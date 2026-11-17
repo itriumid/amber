@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	addCategory,
 	addStep,
+	deleteCategory,
 	addTask,
 	addSealedTask,
 	lockList,
@@ -9,6 +10,7 @@ import {
 	moveIntoLocked,
 	moveOutOfLocked,
 	setSealedTask,
+	tasksShownIn,
 	unlockList,
 	type SealedTask
 } from './actions';
@@ -127,5 +129,25 @@ describe('locked lists', () => {
 		expect(await unseal(key, 'task-a', 'sealedNotes', value(merged, 'sealedNotes')!)).toBe(
 			'p4ssw0rd'
 		);
+	});
+
+	it("deletes a locked list's tasks with it, instead of showing them sealed elsewhere", async () => {
+		const context = fresh();
+		const vault = addCategory(context, 'Passwords')!.category;
+		const { lock, key } = await createLock('a long passphrase');
+		lockList(context, vault, lock, new Map(), new Map());
+		addSealedTask(context, 'task-a', vault.identifier, {
+			sealedTitle: await seal(key, 'task-a', 'sealedTitle', 'Wifi'),
+			sealedNotes: await seal(key, 'task-a', 'sealedNotes', '')
+		});
+		const plain = addTask(context, 'Groceries', null)!.task;
+		const changes = deleteCategory(context, vault);
+		expect(tasksShownIn(context.records, null).map((task) => task.identifier)).toEqual([
+			plain.identifier
+		]);
+		undo(context, changes);
+		expect(tasksShownIn(context.records, vault.identifier).map((task) => task.identifier)).toEqual([
+			'task-a'
+		]);
 	});
 });
