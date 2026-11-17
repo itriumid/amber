@@ -4,9 +4,9 @@
      tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
-	import { DOT } from '#lib/colors.js';
+	import { DOT, EDGE } from '#lib/colors.js';
 	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
-	import { value, type Task } from '#lib/model/list.js';
+	import { value, type Color, type Task } from '#lib/model/list.js';
 	import { tick, untrack } from 'svelte';
 	import { home, isShown } from '#lib/focus.js';
 	import { highlight } from '#lib/search.js';
@@ -24,6 +24,7 @@
 		bucket = false,
 		achieved = false,
 		hideTag,
+		color = null,
 		onopen
 	}: {
 		task: Task;
@@ -40,6 +41,8 @@
 		achieved?: boolean;
 		/** The tag whose own list this is: said once by the heading, not again on every task. */
 		hideTag?: string;
+		/** Its list's color: the empty checkbox is edged in it, tying the task to its section's label. */
+		color?: Color | null;
 		onopen: (task: Task) => void;
 	} = $props();
 
@@ -189,6 +192,7 @@
 	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
 		<div>
 			<Check
+				ring={color ? EDGE[color] : undefined}
 				checked={done}
 				label={bucket
 					? done
