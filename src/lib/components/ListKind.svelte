@@ -1,37 +1,58 @@
-<!-- What kind of list a category is: a to-do list, whose done tasks fold away, or a bucket list,
-     whose done ones are achieved and kept on a shelf with their date. Saved as the category's
-     keepDone. A real radio group, drawn like the Any, Open and Done switch: arrow keys move, and the
-     chosen one is filled, not only colored. -->
+<!-- What kind of list a category is: a to-do list, whose done tasks fold away; a bucket list, whose
+     done ones are achieved and kept on a shelf with their date; or a locked list, encrypted with its
+     own passphrase (docs/locked-lists.md). A bucket list is the category's keepDone, and a locked
+     list is a category with a lock. Never locked unless chosen. A real radio group, drawn like the
+     Any, Open and Done switch: arrow keys move, and the chosen one is filled, not only colored. -->
+<script lang="ts" module>
+	export type ListKindName = 'todo' | 'bucket' | 'locked';
+</script>
+
 <script lang="ts">
+	import Icon from './Icon.svelte';
+
 	let {
-		bucket,
+		kind,
 		onchange,
 		legend = 'Kind of list'
-	}: { bucket: boolean; onchange: (bucket: boolean) => void; legend?: string } = $props();
+	}: { kind: ListKindName; onchange: (kind: ListKindName) => void; legend?: string } = $props();
 
 	const name = $props.id();
-	const kinds = [
-		{ bucket: false, label: 'To-do list', hint: 'Done tasks fold away below.' },
-		{ bucket: true, label: 'Bucket list', hint: 'Achieved ones are kept, with the date.' }
+	const kinds: { kind: ListKindName; label: string; hint: string }[] = [
+		{ kind: 'todo', label: 'To-do list', hint: 'Done tasks fold away below.' },
+		{ kind: 'bucket', label: 'Bucket list', hint: 'Achieved ones are kept, with the date.' },
+		{
+			kind: 'locked',
+			label: 'Locked list',
+			hint: 'Encrypted with its own passphrase, and closed until you open it.'
+		}
 	];
-	const chosen = $derived(kinds.find((kind) => kind.bucket === bucket) ?? kinds[0]);
+	const chosen = $derived(kinds.find((each) => each.kind === kind) ?? kinds[0]);
 </script>
 
 <fieldset>
 	<legend class="mb-1.5 text-sm font-medium">{legend}</legend>
 	<div class="inline-flex flex-wrap gap-1 rounded-md border border-control-border p-1">
-		{#each kinds as kind (kind.label)}
+		{#each kinds as each (each.kind)}
 			<label class="relative cursor-pointer">
 				<input
 					type="radio"
 					{name}
+					value={each.kind}
 					class="peer sr-only"
-					checked={kind.bucket === bucket}
-					onchange={() => onchange(kind.bucket)}
+					checked={each.kind === kind}
+					onchange={(event) => {
+						onchange(each.kind);
+						// A choice that asks for something first (a passphrase) isn't made yet: the radios go
+						// back to what the list is. Svelte won't rewrite a value it thinks it already wrote.
+						for (const radio of event.currentTarget
+							.closest('fieldset')!
+							.querySelectorAll<HTMLInputElement>('input[type=radio]'))
+							radio.checked = radio.value === kind;
+					}}
 				/>
 				<span
-					class="flex min-h-9 items-center rounded-sm px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
-					>{kind.label}</span
+					class="flex min-h-9 items-center gap-1.5 rounded-sm px-3 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
+					>{#if each.kind === 'locked'}<Icon name="lock" class="size-3.5" />{/if}{each.label}</span
 				>
 			</label>
 		{/each}

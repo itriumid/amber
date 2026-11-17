@@ -6,12 +6,12 @@
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
 	import { addCategory } from '#lib/model/actions.js';
-	import { categoryTree, tags as allTags, value, LIMITS } from '#lib/model/list.js';
+	import { categoryTree, tags as allTags, value, LIMITS, type Category } from '#lib/model/list.js';
 	import { field, labelPlate, touchTarget } from '#lib/styles.js';
 	import { install } from '#lib/install.svelte.js';
 	import { openCount, type View } from '#lib/views.js';
 	import Icon from './Icon.svelte';
-	import ListKind from './ListKind.svelte';
+	import ListKind, { type ListKindName } from './ListKind.svelte';
 
 	let {
 		view,
@@ -21,7 +21,8 @@
 		onbackup,
 		onsync,
 		oninstall,
-		onshortcuts
+		onshortcuts,
+		onlocknew
 	}: {
 		view: View;
 		onselect: (view: View) => void;
@@ -31,12 +32,14 @@
 		onsync: () => void;
 		oninstall: () => void;
 		onshortcuts: () => void;
+		/** A new locked list, made only once its passphrase is set. */
+		onlocknew: (name: string) => void;
 	} = $props();
 
 	const tree = $derived(categoryTree(amber.records));
 	const tags = $derived(allTags(amber.records));
 	let newCategory = $state('');
-	let newBucket = $state(false);
+	let newKind = $state<ListKindName>('todo');
 
 	const isCurrent = (candidate: View) =>
 		candidate.kind === view.kind &&
@@ -57,9 +60,17 @@
 	// The sidebar is drawn twice (beside the list, and in the sheet on a phone), so its identifiers
 	// carry a prefix of their own.
 	const prefix = $props.id();
+	const kindOf = (category: Category): ListKindName =>
+		value(category, 'lock') ? 'locked' : value(category, 'keepDone') ? 'bucket' : 'todo';
 </script>
 
-{#snippet place(target: View, name: string, color: string | null, indent = false, bucket = false)}
+{#snippet place(
+	target: View,
+	name: string,
+	color: string | null,
+	indent = false,
+	kind: ListKindName = 'todo'
+)}
 	{@const count = openCount(amber.records, target)}
 	<button
 		type="button"
@@ -70,8 +81,10 @@
 		{#if color}<span class="size-2.5 shrink-0 rounded-full {color}" aria-hidden="true"></span>{/if}
 		<span class="min-w-0 flex-1 truncate">{name}</span>
 		<!-- A bucket list says so from the start, before anything on it is achieved. -->
-		{#if bucket}<Icon name="star" class="size-3.5 shrink-0 opacity-70" /><span class="sr-only"
-				>bucket list</span
+		{#if kind === 'bucket'}<Icon name="star" class="size-3.5 shrink-0 opacity-70" /><span
+				class="sr-only">bucket list</span
+			>{:else if kind === 'locked'}<Icon name="lock" class="size-3.5 shrink-0 opacity-70" /><span
+				class="sr-only">locked list</span
 			>{/if}
 		{#if count}<span
 				class="rounded-sm border px-1.5 text-xs tabular-nums {isCurrent(target)
@@ -109,7 +122,7 @@
 							value(category, 'name'),
 							color ? DOT[color] : null,
 							false,
-							value(category, 'keepDone')
+							kindOf(category)
 						)}
 						<button
 							type="button"
@@ -128,7 +141,7 @@
 										value(child, 'name'),
 										childColor ? DOT[childColor] : null,
 										true,
-										value(child, 'keepDone')
+										kindOf(child)
 									)}
 									<button
 										type="button"
@@ -147,12 +160,19 @@
 			class="group/new mt-2"
 			onsubmit={(event) => {
 				event.preventDefault();
+				if (newKind === 'locked') {
+					if (!newCategory.trim()) return;
+					onlocknew(newCategory);
+					newCategory = '';
+					newKind = 'todo';
+					return;
+				}
 				const made = amber.act('Category added', (context) =>
-					addCategory(context, newCategory, null, newBucket)
+					addCategory(context, newCategory, null, newKind === 'bucket')
 				);
 				if (made && 'category' in made) {
 					newCategory = '';
-					newBucket = false;
+					newKind = 'todo';
 					onselect({ kind: 'category', identifier: made.category.identifier });
 				}
 			}}
@@ -177,7 +197,7 @@
 			     field has focus, so the choice is seen before a name is thought of, and kept once there's
 			     a name. -->
 			<div class="mt-3 {newCategory.trim() ? '' : 'hidden group-focus-within/new:block'}">
-				<ListKind bucket={newBucket} onchange={(bucket) => (newBucket = bucket)} />
+				<ListKind kind={newKind} onchange={(kind) => (newKind = kind)} />
 			</div>
 		</form>
 	</div>

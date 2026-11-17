@@ -21,6 +21,10 @@
 		search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
 		archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4',
 		lock: 'M6 11h12v9H6zM8 11V8a4 4 0 018 0v3',
+		// The lock opened: its shackle lifted off one side.
+		unlock: 'M6 11h12v9H6zM8 11V8a4 4 0 017.7-1.5',
+		eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 100-6 3 3 0 000 6z',
+		copy: 'M9 9h11v11H9zM5 15V4h11',
 		install: 'M12 4v11M7 10l5 5 5-5M5 20h14',
 		sync: 'M20 11a8 8 0 00-14.3-4.9L4 8M4 3v5h5M4 13a8 8 0 0014.3 4.9L20 16M20 21v-5h-5',
 		keyboard: 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10',

@@ -1748,3 +1748,149 @@ test('gives the room back when the message goes, away from the end', async ({ pa
 function toBox(box: { x: number; y: number; width: number; height: number } | null) {
 	return box && { top: box.y, bottom: box.y + box.height, left: box.x, right: box.x + box.width };
 }
+
+/* ─── Locked lists (docs/locked-lists.md) ─── */
+
+const PASSPHRASE = 'correct horse battery';
+
+/** Makes a locked list from the sidebar, and keeps its recovery code. */
+async function makeLockedList(page: Page, name: string) {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill(name);
+	await sidebar.locator('label', { has: page.getByRole('radio', { name: 'Locked list' }) }).click();
+	await sidebar.getByLabel('New category').press('Enter');
+	const sheet = page.getByRole('dialog', { name: `Lock ${name}` });
+	await sheet.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
+	await sheet.getByLabel('Type it again').fill(PASSPHRASE);
+	await sheet.getByRole('button', { name: `Lock ${name}` }).click();
+	const kept = page.getByRole('dialog', { name: 'Keep the recovery code' });
+	const code = (await kept.locator('.font-mono').textContent())!.trim();
+	expect(code).toMatch(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){5}$/);
+	await expect(kept.getByRole('button', { name: 'Done' })).toBeDisabled();
+	await kept.getByLabel("I've kept it somewhere safe").check();
+	await kept.getByRole('button', { name: 'Done' }).click();
+	return code;
+}
+
+async function openLocked(page: Page, name: string, secret: string) {
+	await page.getByRole('button', { name: `Open ${name}` }).click();
+	const sheet = page.getByRole('dialog', { name: `Open ${name}` });
+	await sheet.getByLabel('Passphrase or recovery code').fill(secret);
+	await sheet.getByRole('button', { name: 'Open', exact: true }).click();
+	await expect(sheet).toBeHidden();
+}
+
+const mainText = (page: Page) => page.getByRole('main').innerText();
+
+test("keeps a locked list's tasks out of the page, search, Undo and backups while it's closed", async ({
+	page
+}) => {
+	const code = await makeLockedList(page, 'Passwords');
+	await expect(page.getByRole('heading', { level: 1, name: 'Passwords' })).toBeVisible();
+	await addTask(page, 'Bank PIN 4821 #money @Home');
+	await expect(notice(page)).toContainText('Added to Passwords');
+	await expect(notice(page)).not.toContainText('Bank');
+	// Dots until revealed, one at a time.
+	await expect(task(page, 'Hidden entry 1')).toBeVisible();
+	expect(await mainText(page)).not.toContain('Bank PIN');
+	await page.getByRole('button', { name: 'Reveal: Hidden entry 1' }).click();
+	await expect(task(page, 'Bank PIN 4821 #money @Home')).toBeVisible();
+	await page.getByRole('checkbox', { name: /^Mark done: Bank PIN/ }).check();
+	await expect(notice(page)).toContainText('Done: a task in Passwords');
+	expect(await axeViolations(page)).toEqual([]);
+
+	await page.getByRole('button', { name: 'Lock Passwords' }).click();
+	await expect(page.getByText('Locked, with 1 task inside.')).toBeVisible();
+	expect(await page.locator('body').innerText()).not.toContain('Bank PIN');
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('Bank');
+	await expect(page.getByText(/No tasks match/)).toBeVisible();
+	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('');
+
+	// A backup carries it sealed.
+	const sheet = await backup(page);
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		sheet.getByRole('button', { name: 'Download a file' }).click()
+	]);
+	const file = await readFile((await download.path())!, 'utf8');
+	expect(file).toContain('sealedTitle');
+	expect(file).not.toContain('Bank PIN');
+	await page.keyboard.press('Escape');
+
+	// Neither a wrong passphrase nor a reload opens it; the recovery code does.
+	await page.getByRole('button', { name: 'Open Passwords' }).click();
+	const open = page.getByRole('dialog', { name: 'Open Passwords' });
+	await open.getByLabel('Passphrase or recovery code').fill('not the passphrase');
+	await open.getByRole('button', { name: 'Open', exact: true }).click();
+	await expect(open.getByRole('alert')).toContainText("That doesn't open it.");
+	expect(await axeViolations(page)).toEqual([]);
+	await page.keyboard.press('Escape');
+	await openLocked(page, 'Passwords', code);
+	await expect(page.getByText('Done (1)')).toBeVisible();
+	await page.reload();
+	await expect(page.getByRole('button', { name: 'Open Passwords' }).first()).toBeVisible();
+	expect(await page.locator('body').innerText()).not.toContain('Bank PIN');
+});
+
+test('locks a list again when the page is hidden, and after five minutes without use', async ({
+	page
+}) => {
+	await page.clock.install();
+	await page.reload();
+	await makeLockedList(page, 'Passwords');
+	await addTask(page, 'Wifi hunter2');
+	await expect(page.getByRole('button', { name: 'Lock Passwords' })).toBeVisible();
+	await page.evaluate(() => {
+		Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+		document.dispatchEvent(new Event('visibilitychange'));
+		Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+	});
+	await expect(page.getByRole('button', { name: 'Open Passwords' })).toBeVisible();
+
+	await openLocked(page, 'Passwords', PASSPHRASE);
+	await expect(page.getByRole('button', { name: 'Lock Passwords' })).toBeVisible();
+	await page.clock.fastForward('04:00');
+	await expect(page.getByRole('button', { name: 'Lock Passwords' })).toBeVisible();
+	await page.clock.fastForward('01:30');
+	await expect(page.getByRole('button', { name: 'Open Passwords' })).toBeVisible();
+});
+
+test('locks an existing list after saying what stays in plain text, and moves a task out', async ({
+	page
+}) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Door code 1984 #house');
+	await page.getByRole('button', { name: 'Edit Home' }).first().click();
+	const editor = page.getByRole('dialog', { name: 'Category: Home' });
+	await editor.locator('label', { has: page.getByRole('radio', { name: 'Locked list' }) }).click();
+	const sheet = page.getByRole('dialog', { name: 'Lock Home' });
+	await expect(sheet.getByText(/Copies made before now/)).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
+	await sheet.getByLabel('Show the passphrase').check();
+	await sheet.getByLabel('Passphrase', { exact: true }).fill('short');
+	await sheet.getByRole('button', { name: 'Lock Home' }).click();
+	await expect(sheet.getByRole('alert')).toContainText('at least 12 characters');
+	await sheet.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
+	await sheet.getByLabel('Also delete the copies this device keeps').check();
+	await sheet.getByRole('button', { name: 'Lock Home' }).click();
+	const kept = page.getByRole('dialog', { name: 'Keep the recovery code' });
+	await kept.getByLabel("I've kept it somewhere safe").check();
+	await kept.getByRole('button', { name: 'Done' }).click();
+
+	// Sealed and untagged, and open in its details once revealed.
+	expect(await mainText(page)).not.toContain('Door code');
+	await task(page, 'Hidden entry 1').click();
+	const details = page.getByRole('dialog', { name: 'Task in Home' });
+	await expect(details.getByLabel('Tags')).toHaveCount(0);
+	await details.getByRole('button', { name: 'Reveal' }).click();
+	await expect(details.getByLabel('Task', { exact: true })).toHaveValue('Door code 1984');
+	await expect(details.getByText(/puts it back in plain text/)).toBeVisible();
+	await details.getByLabel('Category').selectOption({ label: 'No category' });
+	await expect(details).toBeHidden();
+	await page.keyboard.press('Escape');
+	const again = await lists(page);
+	await again.getByRole('button', { name: /^All tasks/ }).click();
+	await expect(task(page, 'Door code 1984')).toBeVisible();
+});

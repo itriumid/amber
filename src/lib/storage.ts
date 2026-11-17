@@ -328,6 +328,17 @@ export async function keepSnapshot(
 	await done(transaction);
 }
 
+/**
+ * Deletes every copy this device keeps. Only when the person asks: locking a list offers it, since
+ * the copies from before still hold the list in plain text.
+ */
+export async function deleteSnapshots() {
+	const opened = await database();
+	const transaction = opened.transaction('snapshots', 'readwrite');
+	transaction.objectStore('snapshots').clear();
+	await done(transaction);
+}
+
 /** Keeps the day's copy, unless one was kept recently. */
 export async function keepDailySnapshot(records: unknown[]) {
 	if (!records.length) return;

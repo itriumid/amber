@@ -27,6 +27,8 @@ export interface Section {
 	categoryIdentifier: string | null;
 	/** A bucket list: its done tasks are achieved dreams, shown on a shelf of their own, not folded away. */
 	bucket: boolean;
+	/** A locked list (docs/locked-lists.md): its tasks show only while it's open, and never in a search. */
+	locked: boolean;
 	/** Tasks shown in the main list, in order (done ones too, while searching). */
 	shown: Task[];
 	/** Done tasks below the list, newest first (empty while searching). */
@@ -43,7 +45,8 @@ function section(
 	/** While searching, done tasks stay in place: a search for done tasks shouldn't hide them. */
 	inPlace: boolean,
 	bucket: boolean,
-	tasks: Task[]
+	tasks: Task[],
+	locked = false
 ): Section {
 	return {
 		key,
@@ -51,6 +54,7 @@ function section(
 		color,
 		categoryIdentifier,
 		bucket,
+		locked,
 		shown: inPlace ? tasks : tasks.filter((task) => !value(task, 'done')),
 		done: inPlace ? [] : tasks.filter((task) => value(task, 'done')).sort(newestDone)
 	};
@@ -78,6 +82,7 @@ export function sectionsFor(records: Records, view: View, search?: Search): Sect
 		);
 	const forCategory = (identifier: string, prefix = '') => {
 		const category = get(records, identifier, 'category')!;
+		const locked = !!value(category, 'lock');
 		return section(
 			identifier,
 			prefix + value(category, 'name'),
@@ -85,7 +90,9 @@ export function sectionsFor(records: Records, view: View, search?: Search): Sect
 			identifier,
 			searching,
 			value(category, 'keepDone'),
-			found(tasksShownIn(records, identifier))
+			// A locked list's tasks are sealed, and never searched, open or not.
+			locked && searching ? [] : found(tasksShownIn(records, identifier)),
+			locked
 		);
 	};
 

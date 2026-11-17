@@ -23,6 +23,7 @@ import {
 	type Task
 } from './list';
 import { keyBetween } from './order';
+import type { Lock, Sealed } from '../sealing';
 
 /** Trims, collapses runs of spaces, and cuts at `limit` characters. */
 export function clean(text: string, limit: number): string {
@@ -359,7 +360,14 @@ export function deleteCategory(context: Context, category: Category): Change[] {
 	const children = alive(context.records, 'category').filter(
 		(child) => value(child, 'parentIdentifier') === category.identifier
 	);
+	// A locked list's tasks can't be read anywhere else, so they go with it rather than moving to a
+	// list that would show them sealed.
+	const going = new Set([category, ...children].map((each) => each.identifier));
+	const sealed = alive(context.records, 'task').filter(
+		(task) => going.has(shownCategory(context.records, task) ?? '') && !!value(task, 'sealedTitle')
+	);
 	return [
+		...sealed.flatMap((task) => keep(update(context, task, { deleted: true }))),
 		...children.flatMap((child) => keep(update(context, child, { deleted: true }))),
 		...keep(update(context, category, { deleted: true }))
 	];
@@ -423,4 +431,211 @@ export function promoteStep(
 		.filter((tag) => hasTag(context.records, parent, tag))
 		.flatMap((tag) => setTagged(context, task, tag, true));
 	return { task, changes: [change, ...tagChanges, ...deleteStep(context, step)] };
+}
+
+/* ─── Locked lists (docs/locked-lists.md) ─── */
+// Sealing and opening are asynchronous (the browser's encryption is), so these take values already
+// sealed or opened, and stay synchronous like every other action: one call, one set of changes,
+// one Undo. In a locked list the plain title, notes and step text are empty; the sealed fields
+// hold them.
+
+/** A task's title and notes, sealed with its list's key. */
+export interface SealedTask {
+	sealedTitle: Sealed;
+	sealedNotes: Sealed;
+}
+
+/** A task's title and notes in plain text, as they are outside a locked list. */
+export interface PlainTask {
+	title: string;
+	notes: string;
+}
+
+/** The locked list a task shows in, if it shows in one. */
+export function lockedListOf(records: Records, task: Task): Category | undefined {
+	const place = shownCategory(records, task);
+	const category = place ? get(records, place, 'category') : undefined;
+	return category && value(category, 'lock') ? category : undefined;
+}
+
+export function isLockedList(records: Records, categoryIdentifier: string | null): boolean {
+	const category = categoryIdentifier ? get(records, categoryIdentifier, 'category') : undefined;
+	return !!category && !!value(category, 'lock');
+}
+
+/** A tag's name shows in other lists, so a task in a locked list has none. */
+function untagAll(context: Context, task: Task): Change[] {
+	return alive(context.records, 'tag')
+		.filter((tag) => hasTag(context.records, task, tag))
+		.flatMap((tag) => setTagged(context, task, tag, false));
+}
+
+/** A new task in a locked list. The identifier is made first: the sealed values are bound to it. */
+export function addSealedTask(
+	context: Context,
+	identifier: string,
+	categoryIdentifier: string,
+	sealed: SealedTask
+): { task: Task; changes: Change[] } {
+	const { entity: task, change } = create(
+		context,
+		'task',
+		{
+			title: '',
+			notes: '',
+			done: false,
+			doneAt: null,
+			categoryIdentifier,
+			order: endOf(tasksShownIn(context.records, categoryIdentifier)),
+			deleted: false,
+			...sealed
+		},
+		identifier
+	);
+	return { task, changes: [change] };
+}
+
+export function addSealedStep(
+	context: Context,
+	task: Task,
+	identifier: string,
+	sealedText: Sealed
+): Change[] {
+	return [
+		create(
+			context,
+			'step',
+			{
+				taskIdentifier: task.identifier,
+				text: '',
+				done: false,
+				order: endOf(stepsOf(context.records, task.identifier)),
+				deleted: false,
+				sealedText
+			},
+			identifier
+		).change
+	];
+}
+
+export function setSealedTask(context: Context, task: Task, sealed: Partial<SealedTask>): Change[] {
+	return keep(update(context, task, sealed));
+}
+
+export function setSealedStep(context: Context, step: Step, sealedText: Sealed): Change[] {
+	return keep(update(context, step, { sealedText }));
+}
+
+/**
+ * Locks a list: its lock is set, and every task and step in it changes from plain to sealed, all
+ * in one change, so one Undo puts it back. `tasks` and `steps` hold the sealed values, made for
+ * each one the list shows.
+ */
+export function lockList(
+	context: Context,
+	category: Category,
+	lock: Lock,
+	tasks: Map<string, SealedTask>,
+	steps: Map<string, Sealed>
+): Change[] {
+	const changes = keep(update(context, category, { lock, keepDone: false }));
+	for (const task of tasksShownIn(context.records, category.identifier)) {
+		const sealed = tasks.get(task.identifier);
+		if (!sealed) continue;
+		changes.push(
+			...keep(update(context, task, { title: '', notes: '', ...sealed })),
+			...untagAll(context, task)
+		);
+		for (const step of stepsOf(context.records, task.identifier)) {
+			const sealedText = steps.get(step.identifier);
+			if (sealedText) changes.push(...keep(update(context, step, { text: '', sealedText })));
+		}
+	}
+	return changes;
+}
+
+/** Makes a locked list an ordinary one again: everything in it back in plain text. */
+export function unlockList(
+	context: Context,
+	category: Category,
+	tasks: Map<string, PlainTask>,
+	steps: Map<string, string>
+): Change[] {
+	const changes = keep(update(context, category, { lock: null }));
+	for (const task of tasksShownIn(context.records, category.identifier)) {
+		const plain = tasks.get(task.identifier);
+		if (!plain) continue;
+		changes.push(
+			...keep(
+				update(context, task, {
+					title: clean(plain.title, LIMITS.title),
+					notes: plain.notes.slice(0, LIMITS.notes),
+					sealedTitle: null,
+					sealedNotes: null
+				})
+			)
+		);
+		for (const step of stepsOf(context.records, task.identifier)) {
+			const text = steps.get(step.identifier);
+			if (text !== undefined)
+				changes.push(
+					...keep(update(context, step, { text: clean(text, LIMITS.step), sealedText: null }))
+				);
+		}
+	}
+	return changes;
+}
+
+/** Moves a task into a locked list, sealed: its title, notes and steps, and without its tags. */
+export function moveIntoLocked(
+	context: Context,
+	task: Task,
+	categoryIdentifier: string,
+	sealed: SealedTask,
+	steps: Map<string, Sealed>
+): Change[] {
+	const changes = [
+		...setCategory(context, task, categoryIdentifier),
+		...keep(update(context, task, { title: '', notes: '', ...sealed })),
+		...untagAll(context, task)
+	];
+	for (const step of stepsOf(context.records, task.identifier)) {
+		const sealedText = steps.get(step.identifier);
+		if (sealedText) changes.push(...keep(update(context, step, { text: '', sealedText })));
+	}
+	return changes;
+}
+
+/** Moves a task out of a locked list, into plain text. */
+export function moveOutOfLocked(
+	context: Context,
+	task: Task,
+	categoryIdentifier: string | null,
+	plain: PlainTask,
+	steps: Map<string, string>
+): Change[] {
+	const changes = [
+		...setCategory(context, task, categoryIdentifier),
+		...keep(
+			update(context, task, {
+				title: clean(plain.title, LIMITS.title) || 'Untitled',
+				notes: plain.notes.slice(0, LIMITS.notes),
+				sealedTitle: null,
+				sealedNotes: null
+			})
+		)
+	];
+	for (const step of stepsOf(context.records, task.identifier)) {
+		const text = steps.get(step.identifier);
+		if (text !== undefined)
+			changes.push(
+				...keep(update(context, step, { text: clean(text, LIMITS.step), sealedText: null }))
+			);
+	}
+	return changes;
+}
+
+/** A locked list's lock, re-wrapped by a new passphrase. */
+export function setLock(context: Context, category: Category, lock: Lock): Change[] {
+	return keep(update(context, category, { lock }));
 }
