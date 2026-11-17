@@ -28,3 +28,13 @@ export const EDGE: Record<Color, string> = {
 	teal: 'border-cat-teal',
 	lavender: 'border-cat-lavender'
 };
+
+/** A section's framed label in its category's color: the words, the frame and the dot. */
+export const PLATE: Record<Color, string> = {
+	rose: 'border-cat-rose text-cat-rose',
+	sage: 'border-cat-sage text-cat-sage',
+	sand: 'border-cat-sand text-cat-sand',
+	blue: 'border-cat-blue text-cat-blue',
+	teal: 'border-cat-teal text-cat-teal',
+	lavender: 'border-cat-lavender text-cat-lavender'
+};

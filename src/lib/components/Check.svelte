@@ -12,6 +12,7 @@
 		onchange,
 		small = false,
 		disabled = false,
+		ring,
 		describedby,
 		children
 	}: {
@@ -20,6 +21,12 @@
 		onchange: (checked: boolean) => void;
 		small?: boolean;
 		disabled?: boolean;
+		/**
+		 * The edge of the empty box in a category's color (an `EDGE` class), so a task shows which list
+		 * it's in. Every category color reaches 3:1 against the page and a card, like any control's edge.
+		 * Ticked, the box is pink whatever the list.
+		 */
+		ring?: string;
 		/** The identifier of a hint, for `aria-describedby`. */
 		describedby?: string;
 		/** Text beside the box, which ticks it too. Hide it from screen readers: `label` names the box. */
@@ -48,7 +55,8 @@
 			aria-label={label}
 			aria-describedby={describedby}
 			onchange={(event) => onchange(event.currentTarget.checked)}
-			class="peer col-start-1 row-start-1 cursor-pointer appearance-none rounded-full border-2 border-control-border transition-colors duration-200 checked:border-accent-edge checked:bg-accent disabled:cursor-not-allowed motion-reduce:transition-none {small
+			class="peer col-start-1 row-start-1 cursor-pointer appearance-none rounded-full border-2 {ring ??
+				'border-control-border'} transition-colors duration-200 checked:border-accent-edge checked:bg-accent disabled:cursor-not-allowed motion-reduce:transition-none {small
 				? 'size-5'
 				: 'size-6'}"
 		/>

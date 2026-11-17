@@ -107,6 +107,16 @@ describe('categories', () => {
 		expect(categoryTree(context.records).map(({ children }) => children.length)).toEqual([2]);
 	});
 
+	it("gives each new category the next color not in use, and subcategories their parent's", () => {
+		const context = fresh();
+		const first = addCategory(context, 'Home')!.category;
+		const second = addCategory(context, 'Work')!.category;
+		const child = addCategory(context, 'Garden', first.identifier)!.category;
+		expect(value(first, 'color')).toBe('rose');
+		expect(value(second, 'color')).toBe('sage');
+		expect(value(child, 'color')).toBe('rose');
+	});
+
 	it('makes a bucket list when asked, and subcategories follow their parent otherwise', () => {
 		const context = fresh();
 		const dreams = addCategory(context, 'Someday', null, true)!.category;

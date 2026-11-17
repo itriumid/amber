@@ -4,9 +4,9 @@
      tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
-	import { DOT } from '#lib/colors.js';
+	import { DOT, EDGE } from '#lib/colors.js';
 	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
-	import { value, type Task } from '#lib/model/list.js';
+	import { value, type Color, type Task } from '#lib/model/list.js';
 	import { tick, untrack } from 'svelte';
 	import { home, isShown } from '#lib/focus.js';
 	import { highlight } from '#lib/search.js';
@@ -24,6 +24,7 @@
 		bucket = false,
 		achieved = false,
 		hideTag,
+		color = null,
 		onopen
 	}: {
 		task: Task;
@@ -40,6 +41,8 @@
 		achieved?: boolean;
 		/** The tag whose own list this is: said once by the heading, not again on every task. */
 		hideTag?: string;
+		/** Its list's color: the empty checkbox is edged in it, tying the task to its section's label. */
+		color?: Color | null;
 		onopen: (task: Task) => void;
 	} = $props();
 
@@ -180,13 +183,16 @@
 	data-task={task.identifier}
 	class="group flex flex-wrap items-start gap-3 transition-colors motion-reduce:transition-none {achieved
 		? `h-full rounded-md border border-control-border bg-surface p-4 ${fresh ? 'motion-safe:animate-achieved' : ''}`
-		: 'px-3 py-2.5 hover:bg-border/50'}"
+		: 'px-3 py-3 hover:bg-border/50'}"
 	{onkeydown}
 >
-	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead. -->
+	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead.
+	     The checkbox (28px), the title's first line (28px) and the buttons share one line's middle:
+	     the buttons are taller, so they hang into the row's padding instead of pushing it open. -->
 	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
-		<div class="pt-0.5">
+		<div>
 			<Check
+				ring={color ? EDGE[color] : undefined}
 				checked={done}
 				label={bucket
 					? done
@@ -230,10 +236,13 @@
 							>{isAchieved ? 'Achieved' : 'Done'} {dateFormat.format(doneAt)}</span
 						>{/if}
 					{#if category}<span>{category}</span>{/if}
+					<!-- Tags as small framed labels, the cabinet's own way of naming things. -->
 					{#each tags as tag (tag.identifier)}
-						{@const color = value(tag, 'color')}
-						<span class="inline-flex items-center gap-1">
-							{#if color}<span class="size-2 rounded-full {DOT[color]}" aria-hidden="true"
+						{@const tagColor = value(tag, 'color')}
+						<span
+							class="inline-flex items-center gap-1 rounded-sm border border-border px-1.5 py-px"
+						>
+							{#if tagColor}<span class="size-2 rounded-full {DOT[tagColor]}" aria-hidden="true"
 								></span>{/if}#{value(tag, 'name')}
 						</span>
 					{/each}
@@ -258,7 +267,7 @@
 		     of the list. On a touch screen they'd crowd every row, so the moves and Delete are in one
 		     More menu that names the task, as a step's are. -->
 		<div
-			class="ml-auto flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
+			class="-my-0.5 ml-auto flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
 		>
 			<button
 				type="button"
@@ -278,7 +287,7 @@
 		<button
 			type="button"
 			data-more
-			class="ml-auto hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
+			class="-my-2 -mr-1 ml-auto hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
 			aria-label="More: {title}"
 			popovertarget={menuIdentifier}><Icon name="more" class="size-5 stroke-[3.5]" /></button
 		>

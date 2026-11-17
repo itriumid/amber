@@ -4,6 +4,7 @@
 import {
 	LIMITS,
 	alive,
+	COLORS,
 	create,
 	endOf,
 	findTag,
@@ -214,6 +215,23 @@ export function deleteTag(context: Context, tag: Tag): Change[] {
 
 /* ─── Categories ─── */
 
+/**
+ * A new category's color: the first one no other category has yet, then round again. A list
+ * starts with color, so its label and its tasks' boxes say which list they're in; "No color" is
+ * still a choice in the category's editor.
+ */
+function nextColor(records: Records): Color {
+	const used = new Set(
+		alive(records, 'category')
+			.filter((category) => !value(category, 'parentIdentifier'))
+			.map((category) => value(category, 'color'))
+	);
+	const count = alive(records, 'category').filter(
+		(category) => !value(category, 'parentIdentifier')
+	).length;
+	return COLORS.find((color) => !used.has(color)) ?? COLORS[count % COLORS.length];
+}
+
 export function addCategory(
 	context: Context,
 	name: string,
@@ -238,7 +256,7 @@ export function addCategory(
 	const { entity: category, change } = create(context, 'category', {
 		name: cleaned,
 		parentIdentifier: parent?.identifier ?? null,
-		color: parent ? value(parent, 'color') : null,
+		color: parent ? value(parent, 'color') : nextColor(context.records),
 		keepDone: bucket ?? (parent ? value(parent, 'keepDone') : false),
 		order: endOf(siblings),
 		deleted: false

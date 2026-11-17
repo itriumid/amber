@@ -20,7 +20,9 @@ export const touchText = 'pointer-coarse:text-base';
 export const field = `w-full rounded-lg border border-control-border bg-bg px-3 py-2.5 text-sm ${touchText} text-text placeholder:text-muted`;
 export const label = 'mb-1.5 block text-sm font-medium';
 /** A framed label, as on a specimen drawer: the names of sections and shelves. */
-export const labelPlate =
-	'inline-flex items-center gap-1.5 rounded-sm border border-control-border px-2 py-0.5 text-[0.6875rem] font-semibold tracking-widest text-muted uppercase';
+export const labelShape =
+	'inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-[0.6875rem] font-semibold tracking-widest uppercase';
+/** In gray; a category's label takes its color instead (`PLATE` in colors.ts). */
+export const labelPlate = `${labelShape} border-control-border text-muted`;
 /** A tray of slips: a list's tasks, ruled one from the next. */
 export const tray = 'rounded-md border border-border bg-surface divide-y divide-border';

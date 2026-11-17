@@ -233,9 +233,12 @@ muted category colors that help people sort, never decorate.
 
 Coral, Sage, Sand, Blue, Teal and Lavender (`cat-*`, with deeper `cat-*-light` versions for light
 mode). Coral is saved as `rose` in existing lists, so the key stays; it moved off pink's hue so it
-can't be taken for the accent. Each reaches 4.5:1 on the page and on cards in both modes. They
-appear as small dots (8–10px) beside a tag or category, on its drawer and in its section's label.
-Never as fills behind text, and never as a colored edge.
+can't be taken for the accent. Each reaches 4.5:1 on the page and on cards in both modes. A list's
+color names it: a small dot (8–10px) beside a tag or category and on its drawer; its section's
+framed label in that color, words, frame and dot; and the edge of each of its tasks' empty
+checkboxes, so a task shows which list it's in. Ticked, a box is pink whatever its list. New
+categories start with the next color not in use; "No color" stays a choice. Never as fills behind
+text, and never as a thick edge on a row or card.
 
 ### Named Rules
 
@@ -369,7 +372,9 @@ ticks it too.
 
 ### Task Row (signature)
 
-A slip in its tray: checkbox, title as a button that opens the task, and a meta line beneath,
+A slip in its tray: checkbox edged in its list's color, title as a button that opens the task,
+and a meta line beneath where tags are small framed labels with their dot. The checkbox, the
+title's first line and the row's buttons share one line's middle, with 12px above and below,
 ruled from the next slip by a hairline. Under the pointer it takes a half-tone tint. Done tasks
 show muted with a 1px strike-through, in a tray of their own under the fold. Search matches are marked in pink with graphite text. Slips
 slide in and out and flip into new order when moved. The whole list is one Tab stop: arrows go
@@ -449,8 +454,9 @@ and a floating message would cover the sheet's controls. Ctrl or ⌘ with Z undo
 
 ### Section Headings
 
-A framed label: small uppercase tracked text in a 4px plate with a control edge, the category's
-dot inside it when it has a color. Only shown when a page has more than one section.
+A framed label: small uppercase tracked text in a 4px plate, in the category's color (words,
+frame and dot) or, without one, muted with a control edge. Shown when a page has more than one
+section, or while searching.
 
 ## Do's and Don'ts
 

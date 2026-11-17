@@ -4,7 +4,7 @@
 	import { crossfade, fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { amber } from '#lib/amber.svelte.js';
-	import { DOT } from '#lib/colors.js';
+	import { DOT, PLATE } from '#lib/colors.js';
 	import CategoryEditor from '#lib/components/CategoryEditor.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
@@ -31,7 +31,7 @@
 	} from '#lib/content.js';
 	import { addTask, tagByName } from '#lib/model/actions.js';
 	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
-	import { field, labelPlate, smallButton, touchTarget, tray } from '#lib/styles.js';
+	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { rescueFocus } from '#lib/focus.js';
 	import { roving } from '#lib/roving.js';
@@ -499,7 +499,9 @@
 							<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
 							<h2
 								id="section-{section.key}"
-								class="mb-2 {labelPlate} {sections.length > 1 || searching ? '' : 'sr-only'}"
+								class="mb-2 {section.color
+									? `${labelShape} ${PLATE[section.color]}`
+									: labelPlate} {sections.length > 1 || searching ? '' : 'sr-only'}"
 							>
 								{#if section.color}<span
 										class="size-2.5 rounded-full {DOT[section.color]}"
@@ -524,6 +526,7 @@
 											first={index === 0}
 											last={index === section.shown.length - 1}
 											bucket={section.bucket}
+											color={section.color}
 											hideTag={view.kind === 'tag' ? view.identifier : undefined}
 											onopen={openDetails}
 										/>
