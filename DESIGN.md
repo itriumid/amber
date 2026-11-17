@@ -236,7 +236,7 @@ mode). Coral is saved as `rose` in existing lists, so the key stays; it moved of
 can't be taken for the accent. Each reaches 4.5:1 on the page and on cards in both modes. A list's
 color names it: a small dot (8–10px) beside a tag or category and on its drawer; its section's
 framed label in that color, words, frame and dot ("· Bucket list" added for a bucket list, and a
-small star on its drawer, from the start); and the edge of each of its tasks' empty
+small star on its drawer, from the start; "· Locked list" and a small lock for a locked list); and the edge of each of its tasks' empty
 checkboxes, so a task shows which list it's in. Ticked, a box is pink whatever its list. New
 categories start with the next color not in use; "No color" stays a choice. Never as fills behind
 text, and never as a thick edge on a row or card.
@@ -395,8 +395,23 @@ done task is said as achieved, never struck through.
 
 ### Kind of List
 
-A two-way switch, To-do list or Bucket list, with one line saying what it means. It appears below
-the new-category field as a name is typed, and at the top of a category's editor.
+A three-way switch, To-do list, Bucket list or Locked list (with a small lock), and one line saying
+what the chosen one means. It appears below the new-category field as a name is typed, and at the
+top of a category's editor. Locked list is never the default. Choosing it asks for a passphrase
+first, in its own sheet, and the switch stays where it was until the list is locked; leaving a
+locked list needs it open.
+
+### Locked List
+
+A locked list (docs/locked-lists.md) has a bar at the top of its section, the surface tone with a
+hairline edge, 8px corners: a lock (an open one while it's open), one line of state, and one small
+button, Open or Lock. Closed, it shows only its count; nothing of its tasks is on the page. Open, its
+tasks show as ten dots in place of a title, each with Reveal (an eye, pressed while revealed, one
+task at a time) and Copy, always shown, on any screen; their controls are named by place ("Hidden
+entry 2") until revealed. A task's sheet says "Encrypted in" its list, hides its title, notes and
+steps behind Reveal, and has no tags. Locking asks for the passphrase twice (or shown), says what it
+protects and what it doesn't, and then shows the recovery code once, in monospace, with Copy and a
+checkbox that has to be ticked before Done.
 
 ### Step and Task Menus
 
