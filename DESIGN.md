@@ -235,7 +235,8 @@ Coral, Sage, Sand, Blue, Teal and Lavender (`cat-*`, with deeper `cat-*-light` v
 mode). Coral is saved as `rose` in existing lists, so the key stays; it moved off pink's hue so it
 can't be taken for the accent. Each reaches 4.5:1 on the page and on cards in both modes. A list's
 color names it: a small dot (8–10px) beside a tag or category and on its drawer; its section's
-framed label in that color, words, frame and dot; and the edge of each of its tasks' empty
+framed label in that color, words, frame and dot ("· Bucket list" added for a bucket list, and a
+small star on its drawer, from the start); and the edge of each of its tasks' empty
 checkboxes, so a task shows which list it's in. Ticked, a box is pink whatever its list. New
 categories start with the next color not in use; "No color" stays a choice. Never as fills behind
 text, and never as a thick edge on a row or card.
@@ -410,7 +411,8 @@ A task can be dragged to a new place in its list: with a mouse by a grip of six 
 edge, shown on hover; on a touch screen by holding it for 450ms, then moving. The task lifts (the
 surface tone, `shadow-xl`: it floats, so it may cast a shadow), the others slide 150ms to make room,
 and letting go puts it there as one change with Undo, re-sorting at once rather than sliding it in
-again. Escape puts it back. Keyboard and screen-reader moves stay as they are.
+again; on dark, the lifted task also takes a control-edge outline, since a shadow barely shows on
+graphite. Escape puts it back. Holding a task while choosing tasks doesn't drag it. Keyboard and screen-reader moves stay as they are.
 
 ### Selection
 
@@ -418,8 +420,11 @@ again. Escape puts it back. Keyboard and screen-reader moves stay as they are.
 one, filled in the text color when chosen (a choice, not a task ticked off), and the title chooses
 too. A bar floats at the bottom of the screen, 8px corners, the surface tone with a control edge
 and `shadow-lg`: the count, then Select all, Mark done, Move to (a native select of categories),
-Delete and Cancel, all small buttons. Each action is one change with one Undo, said when the bar
-has gone. Escape leaves.
+Delete and Cancel, all small buttons; the bar has the one Cancel, and Select hides while choosing.
+Select all chooses the open tasks that show a box, never done ones folded away or dreams on the
+shelf. Each action is one change with one Undo, said when the bar has gone; deleting several keeps
+a copy of the list first. Mark done reads Mark achieved when every chosen task is in a bucket list.
+Escape leaves, even with focus on a box.
 
 ### Inputs / Fields
 
@@ -427,7 +432,9 @@ has gone. Escape leaves.
   (16px on touch), muted placeholder.
 - **Focus:** the global focus outline (pink on graphite, graphite on paper), 3px offset.
 - **Quick add:** a #word makes a tag and an @ followed by a category's name puts the task in
-  that category, said in the hint under it until the list has a tag.
+  that category, said in the hint under it until the list has a tag and then whenever quick add
+  has focus; its line stays either way, so nothing moves. An @ that names no category stays in the
+  title, and the message says so.
 - **Search:** the one field drawn the way every list app draws it: 12px corners, the surface
   tone, body-size text, a magnifier inside on the left and a clear button inside on the right.
   Full width on its own line on a phone, up to 28rem in the header from 640px.

@@ -132,6 +132,15 @@ class Amber {
 		this.act(message, (context) => merge(context, incoming).changes);
 	}
 
+	/**
+	 * Keeps a copy of the list as it is, before something that changes a lot at once: deleting
+	 * several tasks, as bringing in a list and putting back a copy do.
+	 */
+	async keepCopy(reason: string) {
+		if (this.readOnly) return;
+		await keepSnapshot(reason, Object.values($state.snapshot(this.records)));
+	}
+
 	/** Puts the list back as a copy had it, after keeping a copy of the list as it is now. */
 	async restoreSnapshot(snapshot: Snapshot) {
 		if (this.readOnly) return;

@@ -32,10 +32,10 @@
 	import { addTask, categoryMention, placeTask, tagByName } from '#lib/model/actions.js';
 	import { sortable } from '#lib/sortable.js';
 	import SelectionBar from '#lib/components/SelectionBar.svelte';
-	import { get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
+	import { categoryTree, get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
 	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
-	import { rescueFocus } from '#lib/focus.js';
+	import { home, rescueFocus } from '#lib/focus.js';
 	import { roving } from '#lib/roving.js';
 	import { settings } from '#lib/settings.svelte.js';
 	import { install, type Way } from '#lib/install.svelte.js';
@@ -190,10 +190,14 @@
 		const mentioned = mention
 			? get(amber.records, mention.categoryIdentifier, 'category')
 			: undefined;
+		// An @ that names no category stays in the title; it's said, so a typo isn't missed.
+		const unknown = mention ? undefined : newTask.match(/(?:^|\s)@([\p{L}\p{N}_-]+)/u)?.[1];
 		const said =
 			mentioned && mention?.categoryIdentifier !== target
 				? `Added to ${value(mentioned, 'name')}`
-				: 'Task added';
+				: unknown
+					? `Task added. No category is called ${unknown}.`
+					: 'Task added';
 		const added = amber.act(said, (context) => {
 			const result = addTask(context, newTask, target);
 			if (result && tagView)
@@ -203,10 +207,16 @@
 		if (added) newTask = '';
 	}
 
+	// Typing is in a field that takes text. A checkbox or a radio button is an input too, but Ctrl or
+	// ⌘ with Z and Escape there belong to the page: the checkbox is where focus sits in the list.
+	const TEXT_INPUTS = ['text', 'search', 'email', 'url', 'number', 'password', 'tel'];
 	function isTyping(element: EventTarget | null) {
 		return (
 			element instanceof HTMLElement &&
-			(element.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName))
+			(element.isContentEditable ||
+				element instanceof HTMLTextAreaElement ||
+				element instanceof HTMLSelectElement ||
+				(element instanceof HTMLInputElement && TEXT_INPUTS.includes(element.type)))
 		);
 	}
 
@@ -265,15 +275,23 @@
 		(selected = selected.includes(task.identifier)
 			? selected.filter((identifier) => identifier !== task.identifier)
 			: [...selected, task.identifier]);
+	/** Focus goes to the first task's box, where choosing starts: the Select button goes away. */
+	async function startSelecting() {
+		selecting = true;
+		await tick();
+		(document.querySelector<HTMLElement>('main input[aria-label^="Select:"]') ?? home())?.focus();
+	}
 	function finishSelecting() {
 		selecting = false;
 		selected = [];
 		// The bar's button that had focus goes with the bar.
 		void tick().then(() => rescueFocus());
 	}
+	// Only the tasks that show a box to choose: done ones folded away and dreams on the shelf aren't
+	// chosen without being seen.
 	const selectAll = () =>
 		(selected = sections.flatMap((section) =>
-			[...section.shown, ...section.done].map((task) => task.identifier)
+			section.shown.filter((task) => !value(task, 'done')).map((task) => task.identifier)
 		));
 	$effect(() => {
 		void view;
@@ -408,14 +426,11 @@
 						<Icon name="edit" />
 					</button>
 				{/if}
-				{#if !isEmpty && !amber.readOnly}
-					<!-- Choosing several tasks to tick, move or delete at once (SelectionBar). -->
-					<button
-						type="button"
-						class="ml-auto {smallButton}"
-						aria-pressed={selecting}
-						onclick={() => (selecting ? finishSelecting() : (selecting = true))}
-						>{selecting ? 'Cancel' : 'Select'}</button
+				{#if !isEmpty && !amber.readOnly && !selecting}
+					<!-- Choosing several tasks to tick, move or delete at once (SelectionBar), which has the one
+					     Cancel while choosing. -->
+					<button type="button" class="ml-auto {smallButton}" onclick={startSelecting}
+						>Select</button
 					>
 				{/if}
 			</div>
@@ -499,7 +514,7 @@
 					{/if}
 				</div>
 			{:else}
-				<form class="mt-5" onsubmit={add}>
+				<form class="group/quick mt-5" onsubmit={add}>
 					<label for="quick-add" class="sr-only">New task</label>
 					<div class="flex flex-wrap gap-2">
 						<input
@@ -508,7 +523,7 @@
 							bind:value={newTask}
 							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
 							placeholder="Add a task"
-							aria-describedby={hasTags ? undefined : 'quick-add-hint'}
+							aria-describedby="quick-add-hint"
 							aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
 							maxlength={LIMITS.title + 200}
 							autocomplete="off"
@@ -522,13 +537,18 @@
 							<Icon name="plus" /> Add
 						</button>
 					</div>
-					<!-- Until there's a tag in the list: by then, someone knows how tags are made. -->
-					{#if !hasTags}
-						<p id="quick-add-hint" class="mt-1.5 text-xs text-muted">
-							<span class="font-medium">#weekend</span> makes a tag, and
-							<span class="font-medium">@Home</span> puts the task in that category.
-						</p>
-					{/if}
+					<!-- Shown until the list has a tag, and after that whenever quick add has focus, so # and @
+					     stay something to read, not to remember. Its line is kept either way: if it folded
+					     away, leaving quick add would move the list under the pointer mid-click. -->
+					<p
+						id="quick-add-hint"
+						class="mt-1.5 text-xs text-muted {hasTags
+							? 'invisible group-focus-within/quick:visible'
+							: ''}"
+					>
+						<span class="font-medium">#weekend</span> makes a tag, and
+						<span class="font-medium">@Home</span> puts the task in that category.
+					</p>
 				</form>
 			{/if}
 			<!-- Said aloud as results change; empty while not searching. -->
@@ -546,10 +566,13 @@
 								: ` in ${heading}`}.
 						{:else if view.kind === 'all'}
 							Nothing here yet. Add your first task above.
-							<span class="mt-2 block text-sm">
-								Keeping a bucket list? Make a category and choose Bucket list: what you achieve
-								stays, with the date.
-							</span>
+							<!-- Only before there are categories: after deleting everything, it isn't news. -->
+							{#if !categoryTree(amber.records).length}
+								<span class="mt-2 block text-sm">
+									Keeping a bucket list? Make a category and choose Bucket list: what you achieve
+									stays, with the date.
+								</span>
+							{/if}
 							{#if install.installed && install.apple}
 								<span class="mt-2 block text-sm">
 									Have a list in Safari? Make a link there in Back up and move, and paste it in
@@ -577,6 +600,7 @@
 										aria-hidden="true"
 									></span>{/if}
 								{section.title}
+								{#if section.bucket}<span aria-hidden="true">·</span> Bucket list{/if}
 								{#if searching}<span class="font-normal tabular-nums">{section.shown.length}</span
 									>{/if}
 							</h2>
@@ -584,12 +608,12 @@
 								class={section.shown.length ? tray : ''}
 								{@attach sortable({
 									onplace: (identifier, index) => void place(identifier, index),
-									enabled: () => !searching
+									enabled: () => !searching && !selecting
 								})}
 							>
 								{#each section.shown as task, index (task.identifier)}
 									<li
-										class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:bg-surface data-dragging:shadow-xl"
+										class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:rounded-md data-dragging:bg-surface data-dragging:shadow-xl data-dragging:outline data-dragging:outline-control-border"
 										animate:flip={{ duration: placing ? 0 : duration }}
 										in:arrive={{ key: task.identifier, bucket: section.bucket }}
 										out:leave={{ key: task.identifier, bucket: section.bucket }}
