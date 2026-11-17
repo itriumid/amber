@@ -27,8 +27,32 @@ Privacy and simplicity, with smooth performance. Against Todoist, Apple Reminder
   domain. Lists live in the browser's storage; the only network traffic is a sync the person
   starts, encrypted with a key derived from a code the server never sees.
 - **Simple.** Deliberately modest features: categories, steps, tags, search, undo. No
-  collaboration, reminders service or accounts.
+  collaboration or reminders service, and no account (an optional one is planned: see Plans).
 - **Smooth.** One prerendered page, offline-first, every change saved at once.
+
+## Plans
+
+Decided, not built yet. The decisions and their reasons are in `docs/decisions/`.
+
+**What's free stays free and complete. We charge only where we keep something for you on our
+servers, because that costs us money. No ads, no nagging, and nothing free ever moves behind an
+account.**
+
+| What                                                                                           | Who gets it           |
+| ---------------------------------------------------------------------------------------------- | --------------------- |
+| Everything Amber does in the browser, now and later, including customizations and locked lists | Everyone, no account  |
+| Syncing once with a code                                                                       | Everyone, no account  |
+| Devices kept in step, changes relayed encrypted for about a week                               | Free, with an account |
+| A permanent encrypted copy, with earlier versions, restorable on a new device                  | Paid                  |
+
+- **Everything we keep is encrypted on the device**, with a key we never see. Accounts use
+  passkeys. Lose the passphrase and its recovery code, and the kept copy can't be opened by
+  anyone.
+- **Locked lists** are a kind of list a person chooses, beside To-do list and Bucket list, for
+  passwords and other things that shouldn't sit in plain text. Never the default: an ordinary
+  list stays as it is. Encrypted with their own passphrase, closed unless opened, hidden until
+  revealed. Not a password manager: no autofill, extension or breach alerts.
+- Order: locked lists first (no server needed), then accounts and the relay, then the paid copy.
 
 ## Operating Context
 
@@ -45,7 +69,8 @@ Privacy and simplicity, with smooth performance. Against Todoist, Apple Reminder
 
 - **Tasks** in **categories** (one level of subcategories), with **tags** and a color per
   category; **steps** inside a task, any of which can become a task. **Bucket-list categories**
-  keep done tasks in view with the date done.
+  keep achieved dreams on a shelf of their own, with the date. Quick add takes `#tags` and
+  `@Category`; tasks drag to a new place; several can be ticked, moved or deleted at once.
 - **Search** across titles, notes, steps, tags and categories, ignoring case and accents; `#tags`
   and Open or Done narrow it.
 - **Back up and move**, daily and before-risky-action copies on the device, **sync** through a
