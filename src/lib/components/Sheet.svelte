@@ -38,7 +38,7 @@
 	let region: HTMLDivElement | undefined = $state();
 	let header: HTMLDivElement | undefined = $state();
 	const titleIdentifier = $props.id();
-	const showsNotice = $derived(!!amber.notice && noticePlace.top === titleIdentifier);
+	const showsNotice = $derived(!!amber.notice && noticePlace.shows(amber.notice, titleIdentifier));
 
 	$effect(() => {
 		if (!dialog) return;

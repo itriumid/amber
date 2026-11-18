@@ -16,7 +16,7 @@
 	import NoticeMessage from './NoticeMessage.svelte';
 
 	/** Shown on the page: there's a message, and no dialog to show it in. */
-	const shown = $derived(!!amber.notice && !noticePlace.top);
+	const shown = $derived(!!amber.notice && noticePlace.shows(amber.notice, undefined));
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let region: HTMLDivElement | undefined = $state();
 	let room: HTMLDivElement | undefined = $state();

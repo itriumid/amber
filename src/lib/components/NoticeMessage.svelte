@@ -10,7 +10,7 @@
 {#if amber.notice}
 	{@const notice = amber.notice}
 	<div
-		class="pointer-events-auto flex items-center gap-3 rounded-lg border border-control-border bg-surface py-2 pr-2 pl-5 text-sm shadow-lg pointer-coarse:py-1"
+		class="pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 rounded-lg border border-control-border bg-surface py-2 pr-2 pl-5 text-sm shadow-lg pointer-coarse:py-1"
 		transition:fly={{ y: 16, duration: amber.reducedMotion ? 0 : 200 }}
 		onmouseenter={() => (noticePlace.paused = true)}
 		onmouseleave={() => (noticePlace.paused = false)}
@@ -18,7 +18,9 @@
 		onfocusout={() => (noticePlace.paused = false)}
 		role="presentation"
 	>
-		<span>{notice.message}</span>
+		<!-- With large text the words wrap, and Undo and Dismiss move to a line of their own, rather
+		     than the message running off the screen. -->
+		<span class="min-w-0 break-words">{notice.message}</span>
 		{#if notice.changes.length && amber.history.at(-1) === notice}
 			<button
 				type="button"
