@@ -12,6 +12,7 @@
 	import { openCount, type View } from '#lib/views.js';
 	import Icon from './Icon.svelte';
 	import ListKind, { type ListKindName } from './ListKind.svelte';
+	import ThemeChoice from './ThemeChoice.svelte';
 
 	let {
 		view,
@@ -249,5 +250,8 @@
 			<Icon name="keyboard" />
 			Keyboard shortcuts
 		</button>
+	</div>
+	<div class="pt-3">
+		<ThemeChoice />
 	</div>
 </div>

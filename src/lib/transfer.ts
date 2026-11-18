@@ -313,8 +313,37 @@ export function deletedByMerge(records: Records, incoming: Entity[]): string[] {
 		if (change.created || after?.kind !== 'task' || !before || before.fields.deleted.value)
 			return [];
 		if (!after.fields.deleted.value) return [];
-		const title = (before.fields as Record<string, { value: unknown }>).title?.value;
+		const fields = before.fields as Record<string, { value: unknown }>;
+		// A locked list's entry has no plain name to show.
+		if (fields.sealedTitle?.value) return ['An entry in a locked list'];
+		const title = fields.title?.value;
 		return typeof title === 'string' ? [title] : [];
+	});
+}
+
+/** A lock that merging would add, take off or change: a list's own name, and which. */
+export interface LockChange {
+	name: string;
+	change: 'added' | 'removed' | 'changed';
+}
+
+/**
+ * The locks merging records in would add, take off or change, worked out on a copy. Changing a
+ * passphrase on another device changes the lock too, but so would a list from someone else: a
+ * locked list's entries can't be read under a lock they weren't sealed with, so it's said first.
+ */
+export function locksChangedByMerge(records: Records, incoming: Entity[]): LockChange[] {
+	const copy = structuredClone(records);
+	const { changes } = merge({ records: copy, clock: new Clock('preview') }, incoming);
+	return changes.flatMap((change): LockChange[] => {
+		const before = records[change.identifier];
+		const after = copy[change.identifier];
+		if (change.created || after?.kind !== 'category' || !before) return [];
+		const lockBefore = (before.fields as Record<string, { value: unknown }>).lock?.value ?? null;
+		const lockAfter = (after.fields as Record<string, { value: unknown }>).lock?.value ?? null;
+		if (JSON.stringify(lockBefore) === JSON.stringify(lockAfter)) return [];
+		const name = String((after.fields as Record<string, { value: unknown }>).name.value);
+		return [{ name, change: !lockBefore ? 'added' : !lockAfter ? 'removed' : 'changed' }];
 	});
 }
 

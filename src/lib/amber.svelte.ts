@@ -105,7 +105,12 @@ class Amber {
 	 */
 	act<T extends { changes: Change[] } | Change[] | undefined>(
 		message: string,
-		action: (context: Context) => T
+		action: (context: Context) => T,
+		/**
+		 * Whether the message with Undo shows. Off where a sheet already says what happened and Undo
+		 * would be out of place, as under a recovery code shown once. Ctrl or ⌘ with Z still undoes.
+		 */
+		{ notice = true }: { notice?: boolean } = {}
 	): T | undefined {
 		if (this.readOnly) return undefined;
 		const result = action({ records: this.records, clock: this.clock });
@@ -115,7 +120,7 @@ class Amber {
 		this.history = [...this.history.slice(-49), entry];
 		// Said only once it's saved: a change that wasn't saved shows the problem instead.
 		void this.save(changes).then((saved) => {
-			if (saved) this.notice = entry;
+			if (saved && notice) this.notice = entry;
 		});
 		if (!this.keepAsked) {
 			// Asked once, after the first real change: by then there's something worth keeping.

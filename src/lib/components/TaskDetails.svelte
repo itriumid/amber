@@ -1,7 +1,7 @@
 <!-- Everything about one task: its name, notes, category, tags and steps. Fields save when you leave
-     them, and every change can be undone from the message that follows. A task in a locked list has
-     no tags, keeps its title, notes and steps hidden until revealed, saves them sealed, and closes
-     when its list does (docs/locked-lists.md). -->
+     them, and every change can be undone from the message that follows. An entry in a locked list
+     has no tags, shows its name, keeps its notes and steps hidden until revealed, saves them all
+     sealed, and closes when its list does (docs/locked-lists.md). -->
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { amber } from '#lib/amber.svelte.js';
@@ -122,7 +122,7 @@
 <!-- Named for the task it shows, as the category and tag sheets are. -->
 <Sheet
 	open={!!task}
-	title={task ? (lockedIn ? `Task in ${lockedName}` : `Task: ${value(task, 'title')}`) : 'Task'}
+	title={task ? (lockedIn ? `Entry: ${titleOf(task)}` : `Task: ${value(task, 'title')}`) : 'Task'}
 	{onclose}
 >
 	{#if task}
@@ -137,49 +137,47 @@
 					aria-pressed={revealed}
 					data-autofocus
 					onclick={() => (revealed = !revealed)}
-					><Icon name="eye" class="size-4" />{revealed ? 'Hide' : 'Reveal'}</button
+					><Icon name={revealed ? 'eyeOff' : 'eye'} class="size-4" />{revealed
+						? 'Hide'
+						: 'Reveal'}</button
 				>
 			</div>
 		{/if}
-		{#if hidden}
-			<p class="text-sm text-muted">Its title, notes and steps are hidden until you reveal them.</p>
-		{:else}
-			<div>
-				<label for="task-title" class={label}>Task</label>
-				<!-- A text area that grows with the title, so a long one wraps instead of running off the edge
+		<div>
+			<label for="task-title" class={label}>{lockedIn ? 'Entry' : 'Task'}</label>
+			<!-- A text area that grows with the title, so a long one wraps instead of running off the edge
 			     of a phone. A title is one line, so Enter saves it rather than starting a new one. -->
-				<textarea
-					id="task-title"
-					class="{field} field-sizing-content resize-none"
-					rows="1"
-					value={titleOf(task)}
-					maxlength={LIMITS.title}
-					onkeydown={(event) => {
-						if (event.key !== 'Enter') return;
-						event.preventDefault();
-						event.currentTarget.blur();
-					}}
-					aria-describedby={untitled ? 'task-title-problem' : undefined}
-					oninput={() => (untitled = false)}
-					onchange={(event) => {
-						// A task needs a name. Emptied, the name it had is put back, and it's said why, rather
-						// than leaving a blank field that looks saved and isn't.
-						if (!event.currentTarget.value.trim()) {
-							event.currentTarget.value = titleOf(task);
-							untitled = true;
-							return;
-						}
-						if (lockedIn) void locks.setTitle(task, event.currentTarget.value);
-						else
-							amber.act('Renamed', (context) => setTitle(context, task, event.currentTarget.value));
-					}}></textarea>
-				{#if untitled}
-					<p id="task-title-problem" class="mt-1.5 text-sm" role="alert">
-						A task needs a name, so the one it had is kept.
-					</p>
-				{/if}
-			</div>
-		{/if}
+			<textarea
+				id="task-title"
+				class="{field} field-sizing-content resize-none"
+				rows="1"
+				value={titleOf(task)}
+				maxlength={LIMITS.title}
+				onkeydown={(event) => {
+					if (event.key !== 'Enter') return;
+					event.preventDefault();
+					event.currentTarget.blur();
+				}}
+				aria-describedby={untitled ? 'task-title-problem' : undefined}
+				oninput={() => (untitled = false)}
+				onchange={(event) => {
+					// A task needs a name. Emptied, the name it had is put back, and it's said why, rather
+					// than leaving a blank field that looks saved and isn't.
+					if (!event.currentTarget.value.trim()) {
+						event.currentTarget.value = titleOf(task);
+						untitled = true;
+						return;
+					}
+					if (lockedIn) void locks.setTitle(task, event.currentTarget.value);
+					else
+						amber.act('Renamed', (context) => setTitle(context, task, event.currentTarget.value));
+				}}></textarea>
+			{#if untitled}
+				<p id="task-title-problem" class="mt-1.5 text-sm" role="alert">
+					{lockedIn ? 'An entry' : 'A task'} needs a name, so the one it had is kept.
+				</p>
+			{/if}
+		</div>
 
 		<div>
 			<Check
@@ -199,7 +197,9 @@
 			>
 		</div>
 
-		{#if !hidden}
+		{#if hidden}
+			<p class="text-sm text-muted">Its notes and steps are hidden until you reveal them.</p>
+		{:else}
 			<div>
 				<label for="task-notes" class={label}>Notes</label>
 				<textarea
@@ -485,13 +485,13 @@
 				class="{secondaryButton} w-full"
 				onclick={() => {
 					amber.act(
-						lockedIn ? `Deleted: a task in ${lockedName}` : `Deleted: ${value(task, 'title')}`,
+						lockedIn ? `Deleted: an entry in ${lockedName}` : `Deleted: ${value(task, 'title')}`,
 						(context) => deleteTask(context, task)
 					);
 					onclose();
 				}}
 			>
-				<Icon name="trash" /> Delete task
+				<Icon name="trash" /> Delete {lockedIn ? 'entry' : 'task'}
 			</button>
 		</div>
 	{/if}

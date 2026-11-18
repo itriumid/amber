@@ -16,6 +16,7 @@
 	import ColorChoice from './ColorChoice.svelte';
 	import Icon from './Icon.svelte';
 	import ListKind, { type ListKindName } from './ListKind.svelte';
+	import Problem from './Problem.svelte';
 	import RecoveryCode from './RecoveryCode.svelte';
 	import Sheet from './Sheet.svelte';
 
@@ -69,7 +70,6 @@
 	let next = $state('');
 	let again = $state('');
 	let passphraseProblem = $state<string>();
-	let passphraseChanged = $state(false);
 
 	async function changePassphrase(event: SubmitEvent) {
 		event.preventDefault();
@@ -78,12 +78,15 @@
 			passphraseProblem = `Use at least ${MINIMUM_PASSPHRASE} characters for the new one.`;
 		else if (next !== again)
 			passphraseProblem = 'The two new passphrases are different. Type the same one in both.';
-		else if (!(await locks.changePassphrase(category, current, next)))
-			passphraseProblem = "The current passphrase or recovery code doesn't fit.";
 		else {
+			const code = await locks.changePassphrase(category, current, next);
+			if (!code) {
+				passphraseProblem = "The current passphrase or recovery code doesn't fit.";
+				return;
+			}
 			current = next = again = '';
 			passphraseProblem = undefined;
-			passphraseChanged = true;
+			show(code, 'passphrase');
 		}
 	}
 
@@ -92,6 +95,8 @@
 	let codePassphrase = $state('');
 	let codeProblem = $state<string>();
 	let newCode = $state<string>();
+	// Why there's a new code: a new passphrase comes with one, or it replaces a lost one.
+	let codeReason = $state<'passphrase' | 'lost'>('lost');
 	let codeKept = $state(false);
 	let mustKeep = $state(false);
 	let codeBox: HTMLInputElement | undefined = $state();
@@ -112,7 +117,12 @@
 		}
 		codePassphrase = '';
 		codeProblem = undefined;
+		show(code, 'lost');
+	}
+
+	function show(code: string, reason: 'passphrase' | 'lost') {
 		codeKept = mustKeep = false;
+		codeReason = reason;
 		newCode = code;
 	}
 </script>
@@ -157,10 +167,34 @@
 			{/if}
 		</div>
 
-		{#if locked}
+		{#if locked && newCode}
+			<!-- A new recovery code, shown once: the sheet holds until it's kept. -->
+			<div class="space-y-3">
+				<p class="text-sm">
+					{codeReason === 'passphrase'
+						? `The passphrase is changed, and everything in ${value(category, 'name')} is sealed again under it, so the old passphrase and recovery code open only copies made before now. Here's its new recovery code.`
+						: `Everything in ${value(category, 'name')} is sealed again, so the old code no longer opens it, only copies made before now.`}
+					Keep it somewhere safe, apart from this device.
+				</p>
+				<RecoveryCode code={newCode} bind:kept={codeKept} bind:box={codeBox} {mustKeep} />
+				<button
+					type="button"
+					class={secondaryButton}
+					disabled={!codeKept}
+					onclick={() => (newCode = undefined)}>Done</button
+				>
+			</div>
+		{:else if locked && !isOpen}
+			<p class="text-sm text-muted">
+				Open {value(category, 'name')} to change its passphrase or make a new recovery code.
+			</p>
+		{:else if locked}
 			<details class="group/passphrase">
 				<summary class="cursor-pointer text-sm font-medium">Change the passphrase</summary>
 				<form class="mt-3 space-y-3" onsubmit={changePassphrase}>
+					<p class="text-sm text-muted">
+						Everything is sealed again under the new one, and it comes with a new recovery code.
+					</p>
 					<div>
 						<label for="{prefix}-current" class={label}>Current passphrase or recovery code</label>
 						<input
@@ -168,6 +202,7 @@
 							type="password"
 							class={field}
 							bind:value={current}
+							oninput={() => (passphraseProblem = undefined)}
 							autocomplete="current-password"
 						/>
 					</div>
@@ -178,6 +213,7 @@
 							type="password"
 							class={field}
 							bind:value={next}
+							oninput={() => (passphraseProblem = undefined)}
 							autocomplete="new-password"
 						/>
 					</div>
@@ -188,65 +224,40 @@
 							type="password"
 							class={field}
 							bind:value={again}
+							oninput={() => (passphraseProblem = undefined)}
 							autocomplete="new-password"
 						/>
+						{#if passphraseProblem}<Problem>{passphraseProblem}</Problem>{/if}
 					</div>
-					{#if passphraseProblem}<p class="text-sm" role="alert">{passphraseProblem}</p>{/if}
-					<p class="text-sm" role="status">{passphraseChanged ? 'Passphrase changed.' : ''}</p>
-					<button
-						type="submit"
-						class={secondaryButton}
-						disabled={!current || !next}
-						onclick={() => (passphraseChanged = false)}>Change passphrase</button
+					<button type="submit" class={secondaryButton} disabled={!current || !next}
+						>Change passphrase</button
 					>
 				</form>
 			</details>
-			<details class="group/recovery" open={!!newCode}>
+			<details class="group/recovery">
 				<summary class="cursor-pointer text-sm font-medium">Make a new recovery code</summary>
-				<div class="mt-3 space-y-3">
-					{#if newCode}
-						<p class="text-sm">
-							Everything in {value(category, 'name')} is sealed again, so the old code no longer opens
-							it, only copies made before now. Keep this one somewhere safe, apart from this device.
-						</p>
-						<RecoveryCode code={newCode} bind:kept={codeKept} bind:box={codeBox} {mustKeep} />
-						<button
-							type="button"
-							class={secondaryButton}
-							disabled={!codeKept}
-							onclick={() => (newCode = undefined)}>Done</button
-						>
-					{:else if !isOpen}
-						<p class="text-sm text-muted">
-							Open {value(category, 'name')} first, to make a new code.
-						</p>
-					{:else}
-						<form class="space-y-3" onsubmit={makeRecoveryCode}>
-							<p class="text-sm text-muted">
-								For a lost code. The old one stops working, and the passphrase stays as it is.
-							</p>
-							<div>
-								<label for="{prefix}-code-passphrase" class={label}>Passphrase</label>
-								<input
-									id="{prefix}-code-passphrase"
-									type="password"
-									class={field}
-									bind:value={codePassphrase}
-									oninput={() => (codeProblem = undefined)}
-									autocomplete="current-password"
-									aria-invalid={!!codeProblem}
-									aria-describedby={codeProblem ? `${prefix}-code-problem` : undefined}
-								/>
-							</div>
-							{#if codeProblem}
-								<p id="{prefix}-code-problem" class="text-sm" role="alert">{codeProblem}</p>
-							{/if}
-							<button type="submit" class={secondaryButton} disabled={!codePassphrase}
-								>Make a new code</button
-							>
-						</form>
-					{/if}
-				</div>
+				<form class="mt-3 space-y-3" onsubmit={makeRecoveryCode}>
+					<p class="text-sm text-muted">
+						For a lost code. The old one stops working, and the passphrase stays as it is.
+					</p>
+					<div>
+						<label for="{prefix}-code-passphrase" class={label}>Passphrase</label>
+						<input
+							id="{prefix}-code-passphrase"
+							type="password"
+							class={field}
+							bind:value={codePassphrase}
+							oninput={() => (codeProblem = undefined)}
+							autocomplete="current-password"
+							aria-invalid={!!codeProblem}
+							aria-describedby={codeProblem ? `${prefix}-code-problem` : undefined}
+						/>
+						{#if codeProblem}<Problem id="{prefix}-code-problem">{codeProblem}</Problem>{/if}
+					</div>
+					<button type="submit" class={secondaryButton} disabled={!codePassphrase}
+						>Make a new code</button
+					>
+				</form>
 			</details>
 		{/if}
 

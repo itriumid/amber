@@ -10,6 +10,8 @@
 	import { get, value } from '#lib/model/list.js';
 	import { MINIMUM_PASSPHRASE } from '#lib/sealing.js';
 	import { field, label, primaryButton } from '#lib/styles.js';
+	import CapsLock from './CapsLock.svelte';
+	import Problem from './Problem.svelte';
 	import RecoveryCode from './RecoveryCode.svelte';
 	import Sheet from './Sheet.svelte';
 
@@ -43,6 +45,7 @@
 	let kept = $state(false);
 	// Asked to close before the code was kept: said why it stays, and focus goes to the box.
 	let mustKeep = $state(false);
+	let capsLock = $state(false);
 	let keptBox: HTMLInputElement | undefined = $state();
 
 	$effect(() => {
@@ -123,6 +126,7 @@
 					class={field}
 					bind:value={passphrase}
 					oninput={() => (problem = undefined)}
+					onkeyup={(event) => (capsLock = event.getModifierState('CapsLock'))}
 					autocomplete="new-password"
 					autocapitalize="off"
 					spellcheck="false"
@@ -133,6 +137,8 @@
 					At least {MINIMUM_PASSPHRASE} characters. Forget it and the recovery code, and the list can't
 					be opened by anyone.
 				</p>
+				<CapsLock on={capsLock} />
+				{#if problem}<Problem id="{prefix}-problem">{problem}</Problem>{/if}
 			</div>
 			{#if !show}
 				<div>
@@ -156,9 +162,6 @@
 					<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={deleteCopies} />
 					Also delete the copies this device keeps
 				</label>
-			{/if}
-			{#if problem}
-				<p id="{prefix}-problem" class="text-sm" role="alert">{problem}</p>
 			{/if}
 			<button type="submit" class={primaryButton} disabled={busy || !passphrase}>
 				{busy ? 'Locking…' : `Lock ${name}`}

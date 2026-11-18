@@ -19,13 +19,16 @@
 	} from '#lib/sync.js';
 	import {
 		deletedByMerge,
+		locksChangedByMerge,
 		isNothing,
 		previewMerge,
 		summarize,
+		type LockChange,
 		type Reading
 	} from '#lib/transfer.js';
 	import { updates } from '#lib/updates.svelte.js';
 	import DeletedByMerge from './DeletedByMerge.svelte';
+	import LockChanges from './LockChanges.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let {
@@ -48,6 +51,7 @@
 				summary: string;
 				deletions: number;
 				titles: string[];
+				locks: LockChange[];
 				answer: (go: boolean) => void;
 		  }
 		| { kind: 'done'; message: string; detail: string }
@@ -112,13 +116,16 @@
 	function agreed(records: Entity[]): Promise<boolean> {
 		const preview = previewMerge($state.snapshot(amber.records), records);
 		const deletions = preview.tasks.deleted + preview.categories.deleted + preview.tags.deleted;
-		if (!deletions) return Promise.resolve(true);
+		// A lock added, taken off or changed is asked about too: see LockChanges.svelte.
+		const locks = locksChangedByMerge($state.snapshot(amber.records), records);
+		if (!deletions && !locks.length) return Promise.resolve(true);
 		return new Promise((answer) => {
 			stage = {
 				kind: 'confirm',
 				summary: summarize(preview),
 				deletions,
 				titles: deletedByMerge($state.snapshot(amber.records), records),
+				locks,
 				answer
 			};
 		});
@@ -317,7 +324,10 @@
 		{@const confirm = stage}
 		<div>
 			<p class="text-base font-medium">{confirm.summary}</p>
-			<DeletedByMerge titles={confirm.titles} total={confirm.deletions} />
+			<LockChanges changes={confirm.locks} />
+			{#if confirm.deletions}
+				<DeletedByMerge titles={confirm.titles} total={confirm.deletions} />
+			{/if}
 		</div>
 		<div class="flex flex-wrap gap-2">
 			<!-- Focus moves here as the question appears: what had it is gone with the stage before. -->

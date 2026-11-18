@@ -7,6 +7,7 @@
 	import { field, label, primaryButton, smallButton } from '#lib/styles.js';
 	import {
 		deletedByMerge,
+		locksChangedByMerge,
 		isNothing,
 		previewMerge,
 		readFile,
@@ -15,6 +16,7 @@
 		type Reading
 	} from '#lib/transfer.js';
 	import DeletedByMerge from './DeletedByMerge.svelte';
+	import LockChanges from './LockChanges.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let { source, onclose }: { source: Source | undefined; onclose: () => void } = $props();
@@ -45,6 +47,11 @@
 	const deletedTitles = $derived(
 		reading?.kind === 'list' && deletions
 			? deletedByMerge($state.snapshot(amber.records), reading.records)
+			: []
+	);
+	const lockChanges = $derived(
+		reading?.kind === 'list' && preview?.categories.changed
+			? locksChangedByMerge($state.snapshot(amber.records), reading.records)
 			: []
 	);
 
@@ -109,6 +116,7 @@
 			<p class="text-sm">You already have everything in it.</p>
 		{:else}
 			<p class="text-base font-medium">{summarize(preview)}</p>
+			<LockChanges changes={lockChanges} />
 			{#if deletions}
 				<DeletedByMerge titles={deletedTitles} total={deletions} />
 				<p class="mt-2 text-sm text-muted">
