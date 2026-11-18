@@ -52,7 +52,7 @@
 		tray
 	} from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
-	import { home, rescueFocus } from '#lib/focus.js';
+	import { home, isShown, rescueFocus } from '#lib/focus.js';
 	import { roving } from '#lib/roving.js';
 	import { settings } from '#lib/settings.svelte.js';
 	import { install, type Way } from '#lib/install.svelte.js';
@@ -219,7 +219,7 @@
 			if (!targetOpen || !target) return;
 			const title = newTask;
 			newTask = '';
-			void locks.addTask(target, title);
+			void locks.addTask(target, title).then(openAdded);
 			return;
 		}
 		const tagView = view.kind === 'tag' ? get(amber.records, view.identifier, 'tag') : undefined;
@@ -242,7 +242,7 @@
 			}
 			const title = mention!.text;
 			newTask = '';
-			void locks.addTask(mentioned.identifier, title);
+			void locks.addTask(mentioned.identifier, title).then(openAdded);
 			return;
 		}
 		// An @ that names no category stays in the title; it's said, so a typo isn't missed.
@@ -296,7 +296,7 @@
 			return;
 		}
 		if (document.querySelector('dialog[open]')) return;
-		// Single keys (N, / and ?) can be turned off in Keyboard shortcuts: pressed by mistake, or
+		// Single keys (N, S, / and ?) can be turned off in Keyboard shortcuts: pressed by mistake, or
 		// heard by speech input as a word, they'd do something nobody asked for.
 		if (!settings.singleKeyShortcuts || event.metaKey || event.ctrlKey || event.altKey) return;
 		if (event.key.toLowerCase() === 'n') {
@@ -312,7 +312,19 @@
 		} else if (event.key === '?') {
 			event.preventDefault();
 			shortcutsOpen = true;
+		} else if (event.key.toLowerCase() === 's' && !isEmpty && !amber.readOnly && !targetLocked) {
+			event.preventDefault();
+			void startSelecting();
 		}
+	}
+
+	/** To the new-category field, in the sidebar or, on a phone, in its sheet. */
+	async function makeCategory() {
+		if (!matchMedia('(min-width: 768px)').matches) listsOpen = true;
+		await tick();
+		[...document.querySelectorAll<HTMLInputElement>('input[placeholder="New category"]')]
+			.find((field) => isShown(field))
+			?.focus();
 	}
 
 	function openShortcuts() {
@@ -321,6 +333,14 @@
 	}
 
 	const openDetails = (task: Task) => (openTask = task.identifier);
+	// An entry just added to a locked list opens at once, revealed, on its notes: its name shows
+	// while the list is open, so its secret goes in the notes, not the name.
+	let openRevealed = $state(false);
+	function openAdded(identifier: string | undefined) {
+		if (!identifier) return;
+		openRevealed = true;
+		openTask = identifier;
+	}
 
 	// Choosing tasks to act on together. Cleared when the place in view changes: a choice made in one
 	// list shouldn't act on tasks that can no longer be seen.
@@ -466,10 +486,17 @@
 			{/if}
 		</aside>
 
-		<main id="main" class="min-w-0 pb-32 outline-none" tabindex="-1" {@attach roving}>
+		<!-- More room at the end while choosing, so the bar floating over the bottom never covers the
+		     last task. -->
+		<main
+			id="main"
+			class="min-w-0 {selecting ? 'pb-48' : 'pb-32'} outline-none"
+			tabindex="-1"
+			{@attach roving}
+		>
 			<p id="task-open-hint" hidden>Opens the task's details.</p>
 			<div class="flex items-center gap-3">
-				<h1 class="min-w-0 truncate text-3xl font-bold tracking-tight">{heading}</h1>
+				<h1 class="min-w-0 text-3xl font-bold tracking-tight break-words">{heading}</h1>
 				{#if view.kind === 'category'}
 					<button
 						type="button"
@@ -480,7 +507,8 @@
 						<Icon name="edit" />
 					</button>
 				{/if}
-				{#if !isEmpty && !amber.readOnly && !selecting}
+				<!-- Not in a locked list: its entries are never chosen with others. -->
+				{#if !isEmpty && !amber.readOnly && !selecting && !targetLocked}
 					<!-- Choosing several tasks to tick, move or delete at once (SelectionBar), which has the one
 					     Cancel while choosing. -->
 					<button type="button" class="ml-auto {smallButton}" onclick={startSelecting}
@@ -559,6 +587,8 @@
 							</label>
 						{/each}
 					</fieldset>
+					<!-- How many were found, seen as well as heard (the status below says it aloud). -->
+					<p class="text-sm text-muted" aria-hidden="true">{found} {tasksWord(found)} found</p>
 					{#if elsewhere > 0}
 						<button
 							type="button"
@@ -570,7 +600,7 @@
 			{:else if !targetLocked || targetOpen}
 				<!-- Not over a closed locked list: its Open button is the way in, not a field that's off. -->
 				<form class="group/quick mt-5" onsubmit={add}>
-					<label for="quick-add" class="sr-only">New task</label>
+					<label for="quick-add" class="sr-only">{targetLocked ? 'New entry' : 'New task'}</label>
 					<div class="flex flex-wrap gap-2">
 						<input
 							id="quick-add"
@@ -628,8 +658,13 @@
 							<!-- Only before there are categories: after deleting everything, it isn't news. -->
 							{#if !categoryTree(amber.records).length}
 								<span class="mt-2 block text-sm">
-									Keeping a bucket list? Make a category and choose Bucket list: what you achieve
-									stays, with the date.
+									Keeping a bucket list?
+									<!-- Takes you there: on a phone the categories are behind Show lists. -->
+									<button
+										type="button"
+										class="relative inline underline underline-offset-4 hover:text-text {touchTarget}"
+										onclick={makeCategory}>Make a category</button
+									> and choose Bucket list: what you achieve stays, with the date.
 								</span>
 							{/if}
 							{#if install.installed && install.apple}
@@ -664,8 +699,9 @@
 								{section.title}
 								{#if section.bucket}<span aria-hidden="true">·</span> Bucket list{/if}
 								{#if section.locked}<span aria-hidden="true">·</span> Locked list{/if}
-								{#if searching}<span class="font-normal tabular-nums">{section.shown.length}</span
-									>{/if}
+								{#if searching}<span class="font-normal tabular-nums" aria-hidden="true"
+										>{section.shown.length}</span
+									><span class="sr-only">, {section.shown.length} found</span>{/if}
 							</h2>
 							{#if section.locked}
 								<!-- Its state and the one button that changes it, seen whether or not the label
@@ -859,7 +895,14 @@
 </Sheet>
 <ShortcutsSheet open={shortcutsOpen} onclose={() => (shortcutsOpen = false)} />
 
-<TaskDetails identifier={openTask} onclose={() => (openTask = undefined)} />
+<TaskDetails
+	identifier={openTask}
+	startRevealed={openRevealed}
+	onclose={() => {
+		openTask = undefined;
+		openRevealed = false;
+	}}
+/>
 <CategoryEditor
 	identifier={openCategory}
 	onclose={() => (openCategory = undefined)}

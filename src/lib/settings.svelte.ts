@@ -11,7 +11,7 @@ export type Theme = 'device' | 'light' | 'dark';
 
 class Settings {
 	/**
-	 * N, / and ?, which work anywhere outside a field. They can be turned off: pressed by mistake,
+	 * N, S, / and ?, which work anywhere outside a field. They can be turned off: pressed by mistake,
 	 * or heard by speech input as a word, a single key does something nobody asked for.
 	 */
 	singleKeyShortcuts = $state(true);

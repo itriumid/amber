@@ -1,8 +1,8 @@
 <!-- The keyboard shortcuts, and the setting that turns the single-key ones off. Opened from the
      sidebar, or with ? while those are on. -->
 <script lang="ts">
+	import Box from './Box.svelte';
 	import { settings } from '#lib/settings.svelte.js';
-	import Check from './Check.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
@@ -16,6 +16,7 @@
 		{ action: 'Add a task', keys: [['N']], said: 'N' },
 		{ action: 'Search', keys: [['/']], said: 'Slash' },
 		{ action: 'Show these shortcuts', keys: [['?']], said: 'Question mark' },
+		{ action: 'Choose several tasks', keys: [['S']], said: 'S' },
 		{
 			action: 'Go from task to task',
 			keys: [['↑'], ['↓']],
@@ -87,16 +88,16 @@
 	</dl>
 
 	<div>
-		<Check
+		<!-- A setting: the square box, not the round one that ticks a task off. -->
+		<Box
 			checked={settings.singleKeyShortcuts}
-			label="Single-key shortcuts"
 			describedby="{prefix}-single-key-hint"
 			onchange={(on) => settings.setSingleKeyShortcuts(on)}
-			><span class="text-sm font-medium" aria-hidden="true">Single-key shortcuts</span></Check
+			><span class="font-medium">Single-key shortcuts</span></Box
 		>
 		<p id="{prefix}-single-key-hint" class="mt-1.5 text-sm text-muted">
-			N, / and ? work anywhere outside a text field. Turn them off if you press them by mistake or
-			use speech input.
+			N, S, / and ? work anywhere outside a text field. Turn them off if you press them by mistake
+			or use speech input.
 		</p>
 	</div>
 </Sheet>

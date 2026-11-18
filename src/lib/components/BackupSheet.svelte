@@ -1,6 +1,7 @@
 <!-- Keeping copies of the list and moving it: a file, a link, a file brought in, and the copies
      this device keeps by itself. Nothing here leaves the browser unless someone takes it. -->
 <script lang="ts">
+	import Box from './Box.svelte';
 	import { amber } from '#lib/amber.svelte.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { isLink, LINK_PREFIX } from '#lib/links.js';
@@ -184,17 +185,10 @@
 			{:else}
 				Not downloaded from this browser yet.
 			{/if}
-			{#if snapshots.length}
-				This device also keeps {snapshots.length === 1 ? 'one copy' : `${snapshots.length} copies`},
-				listed at the end.
+			{#if !passphrase}
+				It's scrambled, so it can't be read at a glance; lock it to keep it private.
 			{/if}
 		</p>
-		{#if !passphrase}
-			<p class="mt-2 text-sm">
-				The file is scrambled, so it can't be read at a glance. Anyone with Amber can still open it,
-				unless you lock it.
-			</p>
-		{/if}
 		<div class="mt-3 flex flex-wrap gap-2">
 			<button type="button" class={primaryButton} disabled={busy} onclick={download}>
 				{#if passphrase}<Icon name="lock" />{/if}Download a file
@@ -261,15 +255,9 @@
 						{/if}
 					</div>
 				{/if}
-				<label class="relative flex min-h-10 items-center gap-2 text-sm {touchTarget}">
-					<input
-						type="checkbox"
-						class="size-4 accent-accent-edge"
-						bind:checked={showPassphrase}
-						onchange={() => (mismatch = false)}
-					/>
-					Show the passphrase
-				</label>
+				<Box bind:checked={showPassphrase} onchange={() => (mismatch = false)}
+					>Show the passphrase</Box
+				>
 			</div>
 		</details>
 	</section>
@@ -277,9 +265,8 @@
 	<section aria-labelledby="{prefix}-move">
 		<h3 id="{prefix}-move" class={heading}>Move to another device</h3>
 		<p class={hint}>
-			A link holds the whole list and never passes through a server of ours. Open it on the other
-			device to bring the list there. To keep two devices in step, use Sync with another device
-			instead.
+			A link holds the whole list, and never passes through our server. To keep two devices in step,
+			use Sync with another device.
 		</p>
 		{#if !passphrase}
 			<p class="mt-2 text-sm">Anyone with the link can read the list, unless you lock it.</p>
@@ -357,9 +344,8 @@
 	<section aria-labelledby="{prefix}-copies">
 		<h3 id="{prefix}-copies" class={heading}>Copies on this device</h3>
 		<p class={hint}>
-			Amber keeps a copy each day, and before anything that changes a lot at once. Putting one back
-			can be undone too. They're in this browser with your list, so if its data is cleared, they go
-			with it.
+			Kept each day, and before big changes, in this browser: clearing its data deletes them.
+			Putting one back can be undone.
 		</p>
 		{#if snapshots.length}
 			<ul class="mt-3 divide-y divide-border">

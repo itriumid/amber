@@ -80,6 +80,16 @@ async function addTask(page: Page, text: string) {
 	await page.getByLabel('New task').press('Enter');
 }
 
+/** Adds an entry to the open locked list in view, and closes the sheet it opens on its notes. */
+async function addEntry(page: Page, text: string) {
+	await page.getByLabel('New entry').fill(text);
+	await page.getByLabel('New entry').press('Enter');
+	const sheet = page.getByRole('dialog', { name: `Entry: ${text}` });
+	await expect(sheet).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(sheet).toBeHidden();
+}
+
 /** A task's title, which opens its details. */
 const task = (page: Page, title: string) =>
 	page.getByRole('main').getByRole('button', { name: title, exact: true });
@@ -1365,7 +1375,7 @@ test('says the copies on this device go with its data, and when a copy was last 
 }) => {
 	await addTask(page, 'Keep me');
 	let sheet = await backup(page);
-	await expect(sheet.getByText(/if its data is cleared, they go\s+with it/)).toBeVisible();
+	await expect(sheet.getByText(/clearing its data deletes them/)).toBeVisible();
 	await expect(sheet.getByText('Not downloaded from this browser yet.')).toBeVisible();
 	await Promise.all([
 		page.waitForEvent('download'),
@@ -1836,13 +1846,14 @@ test("keeps a locked list's tasks out of the page, search, Undo and backups whil
 	const code = await makeLockedList(page, 'Passwords');
 	await expect(page.getByRole('heading', { level: 1, name: 'Passwords' })).toBeVisible();
 	// # and @ are off: it's all the entry's name, which shows while the list is open.
-	await addTask(page, 'Bank PIN #money @Home');
-	await expect(notice(page)).toContainText('Added to Passwords');
-	await expect(notice(page)).not.toContainText('Bank');
-	await task(page, 'Bank PIN #money @Home').click();
+	await page.getByLabel('New entry').fill('Bank PIN #money @Home');
+	await page.getByLabel('New entry').press('Enter');
+	// It opens at once, revealed, on its notes: that's where its secret goes, not in its name.
 	const entry = page.getByRole('dialog', { name: 'Entry: Bank PIN #money @Home' });
-	await expect(entry.getByLabel('Notes')).toHaveCount(0);
-	await entry.getByRole('button', { name: 'Reveal' }).click();
+	await expect(entry.getByLabel('Notes')).toBeFocused();
+	// Said in the sheet that's open now, where its Undo can be reached.
+	await expect(entry.getByRole('status').filter({ hasText: 'Added to Passwords' })).toBeVisible();
+	await expect(entry.getByRole('status').filter({ hasText: 'Bank' })).toHaveCount(0);
 	await entry.getByLabel('Notes').fill('4821');
 	await entry.getByLabel('Notes').press('Tab');
 	await page.keyboard.press('Escape');
@@ -1850,13 +1861,14 @@ test("keeps a locked list's tasks out of the page, search, Undo and backups whil
 	expect(await mainText(page)).not.toContain('4821');
 	await page.getByRole('button', { name: 'Reveal notes: Bank PIN #money @Home' }).click();
 	await expect(page.getByRole('main').getByText('4821')).toBeVisible();
-	await page.getByRole('checkbox', { name: /^Mark done: Bank PIN/ }).check();
-	await expect(notice(page)).toContainText('Done: an entry in Passwords');
+	// An entry isn't ticked off: no box, and no Select.
+	await expect(page.getByRole('checkbox', { name: /^Mark done: Bank PIN/ })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0);
 	expect(await axeViolations(page)).toEqual([]);
 
 	await page.getByRole('button', { name: 'Lock Passwords' }).click();
 	await expect(page.getByText('Locked, with 1 entry inside.')).toBeVisible();
-	await expect(page.getByLabel('New task')).toHaveCount(0);
+	await expect(page.getByLabel('New entry')).toHaveCount(0);
 	expect(await page.locator('body').innerText()).not.toContain('Bank PIN');
 	expect(await page.locator('body').innerText()).not.toContain('4821');
 	await page.getByRole('searchbox', { name: 'Search tasks' }).fill('Bank');
@@ -1887,7 +1899,7 @@ test("keeps a locked list's tasks out of the page, search, Undo and backups whil
 	expect(await axeViolations(page)).toEqual([]);
 	await page.keyboard.press('Escape');
 	await openLocked(page, 'Passwords', code);
-	await expect(page.getByText('Done (1)')).toBeVisible();
+	await expect(task(page, 'Bank PIN #money @Home')).toBeVisible();
 	await page.reload();
 	await expect(page.getByRole('button', { name: 'Open Passwords' }).first()).toBeVisible();
 	expect(await page.locator('body').innerText()).not.toContain('Bank PIN');
@@ -1899,7 +1911,7 @@ test('locks a list again when the page is hidden, and after five minutes without
 	await page.clock.install();
 	await page.reload();
 	await makeLockedList(page, 'Passwords');
-	await addTask(page, 'Wifi hunter2');
+	await addEntry(page, 'Wifi hunter2');
 	await expect(page.getByRole('button', { name: 'Lock Passwords' })).toBeVisible();
 	await page.evaluate(() => {
 		Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
@@ -2033,7 +2045,7 @@ test('never offers a locked list to move several tasks into', async ({ page }) =
 
 test('seals an edit a stale device made in plain text, and keeps it', async ({ page }) => {
 	await makeLockedList(page, 'Passwords');
-	await addTask(page, 'Wifi');
+	await addEntry(page, 'Wifi');
 	await page.getByRole('button', { name: 'Lock Passwords' }).click();
 	const sheet = await backup(page);
 	const [download] = await Promise.all([
@@ -2079,7 +2091,7 @@ test('changes the passphrase, sealing everything again with a new recovery code'
 	page
 }) => {
 	const old = await makeLockedList(page, 'Passwords');
-	await addTask(page, 'Wifi');
+	await addEntry(page, 'Wifi');
 	await page.getByRole('button', { name: 'Edit Passwords' }).first().click();
 	const editor = page.getByRole('dialog', { name: 'Category: Passwords' });
 	await editor.getByText('Change the passphrase').click();
@@ -2111,7 +2123,7 @@ test('changes the passphrase, sealing everything again with a new recovery code'
 
 test('says before bringing in a list that would take a lock off', async ({ page }) => {
 	await makeLockedList(page, 'Passwords');
-	await addTask(page, 'Wifi');
+	await addEntry(page, 'Wifi');
 	const sheet = await backup(page);
 	const [download] = await Promise.all([
 		page.waitForEvent('download'),
