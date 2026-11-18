@@ -373,7 +373,12 @@ Calm, square-cornered, and clearly edged.
 A real checkbox drawn as a 24px circle (20px small) with a 2px control edge. Ticked, it fills
 pastel pink with a deep-rose edge and a graphite tick that draws itself in over 300ms (stroke
 dash), with the fill fading in over 200ms. Reduced motion shows it at once. The space around it
-ticks it too.
+ticks it too. Round and pink means ticked off, so it's only for tasks and steps; an entry in a
+locked list has none, since a secret isn't something to tick off.
+
+**Square box** (`Box.svelte`): for everything else that's on or off, a setting, an
+acknowledgement or a choice, the 20px square of choosing tasks, 2px control edge, filled in the
+text color with a tick in the page color when on.
 
 ### Task Row (signature)
 
@@ -503,7 +508,10 @@ A message floating 16px above the bottom of the screen, 8px corners: surface fil
 underlined Undo and a round dismiss button. It slides up 16px over 200ms, stays while hovered or
 focused, and leaves after six seconds. While a sheet is open it shows at the end of that sheet
 instead, in its own place rather than floating, since an open dialog makes the page unreachable
-and a floating message would cover the sheet's controls. Ctrl or ⌘ with Z undoes there too.
+and a floating message would cover the sheet's controls. It shows only where it was raised: a
+message from one sheet doesn't follow into the next, where its Undo would undo something out of
+sight. With large text its words wrap, and Undo moves to a line of its own. Ctrl or ⌘ with Z
+undoes there too.
 
 ### Section Headings
 

@@ -14,6 +14,23 @@ class NoticePlace {
 		return this.dialogs.at(-1);
 	}
 
+	/** Where each message first showed: the dialog on top then, or undefined for the page. */
+	private origins = new WeakMap<object, string | undefined>();
+
+	/**
+	 * Whether a message shows in this place (a dialog's identifier, or undefined for the page). It
+	 * shows where it was raised, and only there: "Step done" from a task's sheet doesn't follow into
+	 * Back up and move, where its Undo would undo something out of sight. Raised in a dialog that has
+	 * since closed, it shows on the page, unless another dialog is open.
+	 */
+	shows(notice: object, place: string | undefined): boolean {
+		if (!this.origins.has(notice)) this.origins.set(notice, this.top);
+		const origin = this.origins.get(notice);
+		if (place !== this.top) return false;
+		if (place === undefined) return true;
+		return origin === place;
+	}
+
 	opened(identifier: string) {
 		this.dialogs = [...this.dialogs.filter((other) => other !== identifier), identifier];
 	}

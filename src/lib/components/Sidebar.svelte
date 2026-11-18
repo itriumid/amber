@@ -87,7 +87,9 @@
 			>{:else if kind === 'locked'}<Icon name="lock" class="size-3.5 shrink-0 opacity-70" /><span
 				class="sr-only">locked list</span
 			>{/if}
-		{#if count}<span
+		<!-- Every category and tag says how many are left, 0 too: a drawer with nothing on it, rather
+		     than one that looks broken. All tasks and No category say it only when there are some. -->
+		{#if count || target.kind === 'category' || target.kind === 'tag'}<span
 				class="rounded-sm border px-1.5 text-xs tabular-nums {isCurrent(target)
 					? 'border-bg/40'
 					: 'border-border text-muted'}"

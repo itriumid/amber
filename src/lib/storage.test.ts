@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addTask, setDone, setTitle } from './model/actions';
 import { merge, value, type Entity, type Task } from './model/list';
 import { fresh } from './model/testing';
-import { mergeWithStored } from './storage';
+import { holdsPlain, mergeWithStored } from './storage';
 
 /** A second tab on the same device: its own copy of the list, read from storage when it opened. */
 function secondTab(from: ReturnType<typeof fresh>) {
@@ -79,5 +79,29 @@ describe('saving over what another tab saved', () => {
 		const before = structuredClone(ours);
 		mergeWithStored(structuredClone(first.records[task.identifier]), ours);
 		expect(ours).toEqual(before);
+	});
+});
+
+describe('copies that hold a list in plain text', () => {
+	const task = (identifier: string, title: string, notes = '') => ({
+		identifier,
+		kind: 'task',
+		fields: { title: { value: title, stamp: 's' }, notes: { value: notes, stamp: 's' } }
+	});
+	const step = (identifier: string, text: string) => ({
+		identifier,
+		kind: 'step',
+		fields: { text: { value: text, stamp: 's' } }
+	});
+
+	it('finds a title, notes or a step of these records, and nothing else', () => {
+		const ours = new Set(['task-a', 'step-a']);
+		expect(holdsPlain([task('task-a', 'Wifi')], ours)).toBe(true);
+		expect(holdsPlain([task('task-a', '', 'hunter2')], ours)).toBe(true);
+		expect(holdsPlain([step('step-a', 'Ask the landlord')], ours)).toBe(true);
+		// Sealed (plain fields empty), someone else's, or not a record at all.
+		expect(holdsPlain([task('task-a', ''), step('step-a', ' ')], ours)).toBe(false);
+		expect(holdsPlain([task('task-b', 'Groceries')], ours)).toBe(false);
+		expect(holdsPlain([null, 'task-a', { identifier: 'task-a' }], ours)).toBe(false);
 	});
 });

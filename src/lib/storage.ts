@@ -329,14 +329,51 @@ export async function keepSnapshot(
 }
 
 /**
- * Deletes every copy this device keeps. Only when the person asks: locking a list offers it, since
- * the copies from before still hold the list in plain text.
+ * Whether a copy holds any of these tasks or steps in plain text: a title, notes or a step's text
+ * that isn't empty. Read from the stored records as they are, in any format so far (1 and 2 name
+ * these fields alike).
  */
-export async function deleteSnapshots() {
+export function holdsPlain(records: unknown[], identifiers: Set<string>): boolean {
+	return records.some((record) => {
+		if (typeof record !== 'object' || record === null) return false;
+		const { identifier, kind, fields } = record as {
+			identifier?: unknown;
+			kind?: unknown;
+			fields?: Record<string, { value?: unknown }>;
+		};
+		if (typeof identifier !== 'string' || !identifiers.has(identifier) || !fields) return false;
+		const names = kind === 'task' ? ['title', 'notes'] : kind === 'step' ? ['text'] : [];
+		return names.some((name) => {
+			const value = fields[name]?.value;
+			return typeof value === 'string' && value.trim() !== '';
+		});
+	});
+}
+
+/**
+ * The copies this device keeps that hold these tasks or steps in plain text, as kept before a
+ * list was locked or a task moved into it. Counted, or deleted when `remove` is set; the others
+ * stay. Deleting happens only when the person asks.
+ */
+export async function snapshotsHolding(
+	identifiers: Set<string>,
+	{ remove = false }: { remove?: boolean } = {}
+): Promise<number> {
 	const opened = await database();
-	const transaction = opened.transaction('snapshots', 'readwrite');
-	transaction.objectStore('snapshots').clear();
+	const transaction = opened.transaction('snapshots', remove ? 'readwrite' : 'readonly');
+	const store = transaction.objectStore('snapshots');
+	const [keys, all] = await Promise.all([
+		request(store.getAllKeys()),
+		request(store.getAll()) as Promise<StoredSnapshot[]>
+	]);
+	let holding = 0;
+	all.forEach((stored, index) => {
+		if (!holdsPlain(stored.records, identifiers)) return;
+		holding++;
+		if (remove) store.delete(keys[index]);
+	});
 	await done(transaction);
+	return holding;
 }
 
 /** Keeps the day's copy, unless one was kept recently. */

@@ -17,12 +17,19 @@
 	}: { kind: ListKindName; onchange: (kind: ListKindName) => void; legend?: string } = $props();
 
 	const name = $props.id();
-	const kinds: { kind: ListKindName; label: string; hint: string }[] = [
-		{ kind: 'todo', label: 'To-do list', hint: 'Done tasks fold away below.' },
-		{ kind: 'bucket', label: 'Bucket list', hint: 'Achieved ones are kept, with the date.' },
+	// Short on screen, so the three fit the sidebar on one line; said in full, which contains them.
+	const kinds: { kind: ListKindName; label: string; short: string; hint: string }[] = [
+		{ kind: 'todo', label: 'To-do list', short: 'To-do', hint: 'Done tasks fold away below.' },
+		{
+			kind: 'bucket',
+			label: 'Bucket list',
+			short: 'Bucket',
+			hint: 'Achieved ones are kept, with the date.'
+		},
 		{
 			kind: 'locked',
 			label: 'Locked list',
+			short: 'Locked',
 			hint: 'Encrypted with its own passphrase, and closed until you open it.'
 		}
 	];
@@ -52,7 +59,9 @@
 				/>
 				<span
 					class="flex min-h-9 items-center gap-1.5 rounded-sm px-3 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
-					>{#if each.kind === 'locked'}<Icon name="lock" class="size-3.5" />{/if}{each.label}</span
+					>{#if each.kind === 'locked'}<Icon name="lock" class="size-3.5" />{/if}<span
+						aria-hidden="true">{each.short}</span
+					><span class="sr-only">{each.label}</span></span
 				>
 			</label>
 		{/each}
