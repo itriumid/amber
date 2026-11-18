@@ -380,7 +380,11 @@
 		));
 	$effect(() => {
 		void view;
-		untrack(finishSelecting);
+		// Only when someone was choosing: on load it would "rescue" focus that wasn't lost, putting
+		// it in the list, so the first Tab skipped the skip link and the sidebar.
+		untrack(() => {
+			if (selecting) finishSelecting();
+		});
 	});
 
 	// While a dragged task is put in its place, the list re-sorts at once: it's already where it was

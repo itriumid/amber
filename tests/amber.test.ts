@@ -2222,3 +2222,11 @@ test('offers to delete only the copies that have a locked list in plain text', a
 		page.getByRole('dialog', { name: 'Category: Home' }).getByText(/still has Home in plain text/)
 	).toHaveCount(0);
 });
+
+test('starts the keyboard at the top: the first Tab is the skip link', async ({ page }) => {
+	test.skip(isPhone(page), 'A touch screen has no Tab key.');
+	// Nothing on the page takes focus by itself as it opens.
+	await expect(page.locator('body')).toBeFocused();
+	await page.keyboard.press('Tab');
+	await expect(page.getByRole('link', { name: 'Skip to the list' })).toBeFocused();
+});
