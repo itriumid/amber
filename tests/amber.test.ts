@@ -1934,7 +1934,6 @@ test('locks an existing list after saying what stays in plain text, and moves a 
 	await sheet.getByRole('button', { name: 'Lock Home' }).click();
 	await expect(sheet.getByRole('alert')).toContainText('at least 12 characters');
 	await sheet.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
-	await sheet.getByLabel('Also delete the copies this device keeps').check();
 	await sheet.getByRole('button', { name: 'Lock Home' }).click();
 	const kept = page.getByRole('dialog', { name: 'Keep the recovery code' });
 	await kept.getByLabel("I've kept it somewhere safe").check();
@@ -2156,4 +2155,48 @@ test('follows the device, or the theme chosen, and keeps it after a reload', asy
 	await expect(theme('Light').getByRole('radio')).toBeChecked();
 	await theme('Device').click();
 	expect(await background()).toBe('#2b2b2b');
+});
+
+test('offers to delete only the copies that have a locked list in plain text', async ({ page }) => {
+	// Home's own page, where its heading has the edit button, on a phone too.
+	const editHome = async () => {
+		await (await lists(page)).getByRole('button', { name: /^Home/ }).click();
+		await page.getByRole('main').getByRole('button', { name: 'Edit Home' }).click();
+	};
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Door code 1984');
+	// Opening again keeps the day's copy, with Home in it as it is: in plain text.
+	await page.reload();
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	await editHome();
+	const editor = page.getByRole('dialog', { name: 'Category: Home' });
+	await editor.locator('label', { has: page.getByRole('radio', { name: 'Locked list' }) }).click();
+	const sheet = page.getByRole('dialog', { name: 'Lock Home' });
+	await expect(
+		sheet.getByLabel('Also delete the copy on this device that has Home in plain text')
+	).toBeVisible();
+	await sheet.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
+	await sheet.getByLabel('Type it again').fill(PASSPHRASE);
+	await sheet.getByRole('button', { name: 'Lock Home' }).click();
+	const kept = page.getByRole('dialog', { name: 'Keep the recovery code' });
+	await kept.getByLabel("I've kept it somewhere safe").check();
+	await kept.getByRole('button', { name: 'Done' }).click();
+
+	// Left for later, it's offered again in the list's editor.
+	await editHome();
+	const again = page.getByRole('dialog', { name: 'Category: Home' });
+	await expect(
+		again.getByText('One copy this device keeps still has Home in plain text.')
+	).toBeVisible();
+	expect(await axeViolations(page)).toEqual([]);
+	await again.getByRole('button', { name: 'Delete that copy' }).click();
+	await expect(again.getByRole('status').filter({ hasText: 'Deleted.' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	await page.reload();
+	await editHome();
+	await expect(
+		page.getByRole('dialog', { name: 'Category: Home' }).getByText(/still has Home in plain text/)
+	).toHaveCount(0);
 });

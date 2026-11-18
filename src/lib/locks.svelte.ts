@@ -25,7 +25,7 @@ import {
 import { newIdentifier } from './model/identifiers';
 import { get, value, type Category, type Records, type Step, type Task } from './model/list';
 import { checksPassphrase, createLock, openLock, seal, unseal, type Sealed } from './sealing';
-import { deleteSnapshots } from './storage';
+import { snapshotsHolding } from './storage';
 
 /** How long an open locked list waits for the next touch, click or key before closing itself. */
 export const IDLE_LIMIT = 5 * 60 * 1000;
@@ -108,6 +108,15 @@ class Locks {
 				identifiers.push(step.identifier);
 		}
 		return new Set(identifiers);
+	}
+
+	/**
+	 * How many copies this device keeps still hold a list's entries in plain text, from before it
+	 * was locked or before an entry moved in; with `remove`, those copies are deleted, and the
+	 * others kept.
+	 */
+	plainCopies(category: Category, remove = false): Promise<number> {
+		return snapshotsHolding(this.recordsOf(category.identifier), { remove });
 	}
 
 	/**
@@ -304,7 +313,7 @@ class Locks {
 			{ notice: false }
 		);
 		// What this device kept before still has the list in plain text, if the person wants it gone.
-		if (deleteCopies) await deleteSnapshots();
+		if (deleteCopies) await this.plainCopies(category, true);
 		// Hidden while it was being locked: it's locked, and stays closed.
 		if (!this.admit(category.identifier, key, closings)) return recoveryCode;
 		await this.refresh(amber.records);

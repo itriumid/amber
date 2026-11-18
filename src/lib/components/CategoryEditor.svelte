@@ -95,6 +95,16 @@
 	let codePassphrase = $state('');
 	let codeProblem = $state<string>();
 	let newCode = $state<string>();
+	// Copies this device keeps that still have the list in plain text, offered to delete.
+	let plainCopies = $state(0);
+	let copiesDeleted = $state(false);
+	$effect(() => {
+		const list = category;
+		plainCopies = 0;
+		copiesDeleted = false;
+		if (list && value(list, 'lock'))
+			void locks.plainCopies(list).then((count) => (plainCopies = count));
+	});
 	// Why there's a new code: a new passphrase comes with one, or it replaces a lost one.
 	let codeReason = $state<'passphrase' | 'lost'>('lost');
 	let codeKept = $state(false);
@@ -166,6 +176,30 @@
 				</p>
 			{/if}
 		</div>
+
+		{#if locked && plainCopies}
+			<!-- From before it was locked, or before an entry moved in. Only those copies go. -->
+			<div class="space-y-2 text-sm">
+				<p>
+					{plainCopies === 1 ? 'One copy' : `${plainCopies} copies`} this device keeps still
+					{plainCopies === 1 ? 'has' : 'have'}
+					{value(category, 'name')} in plain text. Your other copies stay as they are.
+				</p>
+				<button
+					type="button"
+					class={secondaryButton}
+					onclick={async () => {
+						await locks.plainCopies(category, true);
+						plainCopies = 0;
+						copiesDeleted = true;
+					}}>Delete {plainCopies === 1 ? 'that copy' : 'those copies'}</button
+				>
+			</div>
+		{:else if locked && copiesDeleted}
+			<p class="text-sm" role="status">
+				Deleted. Files and links you made before still have it, wherever you kept them.
+			</p>
+		{/if}
 
 		{#if locked && newCode}
 			<!-- A new recovery code, shown once: the sheet holds until it's kept. -->

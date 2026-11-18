@@ -39,6 +39,14 @@
 	let again = $state('');
 	let show = $state(false);
 	let deleteCopies = $state(false);
+	// How many copies this device keeps have the list in plain text, to offer deleting just those.
+	let plainCopies = $state(0);
+	$effect(() => {
+		const list = category;
+		plainCopies = 0;
+		if (list && !value(list, 'lock'))
+			void locks.plainCopies(list).then((count) => (plainCopies = count));
+	});
 	let problem = $state<string>();
 	let busy = $state(false);
 	let recoveryCode = $state<string>();
@@ -157,10 +165,13 @@
 				<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={show} />
 				Show the passphrase
 			</label>
-			{#if hasTasks}
+			{#if hasTasks && plainCopies}
+				<!-- Only the copies that hold this list in plain text: the others are left alone. -->
 				<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
 					<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={deleteCopies} />
-					Also delete the copies this device keeps
+					Also delete {plainCopies === 1 ? 'the copy' : `the ${plainCopies} copies`} on this device that
+					{plainCopies === 1 ? 'has' : 'have'}
+					{name} in plain text
 				</label>
 			{/if}
 			<button type="submit" class={primaryButton} disabled={busy || !passphrase}>
