@@ -463,6 +463,25 @@ export function isLockedList(records: Records, categoryIdentifier: string | null
 	return !!category && !!value(category, 'lock');
 }
 
+/**
+ * Every task a list holds, deleted ones too: a deleted task is still carried by files, links and
+ * sync, and can be brought back, so it's sealed and opened with the rest.
+ */
+export function everyTaskIn(records: Records, categoryIdentifier: string): Task[] {
+	return Object.values(records).filter(
+		(entity): entity is Task =>
+			entity.kind === 'task' && shownCategory(records, entity as Task) === categoryIdentifier
+	);
+}
+
+/** Every step of a task, deleted ones too, for the same reason. */
+export function everyStepOf(records: Records, taskIdentifier: string): Step[] {
+	return Object.values(records).filter(
+		(entity): entity is Step =>
+			entity.kind === 'step' && value(entity as Step, 'taskIdentifier') === taskIdentifier
+	);
+}
+
 /** A tag's name shows in other lists, so a task in a locked list has none. */
 function untagAll(context: Context, task: Task): Change[] {
 	return alive(context.records, 'tag')
@@ -527,9 +546,10 @@ export function setSealedStep(context: Context, step: Step, sealedText: Sealed):
 }
 
 /**
- * Locks a list: its lock is set, and every task and step in it changes from plain to sealed, all
- * in one change, so one Undo puts it back. `tasks` and `steps` hold the sealed values, made for
- * each one the list shows.
+ * Locks a list: its lock is set, and every task and step in it, deleted ones too, changes from
+ * plain to sealed, all in one change. `tasks` and `steps` hold the sealed values. Every task in it
+ * loses its tags, sealed here or not: a tag shows in other lists. Also used on opening a list, to
+ * seal what came in plain, and to seal everything again under a new key.
  */
 export function lockList(
 	context: Context,
@@ -539,14 +559,11 @@ export function lockList(
 	steps: Map<string, Sealed>
 ): Change[] {
 	const changes = keep(update(context, category, { lock, keepDone: false }));
-	for (const task of tasksShownIn(context.records, category.identifier)) {
+	for (const task of everyTaskIn(context.records, category.identifier)) {
+		changes.push(...untagAll(context, task));
 		const sealed = tasks.get(task.identifier);
-		if (!sealed) continue;
-		changes.push(
-			...keep(update(context, task, { title: '', notes: '', ...sealed })),
-			...untagAll(context, task)
-		);
-		for (const step of stepsOf(context.records, task.identifier)) {
+		if (sealed) changes.push(...keep(update(context, task, { title: '', notes: '', ...sealed })));
+		for (const step of everyStepOf(context.records, task.identifier)) {
 			const sealedText = steps.get(step.identifier);
 			if (sealedText) changes.push(...keep(update(context, step, { text: '', sealedText })));
 		}
@@ -562,7 +579,7 @@ export function unlockList(
 	steps: Map<string, string>
 ): Change[] {
 	const changes = keep(update(context, category, { lock: null }));
-	for (const task of tasksShownIn(context.records, category.identifier)) {
+	for (const task of everyTaskIn(context.records, category.identifier)) {
 		const plain = tasks.get(task.identifier);
 		if (!plain) continue;
 		changes.push(
@@ -575,7 +592,7 @@ export function unlockList(
 				})
 			)
 		);
-		for (const step of stepsOf(context.records, task.identifier)) {
+		for (const step of everyStepOf(context.records, task.identifier)) {
 			const text = steps.get(step.identifier);
 			if (text !== undefined)
 				changes.push(
@@ -599,7 +616,7 @@ export function moveIntoLocked(
 		...keep(update(context, task, { title: '', notes: '', ...sealed })),
 		...untagAll(context, task)
 	];
-	for (const step of stepsOf(context.records, task.identifier)) {
+	for (const step of everyStepOf(context.records, task.identifier)) {
 		const sealedText = steps.get(step.identifier);
 		if (sealedText) changes.push(...keep(update(context, step, { text: '', sealedText })));
 	}
@@ -625,7 +642,7 @@ export function moveOutOfLocked(
 			})
 		)
 	];
-	for (const step of stepsOf(context.records, task.identifier)) {
+	for (const step of everyStepOf(context.records, task.identifier)) {
 		const text = steps.get(step.identifier);
 		if (text !== undefined)
 			changes.push(

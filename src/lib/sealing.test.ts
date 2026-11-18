@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	changePassphrase,
+	checksPassphrase,
 	createLock,
 	isLock,
 	openLock,
@@ -57,5 +58,18 @@ describe('locked lists', () => {
 	it("doesn't take a lock that's the wrong shape", () => {
 		expect(isLock(null)).toBe(false);
 		expect(isLock({ passphrase: {}, recovery: {} })).toBe(false);
+	});
+
+	it('tells the passphrase apart from the recovery code and anything else', async () => {
+		const { lock, recoveryCode } = await createLock(PASSPHRASE);
+		expect(await checksPassphrase(lock, PASSPHRASE)).toBe(true);
+		expect(await checksPassphrase(lock, recoveryCode)).toBe(false);
+		expect(await checksPassphrase(lock, 'not the passphrase')).toBe(false);
+	});
+
+	it('refuses a lock that asks for more rounds than anyone would set', async () => {
+		const { lock } = await createLock(PASSPHRASE);
+		expect(isLock(lock)).toBe(true);
+		expect(isLock({ ...lock, recovery: { ...lock.recovery, iterations: 2 ** 31 } })).toBe(false);
 	});
 });
