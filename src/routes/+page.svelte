@@ -42,7 +42,15 @@
 	import { sortable } from '#lib/sortable.js';
 	import SelectionBar from '#lib/components/SelectionBar.svelte';
 	import { categoryTree, get, tags as allTags, value, LIMITS, type Task } from '#lib/model/list.js';
-	import { field, labelPlate, labelShape, smallButton, touchTarget, tray } from '#lib/styles.js';
+	import {
+		field,
+		labelInk,
+		labelPlate,
+		labelShape,
+		smallButton,
+		touchTarget,
+		tray
+	} from '#lib/styles.js';
 	import { backups } from '#lib/backups.svelte.js';
 	import { home, rescueFocus } from '#lib/focus.js';
 	import { roving } from '#lib/roving.js';
@@ -392,14 +400,9 @@
 			>
 				<Icon name="menu" class="size-5" />
 			</button>
-			<!-- Amber's icon, as it is: on the graphite page its tile is edged so it doesn't vanish. -->
-			<img
-				src="/favicon.svg"
-				alt=""
-				width="32"
-				height="32"
-				class="size-8 rounded-md outline outline-1 -outline-offset-1 outline-border"
-			/>
+			<!-- Amber's icon, as it is. On the graphite page its tile is the page's own color, so the mark
+			     stands alone; an outline around it drew a frame a little apart from the tile. -->
+			<img src="/favicon.svg" alt="" width="32" height="32" class="size-8" />
 			<p class="text-xl font-bold tracking-tight">Amber</p>
 		</div>
 		<!-- The search bar as people know it from every list app: wide, rounded, on its own line on a
@@ -564,7 +567,8 @@
 						>
 					{/if}
 				</div>
-			{:else}
+			{:else if !targetLocked || targetOpen}
+				<!-- Not over a closed locked list: its Open button is the way in, not a field that's off. -->
 				<form class="group/quick mt-5" onsubmit={add}>
 					<label for="quick-add" class="sr-only">New task</label>
 					<div class="flex flex-wrap gap-2">
@@ -573,14 +577,12 @@
 							bind:this={quickAdd}
 							bind:value={newTask}
 							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
-							placeholder={targetLocked && !targetOpen
-								? `Open ${heading} to add to it`
-								: 'Add a task'}
+							placeholder={targetLocked ? 'Add an entry' : 'Add a task'}
 							aria-describedby="quick-add-hint"
 							aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
 							maxlength={LIMITS.title + 200}
 							autocomplete="off"
-							disabled={!amber.ready || amber.readOnly || (targetLocked && !targetOpen)}
+							disabled={!amber.ready || amber.readOnly}
 						/>
 						<button
 							type="submit"
@@ -600,7 +602,7 @@
 							: ''}"
 					>
 						{#if targetLocked}
-							Encrypted as it's added. # and @ are off in a locked list.
+							Name it here, and keep its secret in its notes. # and @ are off in a locked list.
 						{:else}
 							<span class="font-medium">#weekend</span> makes a tag, and
 							<span class="font-medium">@Home</span> puts the task in that category.
@@ -676,7 +678,7 @@
 										{open
 											? 'Open. It locks again when Amber is hidden, and after five minutes without use.'
 											: inside
-												? `Locked, with ${inside} ${tasksWord(inside)} inside.`
+												? `Locked, with ${inside} ${inside === 1 ? 'entry' : 'entries'} inside.`
 												: 'Locked, and empty so far.'}
 									</p>
 									<button
@@ -715,7 +717,6 @@
 												selected={selected.includes(task.identifier)}
 												onselect={toggleSelected}
 												lockedIn={section.locked ? section.title : undefined}
-												position={index + 1}
 												first={index === 0}
 												last={index === section.shown.length - 1}
 												bucket={section.bucket}
@@ -773,20 +774,21 @@
 												name="down"
 												class="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
 											/>
-											<!-- Framed in its list's color, as the list's own label is: the fold is still that list's. -->
+											<!-- In its list's color, as the list's own label is: the fold is still that list's. Not
+											     framed, so it doesn't read as a list of its own beside the label above. -->
 											<span
-												class={section.color ? `${labelShape} ${PLATE[section.color]}` : labelPlate}
-												>Done ({section.done.length})</span
+												class="{labelInk} {section.color
+													? PLATE[section.color].split(' ')[1]
+													: 'text-muted'}">Done ({section.done.length})</span
 											>
 										</summary>
 										<ul class="mt-1 {tray}">
-											{#each section.done as task, index (task.identifier)}
+											{#each section.done as task (task.identifier)}
 												<li transition:slide={{ duration }}>
 													<TaskRow
 														{task}
 														movable={false}
 														lockedIn={section.locked ? section.title : undefined}
-														position={section.shown.length + index + 1}
 														hideTag={view.kind === 'tag' ? view.identifier : undefined}
 														onopen={openDetails}
 													/>

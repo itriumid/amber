@@ -2,8 +2,9 @@
      wherever focus is in the row: Alt with the up or down arrow moves it, Enter opens it, and Delete
      deletes it, with Undo. In search results the words found are marked, and moving is off: with
      tasks hidden in between, a move wouldn't show. Going from row to row is in roving.ts. In an open
-     locked list a task shows as dots until it's revealed, one at a time, and has Copy; what's said
-     after a change never has its title (docs/locked-lists.md). -->
+     locked list an entry shows its name, and its notes, the secret, as dots until they're revealed,
+     one entry at a time, with Copy; what's said after a change never names it
+     (docs/locked-lists.md). -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
 	import { locks } from '#lib/locks.svelte.js';
@@ -31,7 +32,6 @@
 		selecting = false,
 		selected = false,
 		lockedIn,
-		position = 1,
 		onselect,
 		onopen
 	}: {
@@ -56,24 +56,26 @@
 		selected?: boolean;
 		/** The name of the locked list it's in, when it is. */
 		lockedIn?: string;
-		/** Its place in its list, from 1: what names it while its title is hidden. */
-		position?: number;
 		onselect?: (task: Task) => void;
 		onopen: (task: Task) => void;
 	} = $props();
 
 	const revealed = $derived(!!lockedIn && locks.revealed === task.identifier);
-	const masked = $derived(!!lockedIn && !revealed);
-	// In a locked list, controls are named by place while the title is hidden, so neither the screen
-	// nor a screen reader says it until it's revealed.
+	// An entry sealed under a key its list's lock doesn't hold says so, rather than showing empty.
 	const title = $derived(
-		lockedIn ? (revealed ? locks.title(task) : `Hidden entry ${position}`) : value(task, 'title')
+		lockedIn
+			? locks.unreadable.has(task.identifier)
+				? "Can't be opened with this list's passphrase"
+				: locks.title(task)
+			: value(task, 'title')
 	);
-	// What's said after a change: never a locked task's title, which would stay on screen with Undo.
-	const spoken = $derived(lockedIn ? `a task in ${lockedIn}` : title);
+	// An entry's secret: its notes, hidden until revealed, and what Copy copies.
+	const secret = $derived(lockedIn ? locks.notes(task) : '');
+	// What's said after a change: never an entry's name, which would stay on screen with Undo.
+	const spoken = $derived(lockedIn ? `an entry in ${lockedIn}` : title);
 	let copied = $state(false);
 	async function copy() {
-		await locks.copy(locks.title(task));
+		await locks.copy(secret);
 		copied = true;
 		amber.notice = { message: 'Copied. Cleared from the clipboard in 30 seconds.', changes: [] };
 		setTimeout(() => (copied = false), 2000);
@@ -89,9 +91,8 @@
 	const steps = $derived(amber.index.steps.get(task.identifier) ?? []);
 	const stepsDone = $derived(steps.filter((step) => value(step, 'done')).length);
 	const category = $derived(showCategory ? categoryLabel(amber.records, task) : undefined);
-	const hasNotes = $derived(
-		(lockedIn ? locks.notes(task) : value(task, 'notes')).trim().length > 0
-	);
+	// In a locked list the notes have a line of their own, below.
+	const hasNotes = $derived(!lockedIn && value(task, 'notes').trim().length > 0);
 	// Just achieved, it arrives on the shelf marked for a moment; one already there doesn't.
 	// Read once, as the specimen appears: it's the arrival that's marked, not later changes.
 	const fresh = untrack(() => achieved && Date.now() - (value(task, 'doneAt') ?? 0) < 3000);
@@ -231,7 +232,9 @@
 	<!-- The task stays beside its checkbox; with large text, the move buttons wrap below instead.
 	     The checkbox (28px), the title's first line (28px) and the buttons share one line's middle:
 	     the buttons are taller, so they hang into the row's padding instead of pushing it open. -->
-	<div class="flex min-w-0 flex-[1_1_12rem] items-start gap-3">
+	<!-- In a locked list the name gives up some room, so Reveal, Copy and More fit beside it on a
+	     phone; with large text they still move to a line of their own, together. -->
+	<div class="flex min-w-0 {lockedIn ? 'flex-[1_1_8rem]' : 'flex-[1_1_12rem]'} items-start gap-3">
 		<div>
 			{#if selecting && !lockedIn}
 				<!-- Square, and filled in the text color when chosen: a choice, not a task ticked off. -->
@@ -279,20 +282,22 @@
 				aria-pressed={selecting ? selected : undefined}
 				onclick={() => (selecting ? onselect?.(task) : onopen(task))}
 			>
-				{#if masked}
-					<!-- Dots on screen, its place for a screen reader: said as one piece. -->
-					<span aria-hidden="true" class="tracking-widest">••••••••••</span><span class="sr-only"
-						>{title}</span
-					>
-				{:else}
-					<!-- A found word keeps the strike-through of a done task's title. -->
-					{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
-								class="rounded-sm bg-accent text-on-accent {done && !isAchieved
-									? 'line-through decoration-1'
-									: ''}">{piece.text}</mark
-							>{:else}{piece.text}{/if}{/each}
-				{/if}
+				<!-- A found word keeps the strike-through of a done task's title. -->
+				{#each highlight(title, words) as piece, index (index)}{#if piece.match}<mark
+							class="rounded-sm bg-accent text-on-accent {done && !isAchieved
+								? 'line-through decoration-1'
+								: ''}">{piece.text}</mark
+						>{:else}{piece.text}{/if}{/each}
 			</button>
+			{#if secret.trim()}
+				<!-- The secret: dots on screen and "Notes hidden" for a screen reader, said as one piece,
+				     until revealed. -->
+				<p class="mt-0.5 text-sm break-words whitespace-pre-wrap text-muted">
+					{#if revealed}{secret}{:else}<span aria-hidden="true" class="tracking-widest"
+							>••••••••••</span
+						><span class="sr-only">Notes hidden</span>{/if}
+				</p>
+			{/if}
 			<!-- Read with the title as its description, so moving through the list by arrow, which never
 			     lands here, still says a task's date, tags, steps and notes. -->
 			{#if meta}
@@ -331,72 +336,74 @@
 			{/if}
 		</div>
 	</div>
-	{#if lockedIn}
-		<!-- Always shown, on any screen: they're what an entry in a locked list is for. -->
-		<div class="-my-0.5 ml-auto flex shrink-0 gap-0.5">
-			<button
-				type="button"
-				class="{moveButton} pointer-coarse:size-11"
-				aria-label="Reveal: {title}"
-				aria-pressed={revealed}
-				onclick={() => locks.reveal(task.identifier)}><Icon name="eye" /></button
-			>
-			<button
-				type="button"
-				class="{moveButton} pointer-coarse:size-11"
-				aria-label="Copy: {title}"
-				onclick={() => void copy()}><Icon name={copied ? 'check' : 'copy'} /></button
-			>
-		</div>
-	{/if}
-	{#if movable}
-		<!-- With a mouse, the move buttons beside the task, shown on hover or focus, and off at the ends
+	<!-- The row's controls stay together: with large text or a narrow screen they move to a line of
+	     their own as one group, rather than one by one. -->
+	<div class="ml-auto flex shrink-0 items-start">
+		{#if lockedIn && secret.trim()}
+			<!-- Always shown, on any screen: they're what an entry in a locked list is for. Revealed, the
+		     eye is crossed out and pressed, so which entry is open can be seen as well as heard. -->
+			<div class="-my-0.5 flex shrink-0 gap-0.5">
+				<button
+					type="button"
+					class="{moveButton} pointer-coarse:size-11 {revealed ? 'bg-bg text-text' : ''}"
+					aria-label="Reveal notes: {title}"
+					aria-pressed={revealed}
+					onclick={() => locks.reveal(task.identifier)}
+					><Icon name={revealed ? 'eyeOff' : 'eye'} /></button
+				>
+				<button
+					type="button"
+					class="{moveButton} pointer-coarse:size-11"
+					aria-label="Copy notes: {title}"
+					onclick={() => void copy()}><Icon name={copied ? 'check' : 'copy'} /></button
+				>
+			</div>
+		{/if}
+		{#if movable}
+			<!-- With a mouse, the move buttons beside the task, shown on hover or focus, and off at the ends
 		     of the list. On a touch screen they'd crowd every row, so the moves and Delete are in one
 		     More menu that names the task, as a step's are. -->
-		<div
-			class="-my-0.5 {lockedIn
-				? ''
-				: 'ml-auto'} flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
-		>
+			<div
+				class="-my-0.5 flex shrink-0 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 motion-reduce:transition-none pointer-coarse:hidden"
+			>
+				<button
+					type="button"
+					class={moveButton}
+					aria-label="Move up: {title}"
+					disabled={first}
+					onclick={() => void move(-1)}><Icon name="up" /></button
+				>
+				<button
+					type="button"
+					class={moveButton}
+					aria-label="Move down: {title}"
+					disabled={last}
+					onclick={() => void move(1)}><Icon name="down" /></button
+				>
+			</div>
 			<button
 				type="button"
-				class={moveButton}
-				aria-label="Move up: {title}"
-				disabled={first}
-				onclick={() => void move(-1)}><Icon name="up" /></button
+				data-more
+				class="-my-2 -mr-1 hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
+				aria-label="More: {title}"
+				popovertarget={menuIdentifier}><Icon name="more" class="size-5 stroke-[3.5]" /></button
 			>
-			<button
-				type="button"
-				class={moveButton}
-				aria-label="Move down: {title}"
-				disabled={last}
-				onclick={() => void move(1)}><Icon name="down" /></button
+			<div
+				id={menuIdentifier}
+				popover
+				class="m-auto w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-2 text-text shadow-2xl backdrop:bg-black/40"
 			>
-		</div>
-		<button
-			type="button"
-			data-more
-			class="-my-2 -mr-1 {lockedIn
-				? ''
-				: 'ml-auto'} hidden size-11 shrink-0 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text pointer-coarse:inline-flex"
-			aria-label="More: {title}"
-			popovertarget={menuIdentifier}><Icon name="more" class="size-5 stroke-[3.5]" /></button
-		>
-		<div
-			id={menuIdentifier}
-			popover
-			class="m-auto w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-2 text-text shadow-2xl backdrop:bg-black/40"
-		>
-			<p class="truncate px-3 pt-1 pb-2 text-sm text-muted">{title}</p>
-			<button type="button" class={menuItem} disabled={first} onclick={() => void move(-1)}
-				><Icon name="up" /> Move up</button
-			>
-			<button type="button" class={menuItem} disabled={last} onclick={() => void move(1)}
-				><Icon name="down" /> Move down</button
-			>
-			<button type="button" class={menuItem} onclick={(event) => void remove(event.currentTarget)}
-				><Icon name="trash" /> Delete task</button
-			>
-		</div>
-	{/if}
+				<p class="truncate px-3 pt-1 pb-2 text-sm text-muted">{title}</p>
+				<button type="button" class={menuItem} disabled={first} onclick={() => void move(-1)}
+					><Icon name="up" /> Move up</button
+				>
+				<button type="button" class={menuItem} disabled={last} onclick={() => void move(1)}
+					><Icon name="down" /> Move down</button
+				>
+				<button type="button" class={menuItem} onclick={(event) => void remove(event.currentTarget)}
+					><Icon name="trash" /> Delete {lockedIn ? 'entry' : 'task'}</button
+				>
+			</div>
+		{/if}
+	</div>
 </div>

@@ -4,6 +4,8 @@
 	import { locks } from '#lib/locks.svelte.js';
 	import { get, value } from '#lib/model/list.js';
 	import { field, label, primaryButton } from '#lib/styles.js';
+	import CapsLock from './CapsLock.svelte';
+	import Problem from './Problem.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let { identifier, onclose }: { identifier: string | undefined; onclose: () => void } = $props();
@@ -14,6 +16,7 @@
 	let show = $state(false);
 	let wrong = $state(false);
 	let busy = $state(false);
+	let capsLock = $state(false);
 
 	$effect(() => {
 		if (!identifier) return;
@@ -46,16 +49,18 @@
 				class={field}
 				bind:value={secret}
 				oninput={() => (wrong = false)}
+				onkeyup={(event) => (capsLock = event.getModifierState('CapsLock'))}
 				autocomplete="current-password"
 				autocapitalize="off"
 				spellcheck="false"
 				aria-invalid={wrong}
 				aria-describedby={wrong ? `${prefix}-wrong` : undefined}
 			/>
+			<CapsLock on={capsLock} />
 			{#if wrong}
-				<p id="{prefix}-wrong" class="mt-1.5 text-sm" role="alert">
-					That doesn't open it. Check it and try again.
-				</p>
+				<Problem id="{prefix}-wrong">
+					That doesn't open it. Check it and try again: its passphrase or its recovery code works.
+				</Problem>
 			{/if}
 		</div>
 		<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">

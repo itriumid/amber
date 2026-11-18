@@ -237,8 +237,8 @@ can't be taken for the accent. Each reaches 4.5:1 on the page and on cards in bo
 color names it: a small dot (8–10px) beside a tag or category and on its drawer; its section's
 framed label in that color, words, frame and dot ("· Bucket list" added for a bucket list, and a
 small star on its drawer, from the start; "· Locked list" and a small lock for a locked list); the
-framed "Done (n)" that folds its done tasks away, and its Achieved shelf's label, in the same
-color, since both are still that list's; and the edge of each of its tasks' empty
+"Done (n)" that folds its done tasks away, in its words alone, unframed, so it reads as part of the
+list rather than a list beside it, and its Achieved shelf's framed label, in the same color; and the edge of each of its tasks' empty
 checkboxes, so a task shows which list it's in. Ticked, a box is pink whatever its list. New
 categories start with the next color not in use; "No color" stays a choice. Never as fills behind
 text, and never as a thick edge on a row or card.
@@ -298,7 +298,8 @@ with a 32px gap; below that the sidebar moves into a sheet opened from the menu 
 header.
 
 The header wraps: Amber's mark (a drop of resin with a tick kept inside it, pink on Itrium's
-graphite tile, the family's frame) and the wordmark on the left, search taking up to 28rem on the
+graphite tile, the family's frame, with no outline of its own: on the graphite page the tile is the
+page's color, and the mark stands alone) and the wordmark on the left, search taking up to 28rem on the
 right, and on a phone the search bar on a line of its own, full width. Nothing else sits in the
 header; the link to Itrium is in the footer's last line. The main column runs
 headline, notices, the Any/Open/Done switch while searching, quick add, then sections spaced 32px
@@ -407,13 +408,16 @@ locked list needs it open.
 
 A locked list (docs/locked-lists.md) has a bar at the top of its section, the surface tone with a
 hairline edge, 8px corners: a lock (an open one while it's open), one line of state, and one small
-button, Open or Lock. Closed, it shows only its count; nothing of its tasks is on the page. Open, its
-tasks show as ten dots in place of a title, each with Reveal (an eye, pressed while revealed, one
-task at a time) and Copy, always shown, on any screen; their controls are named by place ("Hidden
-entry 2") until revealed. A task's sheet says "Encrypted in" its list, hides its title, notes and
-steps behind Reveal, and has no tags. Locking asks for the passphrase twice (or shown), says what it
-protects and what it doesn't, and then shows the recovery code once, in monospace, with Copy and a
-checkbox that has to be ticked before Done.
+button, Open or Lock. Closed, it shows only its count, and no quick add; nothing of its entries is
+on the page. Open, an entry shows its name and, under it, its notes as ten muted dots, with Reveal
+(an eye, crossed out and pressed while revealed, one entry at a time) and Copy, always shown, on any
+screen, kept on one line with the row's other controls. An entry's sheet is titled "Entry:" and its
+name, says "Encrypted in" its list, starts on Reveal, hides the notes and steps behind it, and has
+no tags. Locking asks for the passphrase twice (or shown), says what it protects and what it
+doesn't, and then shows the recovery code once, in monospace, with Copy (cleared from the clipboard
+after 30 seconds) and a checkbox that has to be ticked before Done; no message with Undo shows
+under it. A new passphrase or a new recovery code, from the list's editor, shows its code the same
+way.
 
 ### Step and Task Menus
 
@@ -448,6 +452,11 @@ Escape leaves, even with focus on a box.
 - **Style:** page-colored fill, 1px control edge, 8px corners, 10px × 12px padding, 0.875rem text
   (16px on touch), muted placeholder.
 - **Focus:** the global focus outline (pink on graphite, graphite on paper), 3px offset.
+- **Problem:** a field with a problem (`aria-invalid`) takes its edge and a 1px ring in the text
+  color, never pink, and the problem sits right under it, after the warning sign. A passphrase
+  field says when Caps Lock is on.
+- **Theme:** Device, Light or Dark, a radio group drawn like the kind of list, at the foot of the
+  sidebar. Kept in this browser and applied before the page is drawn (`static/theme.js`).
 - **Quick add:** a #word makes a tag and an @ followed by a category's name puts the task in
   that category, said in the hint under it until the list has a tag and then whenever quick add
   has focus; its line stays either way, so nothing moves. An @ that names no category stays in the

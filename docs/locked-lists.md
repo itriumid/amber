@@ -17,9 +17,9 @@ locked list's tasks, since a tag's name is shared with other lists.
 
 | Someone who…                                                  | While the list is closed                                                                                                                           | While it's open                                                                                                                                                              |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| picks up the unlocked phone or laptop, or the browser profile | Sees only the list's name. **Protected.**                                                                                                          | Sees what's revealed. It closes itself when the page is hidden and after 5 minutes without use, which keeps this short.                                                      |
+| picks up the unlocked phone or laptop, or the browser profile | Sees only the list's name. **Protected.**                                                                                                          | Sees entries' names, and notes that are revealed. It closes itself when the page is hidden and after 5 minutes without use, which keeps this short.                          |
 | gets a backup file, a link, or the sync mailbox's contents    | Gets only ciphertext. Has to guess the passphrase, each guess costing 600,000 rounds of PBKDF2. **Protected, as far as the passphrase is strong.** | The same: open or closed, nothing leaves in plain text.                                                                                                                      |
-| reads over a shoulder                                         | Nothing to read.                                                                                                                                   | Entries show as dots until revealed, one at a time.                                                                                                                          |
+| reads over a shoulder                                         | Nothing to read.                                                                                                                                   | Names show; notes show as dots until revealed, one entry at a time.                                                                                                          |
 | runs Itrium's server                                          | Sees nothing: sync is already encrypted with a key from the code, and a locked list is encrypted again inside it.                                  | The same.                                                                                                                                                                    |
 | gets a script into the page                                   | Nothing to read without the passphrase.                                                                                                            | Could read what's open. The Content-Security-Policy, which allows no inline script and nothing from another domain, is what stands in the way, and stays as strict as it is. |
 
@@ -77,17 +77,30 @@ list is opened.
   is made or in its editor. Choosing it asks for a passphrase, twice or shown, and shows the
   recovery code to keep. Nothing is locked until the person confirms.
 - **Closed:** the list shows its name, a lock, and its count. Opening it asks for the passphrase.
-  Its tasks are never in search results, in another list's view, or in an Undo message's text
-  ("Ticked a task in Passwords", not the task's title).
-- **Open:** tasks show as dots, each with Reveal and Copy. Adding, editing, ticking, moving within
-  the list and deleting work as anywhere else, with Undo. Quick add's `#` and `@` are off inside a
-  locked list, and `@Passwords` from elsewhere asks to open it first.
+  Its entries are never in search results, in another list's view, or in an Undo message's text
+  ("Done: an entry in Passwords", not the entry's name).
+- **Open:** an entry shows its name, so the right one can be found; its notes, where its secret
+  goes, show as dots, with Reveal (one entry at a time) and Copy. Adding, editing, ticking, moving
+  within the list and deleting work as anywhere else, with Undo. Quick add's `#` and `@` are off
+  inside a locked list, and `@Passwords` from elsewhere asks to open it first. (Decided with the
+  owner after the first critique, 18 November 2026: before, names were hidden too, and entries
+  could only be told apart by revealing each.)
 - **Moving a task in or out** needs the list open: in, it's sealed; out, it's opened into plain
   text, after saying so.
 - **Closing:** a Lock button, the page being hidden, 5 minutes without use, or a reload. The data
-  key is held only in memory, as a key the browser won't export, and dropped on closing. Undo
-  entries that touch the list are kept, since they hold only ciphertext.
-- **Changing the passphrase** needs the current one or the recovery code.
+  key is held only in memory, as a key the browser won't export, and dropped on closing. So is
+  everything Undo remembered about the list: it holds what the list said before it was locked, so
+  Ctrl or ⌘ with Z after closing can't bring it back.
+- **Changing the passphrase** needs the list open and the current passphrase or the recovery code.
+  Everything is sealed again under a new key, which comes with a new recovery code, so the old
+  passphrase and code open only copies made before. **A new recovery code**, for a lost one, works
+  the same way from the passphrase.
+- **What comes in plain** (an edit from a device that didn't know the list was locked, a task
+  from a deleted subcategory) is sealed when the list is opened, newest value kept. Deleted
+  entries are sealed with the rest: files, links and sync still carry them.
+- **A lock that changes from elsewhere** (taken off, added or changed by a list brought in or a
+  sync) is said before it's merged, and an entry sealed under another key says it can't be
+  opened rather than showing empty.
 - **Making it an ordinary list again** needs it open, and says that its tasks will be plain text.
 
 ## Before it ships
