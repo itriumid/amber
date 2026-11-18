@@ -2,6 +2,50 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { server } from '../sync/testing';
+// A backup file's format, written out here apart from Amber's code (src/lib/transfer.ts), so a
+// change to it fails these tests: scrambled with deflate and AES-GCM under a key from SCRAMBLE.
+const SCRAMBLE = 'Amber scrambles a file so it is not read at a glance. This is not a lock.';
+type BackupRecord = {
+	identifier: string;
+	kind: string;
+	fields: Record<string, { value: unknown; stamp: string }>;
+};
+const scrambleKey = async () =>
+	crypto.subtle.importKey(
+		'raw',
+		await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SCRAMBLE)),
+		'AES-GCM',
+		false,
+		['encrypt', 'decrypt']
+	);
+const through = async (bytes: Uint8Array, stream: CompressionStream | DecompressionStream) =>
+	new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+
+/** A downloaded backup's records, unscrambled. */
+async function backupRecords(path: string | null): Promise<BackupRecord[]> {
+	const file = JSON.parse(await readFile(path!, 'utf8'));
+	const joined = Buffer.from(file.scrambled, 'base64url');
+	const packed = await crypto.subtle.decrypt(
+		{ name: 'AES-GCM', iv: joined.subarray(0, 12) },
+		await scrambleKey(),
+		joined.subarray(12)
+	);
+	const plain = await through(new Uint8Array(packed), new DecompressionStream('deflate-raw'));
+	return JSON.parse(new TextDecoder().decode(plain)).records;
+}
+
+/** A backup file of these records, scrambled as Amber makes one. */
+async function backupOf(records: BackupRecord[]) {
+	const plain = JSON.stringify({ amber: 1, format: 2, records });
+	const iv = crypto.getRandomValues(new Uint8Array(12));
+	const data = await crypto.subtle.encrypt(
+		{ name: 'AES-GCM', iv },
+		await scrambleKey(),
+		await through(new TextEncoder().encode(plain), new CompressionStream('deflate-raw'))
+	);
+	const scrambled = Buffer.concat([iv, new Uint8Array(data)]).toString('base64url');
+	return JSON.stringify({ amber: 1, format: 3, records: [], scrambled });
+}
 
 // Every problem the browser reports: script errors, and anything the security policy blocked.
 function watchProblems(page: Page) {
@@ -1190,10 +1234,9 @@ test('says plainly when the list can’t be saved, and offers a copy instead', a
 		page.waitForEvent('download'),
 		page.getByRole('button', { name: 'Download a copy' }).click()
 	]);
-	const file = JSON.parse(await readFile((await download.path())!, 'utf8'));
-	const titles = file.records
-		.filter((record: { kind: string }) => record.kind === 'task')
-		.map((record: { fields: { title: { value: string } } }) => record.fields.title.value);
+	const titles = (await backupRecords(await download.path()))
+		.filter((record) => record.kind === 'task')
+		.map((record) => record.fields.title.value);
 	expect(titles.sort()).toEqual(['After the clearing', 'Before the clearing']);
 });
 
@@ -1826,7 +1869,10 @@ test("keeps a locked list's tasks out of the page, search, Undo and backups whil
 		page.waitForEvent('download'),
 		sheet.getByRole('button', { name: 'Download a file' }).click()
 	]);
-	const file = await readFile((await download.path())!, 'utf8');
+	// Scrambled, and inside that, sealed: no plain text even once it's unscrambled.
+	const raw = await readFile((await download.path())!, 'utf8');
+	expect(raw).not.toContain('sealedTitle');
+	const file = JSON.stringify(await backupRecords(await download.path()));
 	expect(file).toContain('sealedTitle');
 	expect(file).not.toContain('Bank PIN');
 	expect(file).not.toContain('4821');
@@ -2001,13 +2047,11 @@ test('seals an edit a stale device made in plain text, and keeps it', async ({ p
 		const [time, counter, device] = stamp.split('.');
 		return `${time}.${(parseInt(counter, 36) + 1).toString(36).padStart(4, '0')}.${device}`;
 	};
-	const contents = JSON.parse(await readFile((await download.path())!, 'utf8'));
-	const records: { kind: string; fields: Record<string, { value: unknown; stamp: string }> }[] =
-		contents.records;
+	const records = await backupRecords(await download.path());
 	const wifi = records.find((record) => record.kind === 'task' && record.fields.sealedTitle.value)!;
 	wifi.fields.notes = { value: 'stale plain note', stamp: later(wifi.fields.sealedNotes.stamp) };
 	const stale = test.info().outputPath('stale.json');
-	await writeFile(stale, JSON.stringify(contents));
+	await writeFile(stale, await backupOf(records));
 	const again = await backup(page);
 	await again.getByLabel('Open a file').setInputFiles(stale);
 	await page
@@ -2027,7 +2071,9 @@ test('seals an edit a stale device made in plain text, and keeps it', async ({ p
 		page.waitForEvent('download'),
 		last.getByRole('button', { name: 'Download a file' }).click()
 	]);
-	expect(await readFile((await sealed.path())!, 'utf8')).not.toContain('stale plain note');
+	expect(JSON.stringify(await backupRecords(await sealed.path()))).not.toContain(
+		'stale plain note'
+	);
 });
 
 test('changes the passphrase, sealing everything again with a new recovery code', async ({
@@ -2073,15 +2119,15 @@ test('says before bringing in a list that would take a lock off', async ({ page 
 		sheet.getByRole('button', { name: 'Download a file' }).click()
 	]);
 	await page.keyboard.press('Escape');
-	const contents = JSON.parse(await readFile((await download.path())!, 'utf8'));
-	const category = contents.records.find((record: { kind: string }) => record.kind === 'category');
+	const records = await backupRecords(await download.path());
+	const category = records.find((record) => record.kind === 'category')!;
 	const [time, counter, device] = category.fields.lock.stamp.split('.');
 	category.fields.lock = {
 		value: null,
 		stamp: `${time}.${(parseInt(counter, 36) + 1).toString(36).padStart(4, '0')}.${device}`
 	};
 	const unlocked = test.info().outputPath('unlocked.json');
-	await writeFile(unlocked, JSON.stringify(contents));
+	await writeFile(unlocked, await backupOf(records));
 	const again = await backup(page);
 	await again.getByLabel('Open a file').setInputFiles(unlocked);
 	const bringIn = page.getByRole('dialog', { name: 'Bring in a list' });

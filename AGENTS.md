@@ -91,7 +91,11 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   search, so results keep the place's sections.
 - **Moving and copies are in `src/lib/transfer.ts`.** Files and links carry every record, deleted
   ones too, with the format version; a passphrase locks them (AES-GCM, key from PBKDF2-SHA-256 at
-  600,000 iterations). Links keep the list after the `#` and are taken out of the address at once.
+  600,000 iterations). Without one, a file is scrambled (deflate, then AES-GCM under a key anyone
+  can make from `SCRAMBLE` in the source): not readable at a glance, and never called a lock. Its
+  outside says `format: 3` with no records, so an Amber from before scrambled files asks to update.
+  `src/lib/fixtures/files/` holds a file and link of every kind and format, never edited, and
+  `files.test.ts` opens every one. Links keep the list after the `#` and are taken out of the address at once.
   Bringing a list in always merges, shows a preview first, keeps a copy before, and can be undone.
   Putting a copy back is new changes (`restore`), never an overwrite. Copies are kept daily (7) and
   before risky actions (10), in `src/lib/storage.ts`.

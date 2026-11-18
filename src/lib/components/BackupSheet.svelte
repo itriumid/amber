@@ -189,6 +189,12 @@
 				listed at the end.
 			{/if}
 		</p>
+		{#if !passphrase}
+			<p class="mt-2 text-sm">
+				The file is scrambled, so it can't be read at a glance. Anyone with Amber can still open it,
+				unless you lock it.
+			</p>
+		{/if}
 		<div class="mt-3 flex flex-wrap gap-2">
 			<button type="button" class={primaryButton} disabled={busy} onclick={download}>
 				{#if passphrase}<Icon name="lock" />{/if}Download a file
