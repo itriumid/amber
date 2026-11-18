@@ -460,8 +460,9 @@ Escape leaves, even with focus on a box.
 - **Problem:** a field with a problem (`aria-invalid`) takes its edge and a 1px ring in the text
   color, never pink, and the problem sits right under it, after the warning sign. A passphrase
   field says when Caps Lock is on.
-- **Theme:** Device, Light or Dark, a radio group drawn like the kind of list, at the foot of the
-  sidebar. Kept in this browser and applied before the page is drawn (`static/theme.js`).
+- **Theme:** System, Light or Dark (the brand's names), a radio group drawn like the kind of
+  list, in Settings. Kept in this browser and applied before the page is drawn
+  (`static/theme.js`).
 - **Quick add:** a #word makes a tag and an @ followed by a category's name puts the task in
   that category, said in the hint under it until the list has a tag and then whenever quick add
   has focus; its line stays either way, so nothing moves. An @ that names no category stays in the
@@ -488,9 +489,9 @@ The sidebar is a column of drawers: each place a 40px drawer front (44px on touc
 edge on the surface tone, a color dot for categories, and its open count framed on it in tabular
 figures. Hover strengthens the edge; the open drawer is pulled out in graphite (off-white in dark
 mode) with the text in the page color. Group names are framed labels, not headings, so the page's
-own heading comes first in the outline. Quiet actions (install, sync, back up, shortcuts) sit
-below in muted text; Keyboard shortcuts shows only with a mouse or a trackpad, or while the
-single-key shortcuts are off. Edit buttons appear on hover or focus, always on touch, and places
+own heading comes first in the outline. Quiet actions (install, sync, back up, settings) sit
+below in muted text. Settings, on every screen, holds the theme and the single-key shortcuts
+setting, and, with a mouse or a trackpad, the list of keyboard shortcuts. Edit buttons appear on hover or focus, always on touch, and places
 that can't be edited keep the same gap so every count lines up.
 
 ### Sheets

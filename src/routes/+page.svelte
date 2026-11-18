@@ -12,6 +12,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
+	import SettingsSheet from '#lib/components/SettingsSheet.svelte';
 	import ShortcutsSheet from '#lib/components/ShortcutsSheet.svelte';
 	import Sidebar from '#lib/components/Sidebar.svelte';
 	import TagEditor from '#lib/components/TagEditor.svelte';
@@ -68,6 +69,7 @@
 	let listsOpen = $state(false);
 	let backupOpen = $state(false);
 	let shortcutsOpen = $state(false);
+	let settingsOpen = $state(false);
 	let syncOpen = $state(false);
 	let syncCode = $state<string>();
 	let bringing = $state<Source>();
@@ -327,6 +329,11 @@
 			?.focus();
 	}
 
+	function openSettings() {
+		listsOpen = false;
+		settingsOpen = true;
+	}
+
 	function openShortcuts() {
 		listsOpen = false;
 		shortcutsOpen = true;
@@ -480,7 +487,7 @@
 					onbackup={() => (backupOpen = true)}
 					onsync={openSync}
 					oninstall={offerInstall}
-					onshortcuts={openShortcuts}
+					onsettings={openSettings}
 					onlocknew={(name) => (lockingNew = name)}
 				/>
 			{/if}
@@ -885,7 +892,7 @@
 			}}
 			onsync={openSync}
 			oninstall={offerInstall}
-			onshortcuts={openShortcuts}
+			onsettings={openSettings}
 			onlocknew={(name) => {
 				listsOpen = false;
 				lockingNew = name;
@@ -894,6 +901,14 @@
 	{/if}
 </Sheet>
 <ShortcutsSheet open={shortcutsOpen} onclose={() => (shortcutsOpen = false)} />
+<SettingsSheet
+	open={settingsOpen}
+	onclose={() => (settingsOpen = false)}
+	onshortcuts={() => {
+		settingsOpen = false;
+		openShortcuts();
+	}}
+/>
 
 <TaskDetails
 	identifier={openTask}

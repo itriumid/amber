@@ -1,13 +1,10 @@
-<!-- The keyboard shortcuts, and the setting that turns the single-key ones off. Opened from the
-     sidebar, or with ? while those are on. -->
+<!-- The keyboard shortcuts. Opened from Settings, or with ? while the single-key ones are on; the
+     setting that turns those off is in Settings. -->
 <script lang="ts">
-	import Box from './Box.svelte';
-	import { settings } from '#lib/settings.svelte.js';
 	import Sheet from './Sheet.svelte';
 
 	let { open, onclose }: { open: boolean; onclose: () => void } = $props();
 
-	const prefix = $props.id();
 	const key =
 		'inline-block min-w-6 rounded-md border border-control-border px-1.5 py-0.5 text-center font-sans text-xs font-semibold';
 
@@ -87,17 +84,5 @@
 		{/each}
 	</dl>
 
-	<div>
-		<!-- A setting: the square box, not the round one that ticks a task off. -->
-		<Box
-			checked={settings.singleKeyShortcuts}
-			describedby="{prefix}-single-key-hint"
-			onchange={(on) => settings.setSingleKeyShortcuts(on)}
-			><span class="font-medium">Single-key shortcuts</span></Box
-		>
-		<p id="{prefix}-single-key-hint" class="mt-1.5 text-sm text-muted">
-			N, S, / and ? work anywhere outside a text field. Turn them off if you press them by mistake
-			or use speech input.
-		</p>
-	</div>
+	<p class="text-sm text-muted">The single-key ones can be turned off in Settings.</p>
 </Sheet>

@@ -2,7 +2,6 @@
      as the drawers of a cabinet: each place a drawer front, its count framed on it, and the open one
      pulled out in graphite. -->
 <script lang="ts">
-	import { settings } from '#lib/settings.svelte.js';
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
 	import { addCategory } from '#lib/model/actions.js';
@@ -12,7 +11,6 @@
 	import { openCount, type View } from '#lib/views.js';
 	import Icon from './Icon.svelte';
 	import ListKind, { type ListKindName } from './ListKind.svelte';
-	import ThemeChoice from './ThemeChoice.svelte';
 
 	let {
 		view,
@@ -22,7 +20,7 @@
 		onbackup,
 		onsync,
 		oninstall,
-		onshortcuts,
+		onsettings,
 		onlocknew
 	}: {
 		view: View;
@@ -32,7 +30,7 @@
 		onbackup: () => void;
 		onsync: () => void;
 		oninstall: () => void;
-		onshortcuts: () => void;
+		onsettings: () => void;
 		/** A new locked list, made only once its passphrase is set. */
 		onlocknew: (name: string) => void;
 	} = $props();
@@ -245,15 +243,8 @@
 		<Icon name="archive" />
 		Back up and move
 	</button>
-	<!-- With a mouse or a trackpad, where there's likely a keyboard. A touch screen has no use for the
-	     shortcuts, except to turn the single-key ones back on: with them off, ? can't open the sheet. -->
-	<div class={settings.singleKeyShortcuts ? 'hidden pointer-fine:block' : ''}>
-		<button type="button" class={quiet} onclick={onshortcuts}>
-			<Icon name="keyboard" />
-			Keyboard shortcuts
-		</button>
-	</div>
-	<div class="pt-3">
-		<ThemeChoice />
-	</div>
+	<button type="button" class={quiet} onclick={onsettings}>
+		<Icon name="settings" />
+		Settings
+	</button>
 </div>
