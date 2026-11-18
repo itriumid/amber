@@ -16,6 +16,8 @@
 		title,
 		onclose,
 		focusField = true,
+		held = false,
+		onheld,
 		children
 	}: {
 		open: boolean;
@@ -23,9 +25,16 @@
 		onclose: () => void;
 		/** Whether opening it puts focus on its first field. Off where that field isn't the point. */
 		focusField?: boolean;
+		/**
+		 * Kept open while something has to be done first, as keeping a recovery code that's shown
+		 * only once: Escape, Close and the backdrop call onheld instead of closing.
+		 */
+		held?: boolean;
+		onheld?: () => void;
 		children: Snippet;
 	} = $props();
 	let dialog: HTMLDialogElement | undefined = $state();
+	const close = () => (held ? onheld?.() : onclose());
 	let region: HTMLDivElement | undefined = $state();
 	let header: HTMLDivElement | undefined = $state();
 	const titleIdentifier = $props.id();
@@ -94,9 +103,15 @@
 		// a deleted category), focus would fall to the top of the page instead.
 		setTimeout(() => rescueFocus());
 	}}
+	oncancel={(event) => {
+		// Escape. A browser lets a page refuse this once per press it saw, then closes anyway.
+		if (!held) return;
+		event.preventDefault();
+		onheld?.();
+	}}
 	onclick={(event) => {
 		// A click on the backdrop lands on the dialog itself.
-		if (event.target === dialog) onclose();
+		if (event.target === dialog) close();
 	}}
 >
 	<div
@@ -108,7 +123,7 @@
 			type="button"
 			class="relative inline-flex size-9 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-text {touchTarget}"
 			aria-label="Close"
-			onclick={onclose}
+			onclick={close}
 		>
 			<Icon name="close" />
 		</button>
