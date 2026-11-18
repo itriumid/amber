@@ -1,5 +1,6 @@
 <!-- Opening a locked list, with its passphrase or its recovery code (docs/locked-lists.md). -->
 <script lang="ts">
+	import Box from './Box.svelte';
 	import { amber } from '#lib/amber.svelte.js';
 	import { locks } from '#lib/locks.svelte.js';
 	import { get, value } from '#lib/model/list.js';
@@ -63,10 +64,7 @@
 				</Problem>
 			{/if}
 		</div>
-		<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
-			<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={show} />
-			Show what you type
-		</label>
+		<Box bind:checked={show}>Show what you type</Box>
 		<button type="submit" class={primaryButton} disabled={busy || !secret}>
 			{busy ? 'Opening…' : 'Open'}
 		</button>

@@ -1,6 +1,7 @@
 <!-- A locked list's recovery code, shown once (docs/locked-lists.md): the code, Copy, and the box to
      tick once it's kept. Its sheet holds itself open until then; asked to close, it says why here. -->
 <script lang="ts">
+	import Box from './Box.svelte';
 	import { locks } from '#lib/locks.svelte.js';
 	import { smallButton } from '#lib/styles.js';
 
@@ -35,10 +36,7 @@
 	<button type="button" class={smallButton} onclick={copy}>{copied ? 'Copied' : 'Copy'}</button>
 </div>
 <p class="sr-only" role="status">{copied ? 'Recovery code copied' : ''}</p>
-<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
-	<input type="checkbox" class="size-4 accent-accent-edge" bind:this={box} bind:checked={kept} />
-	I've kept it somewhere safe
-</label>
+<Box bind:checked={kept} bind:box>I've kept it somewhere safe</Box>
 {#if mustKeep && !kept}
 	<p class="text-sm" role="alert">Keep the code before closing: it's shown only this once.</p>
 {/if}

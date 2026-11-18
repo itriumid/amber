@@ -4,6 +4,7 @@
      list that has tasks already, that copies made before still hold them in plain text, with the
      offer to delete this device's own. -->
 <script lang="ts">
+	import Box from './Box.svelte';
 	import { amber } from '#lib/amber.svelte.js';
 	import { locks } from '#lib/locks.svelte.js';
 	import { tasksShownIn } from '#lib/model/actions.js';
@@ -161,18 +162,14 @@
 					/>
 				</div>
 			{/if}
-			<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
-				<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={show} />
-				Show the passphrase
-			</label>
+			<Box bind:checked={show}>Show the passphrase</Box>
 			{#if hasTasks && plainCopies}
 				<!-- Only the copies that hold this list in plain text: the others are left alone. -->
-				<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
-					<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={deleteCopies} />
-					Also delete {plainCopies === 1 ? 'the copy' : `the ${plainCopies} copies`} on this device that
+				<Box bind:checked={deleteCopies}
+					>Also delete {plainCopies === 1 ? 'the copy' : `the ${plainCopies} copies`} on this device that
 					{plainCopies === 1 ? 'has' : 'have'}
-					{name} in plain text
-				</label>
+					{name} in plain text</Box
+				>
 			{/if}
 			<button type="submit" class={primaryButton} disabled={busy || !passphrase}>
 				{busy ? 'Locking…' : `Lock ${name}`}
