@@ -97,10 +97,18 @@
 	>
 		<option value="" disabled>Move to…</option>
 		<option value="none">No category</option>
+		<!-- Not into a locked list: moving several at once can't seal them on the way. One task's
+		     sheet can, with the list open. -->
 		{#each tree as { category, children } (category.identifier)}
-			<option value={category.identifier}>{value(category, 'name')}</option>
+			{#if !value(category, 'lock')}
+				<option value={category.identifier}>{value(category, 'name')}</option>
+			{/if}
 			{#each children as child (child.identifier)}
-				<option value={child.identifier}>{value(category, 'name')} › {value(child, 'name')}</option>
+				{#if !value(child, 'lock')}
+					<option value={child.identifier}
+						>{value(category, 'name')} › {value(child, 'name')}</option
+					>
+				{/if}
 			{/each}
 		{/each}
 	</select>

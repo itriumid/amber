@@ -135,6 +135,7 @@
 					type="button"
 					class={secondaryButton}
 					aria-pressed={revealed}
+					data-autofocus
 					onclick={() => (revealed = !revealed)}
 					><Icon name="eye" class="size-4" />{revealed ? 'Hide' : 'Reveal'}</button
 				>

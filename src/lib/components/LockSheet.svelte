@@ -9,7 +9,8 @@
 	import { tasksShownIn } from '#lib/model/actions.js';
 	import { get, value } from '#lib/model/list.js';
 	import { MINIMUM_PASSPHRASE } from '#lib/sealing.js';
-	import { field, label, primaryButton, smallButton } from '#lib/styles.js';
+	import { field, label, primaryButton } from '#lib/styles.js';
+	import RecoveryCode from './RecoveryCode.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let {
@@ -40,7 +41,6 @@
 	let busy = $state(false);
 	let recoveryCode = $state<string>();
 	let kept = $state(false);
-	let copied = $state(false);
 	// Asked to close before the code was kept: said why it stays, and focus goes to the box.
 	let mustKeep = $state(false);
 	let keptBox: HTMLInputElement | undefined = $state();
@@ -48,7 +48,7 @@
 	$effect(() => {
 		if (!identifier && !newName) return;
 		passphrase = again = '';
-		show = deleteCopies = kept = copied = busy = mustKeep = false;
+		show = deleteCopies = kept = busy = mustKeep = false;
 		problem = recoveryCode = undefined;
 	});
 
@@ -77,12 +77,6 @@
 			busy = false;
 		}
 	}
-
-	async function copyCode() {
-		if (!recoveryCode) return;
-		await navigator.clipboard.writeText(recoveryCode);
-		copied = true;
-	}
 </script>
 
 <Sheet
@@ -100,29 +94,7 @@
 			{name} is locked. If you forget its passphrase, this code opens it instead. Nobody else can open
 			it without one of them, us included, so keep the code somewhere safe, apart from this device.
 		</p>
-		<div class="flex flex-wrap items-center gap-3">
-			<p
-				class="rounded-md border border-control-border px-3 py-2 font-mono text-base tracking-wider"
-			>
-				{recoveryCode}
-			</p>
-			<button type="button" class={smallButton} onclick={copyCode}>
-				{copied ? 'Copied' : 'Copy'}
-			</button>
-		</div>
-		<p class="sr-only" role="status">{copied ? 'Recovery code copied' : ''}</p>
-		<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
-			<input
-				type="checkbox"
-				class="size-4 accent-accent-edge"
-				bind:this={keptBox}
-				bind:checked={kept}
-			/>
-			I've kept it somewhere safe
-		</label>
-		{#if mustKeep && !kept}
-			<p class="text-sm" role="alert">Keep the code before closing: it's shown only this once.</p>
-		{/if}
+		<RecoveryCode code={recoveryCode} bind:kept bind:box={keptBox} {mustKeep} />
 		<button type="button" class={primaryButton} disabled={!kept} onclick={onclose}>Done</button>
 	{:else}
 		<form class="space-y-4" onsubmit={lock}>

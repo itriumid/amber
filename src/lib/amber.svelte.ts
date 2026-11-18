@@ -148,6 +148,17 @@ class Amber {
 		this.act('Copy put back', (context) => restore(context, snapshot.records));
 	}
 
+	/**
+	 * Drops what Undo remembers about these records. A locked list's history holds what it said
+	 * before it was sealed: once it closes, that mustn't be one key press away, or in memory.
+	 */
+	forget(identifiers: Set<string>) {
+		const touches = (entry: { changes: Change[] }) =>
+			entry.changes.some((change) => identifiers.has(change.identifier));
+		this.history = this.history.filter((entry) => !touches(entry));
+		if (this.notice && touches(this.notice)) this.notice = undefined;
+	}
+
 	undo() {
 		const last = this.history.at(-1);
 		if (!last || this.readOnly) return;

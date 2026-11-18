@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { server } from '../sync/testing';
 
 // Every problem the browser reports: script errors, and anything the security policy blocked.
@@ -1898,4 +1898,125 @@ test('locks an existing list after saying what stays in plain text, and moves a 
 	const again = await lists(page);
 	await again.getByRole('button', { name: /^All tasks/ }).click();
 	await expect(task(page, 'Door code 1984')).toBeVisible();
+});
+
+test('makes a new recovery code from the passphrase, and the old one stops working', async ({
+	page
+}) => {
+	const old = await makeLockedList(page, 'Passwords');
+	await page.getByRole('button', { name: 'Edit Passwords' }).first().click();
+	const editor = page.getByRole('dialog', { name: 'Category: Passwords' });
+	await editor.getByText('Make a new recovery code').click();
+	await editor.getByLabel('Passphrase', { exact: true }).fill(old);
+	await editor.getByRole('button', { name: 'Make a new code' }).click();
+	await expect(editor.getByRole('alert')).toContainText("A recovery code can't make another one.");
+	await editor.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
+	await editor.getByRole('button', { name: 'Make a new code' }).click();
+	const code = (await editor.locator('.font-mono').textContent())!.trim();
+	expect(code).not.toBe(old);
+	// Held open, as when the list was locked, until it's kept.
+	await page.keyboard.press('Escape');
+	await expect(editor.getByRole('alert')).toContainText("it's shown only this once");
+	expect(await axeViolations(page)).toEqual([]);
+	await editor.getByLabel("I've kept it somewhere safe").check();
+	await editor.getByRole('button', { name: 'Done' }).click();
+	await page.keyboard.press('Escape');
+	await expect(editor).toBeHidden();
+
+	await page.getByRole('button', { name: 'Lock Passwords' }).click();
+	await page.getByRole('button', { name: 'Open Passwords' }).click();
+	const open = page.getByRole('dialog', { name: 'Open Passwords' });
+	await open.getByLabel('Passphrase or recovery code').fill(old);
+	await open.getByRole('button', { name: 'Open', exact: true }).click();
+	await expect(open.getByRole('alert')).toBeVisible();
+	await open.getByLabel('Passphrase or recovery code').fill(code);
+	await open.getByRole('button', { name: 'Open', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Lock Passwords' })).toBeVisible();
+});
+
+test('brings nothing back in plain text with Undo once a locked list has closed', async ({
+	page
+}) => {
+	const sidebar = await lists(page);
+	await sidebar.getByLabel('New category').fill('Home');
+	await sidebar.getByLabel('New category').press('Enter');
+	await addTask(page, 'Door code 1984');
+	await page.getByRole('button', { name: 'Edit Home' }).first().click();
+	const editor = page.getByRole('dialog', { name: 'Category: Home' });
+	await editor.locator('label', { has: page.getByRole('radio', { name: 'Locked list' }) }).click();
+	const sheet = page.getByRole('dialog', { name: 'Lock Home' });
+	await sheet.getByLabel('Passphrase', { exact: true }).fill(PASSPHRASE);
+	await sheet.getByLabel('Type it again').fill(PASSPHRASE);
+	await sheet.getByRole('button', { name: 'Lock Home' }).click();
+	const kept = page.getByRole('dialog', { name: 'Keep the recovery code' });
+	await kept.getByLabel("I've kept it somewhere safe").check();
+	await kept.getByRole('button', { name: 'Done' }).click();
+	await page.getByRole('button', { name: 'Lock Home' }).click();
+	// The locking, and the rename and the adding before it, are all forgotten.
+	for (let press = 0; press < 4; press++) await page.keyboard.press('Control+z');
+	await expect(page.getByRole('button', { name: 'Open Home' })).toBeVisible();
+	expect(await page.locator('body').innerText()).not.toContain('Door code');
+	await page.reload();
+	await expect(page.getByRole('button', { name: 'Open Home' }).first()).toBeVisible();
+	expect(await page.locator('body').innerText()).not.toContain('Door code');
+});
+
+test('never offers a locked list to move several tasks into', async ({ page }) => {
+	await makeLockedList(page, 'Passwords');
+	const sidebar = await lists(page);
+	await sidebar.getByRole('button', { name: /^No category/ }).click();
+	await addTask(page, 'Buy milk');
+	await page.getByRole('button', { name: 'Select' }).click();
+	await page.getByRole('checkbox', { name: 'Select: Buy milk' }).check();
+	const options = await page
+		.getByRole('group', { name: 'Selected tasks' })
+		.getByRole('combobox')
+		.locator('option')
+		.allTextContents();
+	expect(options).not.toContain('Passwords');
+	expect(options).toContain('No category');
+});
+
+test('seals an edit a stale device made in plain text, and keeps it', async ({ page }) => {
+	await makeLockedList(page, 'Passwords');
+	await addTask(page, 'Wifi');
+	await page.getByRole('button', { name: 'Lock Passwords' }).click();
+	const sheet = await backup(page);
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		sheet.getByRole('button', { name: 'Download a file' }).click()
+	]);
+	await page.keyboard.press('Escape');
+	// As a device that didn't know the list was locked would write it: plain notes, newer.
+	const later = (stamp: string) => {
+		const [time, counter, device] = stamp.split('.');
+		return `${time}.${(parseInt(counter, 36) + 1).toString(36).padStart(4, '0')}.${device}`;
+	};
+	const contents = JSON.parse(await readFile((await download.path())!, 'utf8'));
+	const records: { kind: string; fields: Record<string, { value: unknown; stamp: string }> }[] =
+		contents.records;
+	const wifi = records.find((record) => record.kind === 'task' && record.fields.sealedTitle.value)!;
+	wifi.fields.notes = { value: 'stale plain note', stamp: later(wifi.fields.sealedNotes.stamp) };
+	const stale = test.info().outputPath('stale.json');
+	await writeFile(stale, JSON.stringify(contents));
+	const again = await backup(page);
+	await again.getByLabel('Open a file').setInputFiles(stale);
+	await page
+		.getByRole('dialog', { name: 'Bring in a list' })
+		.getByRole('button', { name: 'Bring it in' })
+		.click();
+
+	await openLocked(page, 'Passwords', PASSPHRASE);
+	await expect(notice(page)).toContainText('Locked 1 new in Passwords');
+	await task(page, 'Hidden entry 1').click();
+	const details = page.getByRole('dialog', { name: 'Task in Passwords' });
+	await details.getByRole('button', { name: 'Reveal' }).click();
+	await expect(details.getByLabel('Notes')).toHaveValue('stale plain note');
+	await page.keyboard.press('Escape');
+	const last = await backup(page);
+	const [sealed] = await Promise.all([
+		page.waitForEvent('download'),
+		last.getByRole('button', { name: 'Download a file' }).click()
+	]);
+	expect(await readFile((await sealed.path())!, 'utf8')).not.toContain('stale plain note');
 });

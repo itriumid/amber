@@ -10,6 +10,8 @@ import {
 	addCategory,
 	addSealedStep,
 	addSealedTask,
+	everyStepOf,
+	everyTaskIn,
 	lockList,
 	lockedListOf,
 	moveIntoLocked,
@@ -22,18 +24,17 @@ import {
 	type SealedTask
 } from './model/actions';
 import { newIdentifier } from './model/identifiers';
+import { get, value, type Category, type Records, type Step, type Task } from './model/list';
 import {
-	get,
-	stepsOf,
-	value,
-	type Category,
-	type Records,
-	type Step,
-	type Task
-} from './model/list';
-import { changePassphrase, createLock, openLock, seal, unseal, type Sealed } from './sealing';
+	changePassphrase,
+	checksPassphrase,
+	createLock,
+	openLock,
+	seal,
+	unseal,
+	type Sealed
+} from './sealing';
 import { deleteSnapshots } from './storage';
-import { tasksShownIn } from './model/actions';
 
 /** How long an open locked list waits for the next touch, click or key before closing itself. */
 export const IDLE_LIMIT = 5 * 60 * 1000;
@@ -53,6 +54,8 @@ class Locks {
 	private lastUse = Date.now();
 	private watching = false;
 	private generation = 0;
+	/** Counts every closing, so a list being opened while the page was hidden stays closed. */
+	private closings = 0;
 
 	isOpen(categoryIdentifier: string | null): boolean {
 		return !!categoryIdentifier && this.keys.has(categoryIdentifier);
@@ -81,30 +84,68 @@ class Locks {
 	async open(category: Category, secret: string): Promise<boolean> {
 		const lock = value(category, 'lock');
 		if (!lock) return false;
+		const closings = this.closings;
 		const key = await openLock(lock, secret);
 		if (!key) return false;
-		this.keys = new Map([...this.keys, [category.identifier, key]]);
-		this.used();
-		this.watch();
+		// Hidden while the passphrase was being checked (it takes a moment): it stays closed.
+		if (!this.admit(category.identifier, key, closings)) return true;
 		await this.refresh(amber.records);
 		await this.sealStragglers(category);
 		return true;
 	}
 
+	/** Holds an open list's key, unless something closed the lists since `closings` was read. */
+	private admit(categoryIdentifier: string, key: CryptoKey, closings: number): boolean {
+		if (closings !== this.closings) return false;
+		this.keys = new Map([...this.keys, [categoryIdentifier, key]]);
+		this.used();
+		this.watch();
+		return true;
+	}
+
+	/** The identifiers of a list and of everything in it, deleted records too. */
+	private recordsOf(categoryIdentifier: string): Set<string> {
+		const identifiers = [categoryIdentifier];
+		for (const task of everyTaskIn(amber.records, categoryIdentifier)) {
+			identifiers.push(task.identifier);
+			for (const step of everyStepOf(amber.records, task.identifier))
+				identifiers.push(step.identifier);
+		}
+		return new Set(identifiers);
+	}
+
+	/**
+	 * What closing leaves behind: nothing opened in memory, and nothing Undo could put back in
+	 * plain text. Undo's history for the list holds what it said before it was locked.
+	 */
+	private forget(categoryIdentifier: string) {
+		const identifiers = this.recordsOf(categoryIdentifier);
+		this.plain = new Map(
+			[...this.plain].filter(([name]) => !identifiers.has(name.slice(0, name.indexOf(':'))))
+		);
+		amber.forget(identifiers);
+	}
+
 	close(categoryIdentifier: string) {
+		this.closings++;
 		if (!this.keys.has(categoryIdentifier)) return;
+		this.generation++;
 		this.keys = new Map([...this.keys].filter(([identifier]) => identifier !== categoryIdentifier));
 		this.revealed = undefined;
+		this.forget(categoryIdentifier);
 		void this.refresh(amber.records);
 	}
 
 	closeAll() {
+		this.closings++;
 		if (!this.keys.size) return;
 		// A refresh still working mustn't put opened text back after it's dropped.
 		this.generation++;
+		const closing = [...this.keys.keys()];
 		this.keys = new Map();
 		this.plain = new Map();
 		this.revealed = undefined;
+		for (const categoryIdentifier of closing) this.forget(categoryIdentifier);
 	}
 
 	reveal(identifier: string) {
@@ -137,12 +178,12 @@ class Locks {
 		const generation = ++this.generation;
 		const work: { key: CryptoKey; identifier: string; name: string; sealed: Sealed }[] = [];
 		for (const [categoryIdentifier, key] of this.keys)
-			for (const task of tasksShownIn(records, categoryIdentifier)) {
+			for (const task of everyTaskIn(records, categoryIdentifier)) {
 				for (const name of ['sealedTitle', 'sealedNotes'] as const) {
 					const sealed = value(task, name);
 					if (sealed) work.push({ key, identifier: task.identifier, name, sealed });
 				}
-				for (const step of stepsOf(records, task.identifier)) {
+				for (const step of everyStepOf(records, task.identifier)) {
 					const sealed = value(step, 'sealedText');
 					if (sealed) work.push({ key, identifier: step.identifier, name: 'sealedText', sealed });
 				}
@@ -175,19 +216,64 @@ class Locks {
 	}
 
 	/**
-	 * Tasks that came in plain from a device that didn't know the list was locked yet are sealed
-	 * as soon as it's open, as one change.
+	 * Seals what came into an open list in plain text, as one change: tasks and steps from a device
+	 * that didn't know it was locked yet, an edit it made after, tasks moved in from a deleted
+	 * subcategory, and tags. Run when a list opens, and after it's locked.
 	 */
 	private async sealStragglers(category: Category) {
-		const key = this.keyFor(category.identifier)!;
-		const plain = tasksShownIn(amber.records, category.identifier).filter(
-			(task) => !value(task, 'sealedTitle') && value(task, 'title')
+		const key = this.keyFor(category.identifier);
+		const lock = value(category, 'lock');
+		if (!key || !lock) return;
+		const { tasks, steps, plain } = await this.sealAll(key, category, false);
+		if (!this.isOpen(category.identifier)) return;
+		amber.act(
+			plain
+				? `Locked ${plain} new in ${value(category, 'name')}`
+				: `Took the tags off ${value(category, 'name')}`,
+			(context) => lockList(context, category, lock, tasks, steps)
 		);
-		if (!plain.length) return;
-		const { tasks, steps } = await this.sealEach(key, plain);
-		amber.act(`Locked ${plain.length} new in ${value(category, 'name')}`, (context) =>
-			lockList(context, category, value(category, 'lock')!, tasks, steps)
-		);
+	}
+
+	/**
+	 * The sealed values for every task and step in a list, deleted ones too. A plain value is sealed
+	 * when it's newer than the sealed one (an edit from a device that didn't know the list was
+	 * locked); otherwise the sealed one stays, or, with `rekey`, is sealed again under `key`. Also
+	 * counts the tasks that had anything plain.
+	 */
+	private async sealAll(key: CryptoKey, category: Category, rekey: boolean) {
+		const sealedTasks: [string, SealedTask][] = [];
+		const sealedSteps: [string, Sealed][] = [];
+		let plain = 0;
+		const sealField = async (
+			entity: Task | Step,
+			plainName: 'title' | 'notes' | 'text',
+			sealedName: 'sealedTitle' | 'sealedNotes' | 'sealedText'
+		): Promise<{ sealed: Sealed; plain: boolean }> => {
+			const fields = entity.fields as unknown as Record<
+				string,
+				{ value: string | Sealed | null; stamp: string }
+			>;
+			const text = fields[plainName].value as string;
+			const sealed = fields[sealedName].value as Sealed | null;
+			if (text && (!sealed || fields[plainName].stamp > fields[sealedName].stamp))
+				return { sealed: await seal(key, entity.identifier, sealedName, text), plain: true };
+			const opened = this.plain.get(field(entity.identifier, sealedName));
+			if (sealed && (!rekey || opened === undefined)) return { sealed, plain: false };
+			return { sealed: await seal(key, entity.identifier, sealedName, opened ?? ''), plain: false };
+		};
+		for (const task of everyTaskIn(amber.records, category.identifier)) {
+			const title = await sealField(task, 'title', 'sealedTitle');
+			const notes = await sealField(task, 'notes', 'sealedNotes');
+			let anyPlain = title.plain || notes.plain;
+			sealedTasks.push([task.identifier, { sealedTitle: title.sealed, sealedNotes: notes.sealed }]);
+			for (const step of everyStepOf(amber.records, task.identifier)) {
+				const text = await sealField(step, 'text', 'sealedText');
+				anyPlain ||= text.plain;
+				sealedSteps.push([step.identifier, text.sealed]);
+			}
+			if (anyPlain) plain++;
+		}
+		return { tasks: new Map(sealedTasks), steps: new Map(sealedSteps), plain };
 	}
 
 	private async sealTask(
@@ -202,43 +288,26 @@ class Locks {
 		};
 	}
 
-	private async sealEach(key: CryptoKey, tasks: Task[]) {
-		const sealedTasks: [string, SealedTask][] = [];
-		const sealedSteps: [string, Sealed][] = [];
-		for (const task of tasks) {
-			sealedTasks.push([
-				task.identifier,
-				await this.sealTask(key, task.identifier, this.title(task), this.notes(task))
-			]);
-			for (const step of stepsOf(amber.records, task.identifier))
-				sealedSteps.push([
-					step.identifier,
-					await seal(key, step.identifier, 'sealedText', this.stepText(step))
-				]);
-		}
-		return { tasks: new Map(sealedTasks), steps: new Map(sealedSteps) };
-	}
-
 	/**
 	 * Locks a list, new or existing: a new data key, wrapped by the passphrase and a recovery code,
 	 * and everything in the list sealed with it, in one change. The list is left open. Returns the
 	 * recovery code, to show once.
 	 */
 	async lock(category: Category, passphrase: string, deleteCopies: boolean): Promise<string> {
+		const closings = this.closings;
 		const { lock, key, recoveryCode } = await createLock(passphrase);
-		const { tasks, steps } = await this.sealEach(
-			key,
-			tasksShownIn(amber.records, category.identifier)
-		);
+		const { tasks, steps } = await this.sealAll(key, category, false);
 		amber.act(`Locked ${value(category, 'name')}`, (context) =>
 			lockList(context, category, lock, tasks, steps)
 		);
-		this.keys = new Map([...this.keys, [category.identifier, key]]);
-		this.used();
-		this.watch();
 		// What this device kept before still has the list in plain text, if the person wants it gone.
 		if (deleteCopies) await deleteSnapshots();
+		// Hidden while it was being locked: it's locked, and stays closed.
+		if (!this.admit(category.identifier, key, closings)) return recoveryCode;
 		await this.refresh(amber.records);
+		// Anything that arrived while it was being sealed.
+		const locked = get(amber.records, category.identifier, 'category');
+		if (locked) await this.sealStragglers(locked);
 		return recoveryCode;
 	}
 
@@ -247,6 +316,7 @@ class Locks {
 	 * Returns its identifier and the recovery code, to show once.
 	 */
 	async lockNew(name: string, passphrase: string) {
+		const closings = this.closings;
 		const { lock, key, recoveryCode } = await createLock(passphrase);
 		const made = amber.act(`Made ${name.trim()}, locked`, (context) => {
 			const added = addCategory(context, name);
@@ -260,9 +330,7 @@ class Locks {
 			};
 		});
 		if (!made) return undefined;
-		this.keys = new Map([...this.keys, [made.category.identifier, key]]);
-		this.used();
-		this.watch();
+		this.admit(made.category.identifier, key, closings);
 		return { identifier: made.category.identifier, recoveryCode };
 	}
 
@@ -270,14 +338,14 @@ class Locks {
 	unlockForGood(category: Category, bucket = false) {
 		if (!this.isOpen(category.identifier)) return;
 		const tasks = new Map(
-			tasksShownIn(amber.records, category.identifier).map((task) => [
+			everyTaskIn(amber.records, category.identifier).map((task) => [
 				task.identifier,
 				{ title: this.title(task), notes: this.notes(task) }
 			])
 		);
 		const steps = new Map(
-			tasksShownIn(amber.records, category.identifier).flatMap((task) =>
-				stepsOf(amber.records, task.identifier).map(
+			everyTaskIn(amber.records, category.identifier).flatMap((task) =>
+				everyStepOf(amber.records, task.identifier).map(
 					(step) => [step.identifier, this.stepText(step)] as const
 				)
 			)
@@ -296,6 +364,31 @@ class Locks {
 		if (!changed) return false;
 		amber.act('Passphrase changed', (context) => setLock(context, category, changed));
 		return true;
+	}
+
+	/**
+	 * A new recovery code in place of a lost one, for an open list, from its passphrase. Everything
+	 * is sealed again under a new key, so the old code can't open anything written from now on,
+	 * even with an older copy of the lock. Undefined when the passphrase doesn't fit.
+	 */
+	async newRecoveryCode(category: Category, passphrase: string): Promise<string | undefined> {
+		const lock = value(category, 'lock');
+		if (!lock || !this.isOpen(category.identifier)) return undefined;
+		if (!(await checksPassphrase(lock, passphrase))) return undefined;
+		const closings = this.closings;
+		const made = await createLock(passphrase);
+		await this.refresh(amber.records);
+		if (closings !== this.closings) return undefined;
+		const { tasks, steps } = await this.sealAll(made.key, category, true);
+		if (closings !== this.closings) return undefined;
+		amber.act('New recovery code made', (context) =>
+			lockList(context, category, made.lock, tasks, steps)
+		);
+		this.keys = new Map([...this.keys, [category.identifier, made.key]]);
+		// Undone, it would bring back the old key, which the list open now can't read: it can't be.
+		amber.forget(this.recordsOf(category.identifier));
+		await this.refresh(amber.records);
+		return made.recoveryCode;
 	}
 
 	async addTask(categoryIdentifier: string, title: string): Promise<boolean> {
@@ -358,7 +451,7 @@ class Locks {
 				this.notes(task)
 			);
 			const sealedSteps: [string, Sealed][] = [];
-			for (const step of stepsOf(amber.records, task.identifier))
+			for (const step of everyStepOf(amber.records, task.identifier))
 				sealedSteps.push([
 					step.identifier,
 					await seal(toKey, step.identifier, 'sealedText', this.stepText(step))
@@ -371,7 +464,7 @@ class Locks {
 		}
 		const plain = { title: this.title(task), notes: this.notes(task) };
 		const steps = new Map(
-			stepsOf(amber.records, task.identifier).map(
+			everyStepOf(amber.records, task.identifier).map(
 				(step) => [step.identifier, this.stepText(step)] as const
 			)
 		);

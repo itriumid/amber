@@ -16,6 +16,7 @@
 	import ColorChoice from './ColorChoice.svelte';
 	import Icon from './Icon.svelte';
 	import ListKind, { type ListKindName } from './ListKind.svelte';
+	import RecoveryCode from './RecoveryCode.svelte';
 	import Sheet from './Sheet.svelte';
 
 	let {
@@ -85,6 +86,35 @@
 			passphraseChanged = true;
 		}
 	}
+
+	// A new recovery code, in place of a lost one: shown once, and the sheet stays open until it's
+	// kept, as when the list was locked.
+	let codePassphrase = $state('');
+	let codeProblem = $state<string>();
+	let newCode = $state<string>();
+	let codeKept = $state(false);
+	let mustKeep = $state(false);
+	let codeBox: HTMLInputElement | undefined = $state();
+	$effect(() => {
+		void identifier;
+		codePassphrase = '';
+		codeProblem = newCode = undefined;
+		codeKept = mustKeep = false;
+	});
+
+	async function makeRecoveryCode(event: SubmitEvent) {
+		event.preventDefault();
+		if (!category) return;
+		const code = await locks.newRecoveryCode(category, codePassphrase);
+		if (!code) {
+			codeProblem = "That passphrase doesn't fit. A recovery code can't make another one.";
+			return;
+		}
+		codePassphrase = '';
+		codeProblem = undefined;
+		codeKept = mustKeep = false;
+		newCode = code;
+	}
 </script>
 
 <!-- Named for what's being edited, so a screen reader hears which one. -->
@@ -94,6 +124,11 @@
 		? `${parent ? 'Subcategory' : 'Category'}: ${value(category, 'name')}`
 		: 'Category'}
 	{onclose}
+	held={!!newCode && !codeKept}
+	onheld={() => {
+		mustKeep = true;
+		codeBox?.focus();
+	}}
 >
 	{#if category}
 		<div>
@@ -165,6 +200,53 @@
 						onclick={() => (passphraseChanged = false)}>Change passphrase</button
 					>
 				</form>
+			</details>
+			<details class="group/recovery" open={!!newCode}>
+				<summary class="cursor-pointer text-sm font-medium">Make a new recovery code</summary>
+				<div class="mt-3 space-y-3">
+					{#if newCode}
+						<p class="text-sm">
+							Everything in {value(category, 'name')} is sealed again, so the old code no longer opens
+							it, only copies made before now. Keep this one somewhere safe, apart from this device.
+						</p>
+						<RecoveryCode code={newCode} bind:kept={codeKept} bind:box={codeBox} {mustKeep} />
+						<button
+							type="button"
+							class={secondaryButton}
+							disabled={!codeKept}
+							onclick={() => (newCode = undefined)}>Done</button
+						>
+					{:else if !isOpen}
+						<p class="text-sm text-muted">
+							Open {value(category, 'name')} first, to make a new code.
+						</p>
+					{:else}
+						<form class="space-y-3" onsubmit={makeRecoveryCode}>
+							<p class="text-sm text-muted">
+								For a lost code. The old one stops working, and the passphrase stays as it is.
+							</p>
+							<div>
+								<label for="{prefix}-code-passphrase" class={label}>Passphrase</label>
+								<input
+									id="{prefix}-code-passphrase"
+									type="password"
+									class={field}
+									bind:value={codePassphrase}
+									oninput={() => (codeProblem = undefined)}
+									autocomplete="current-password"
+									aria-invalid={!!codeProblem}
+									aria-describedby={codeProblem ? `${prefix}-code-problem` : undefined}
+								/>
+							</div>
+							{#if codeProblem}
+								<p id="{prefix}-code-problem" class="text-sm" role="alert">{codeProblem}</p>
+							{/if}
+							<button type="submit" class={secondaryButton} disabled={!codePassphrase}
+								>Make a new code</button
+							>
+						</form>
+					{/if}
+				</div>
 			</details>
 		{/if}
 
