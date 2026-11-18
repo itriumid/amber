@@ -1767,6 +1767,11 @@ async function makeLockedList(page: Page, name: string) {
 	const code = (await kept.locator('.font-mono').textContent())!.trim();
 	expect(code).toMatch(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){5}$/);
 	await expect(kept.getByRole('button', { name: 'Done' })).toBeDisabled();
+	// Shown only once, so it can't be closed away before it's kept.
+	await page.keyboard.press('Escape');
+	await kept.getByRole('button', { name: 'Close' }).click();
+	await expect(kept.getByRole('alert')).toContainText("it's shown only this once");
+	await expect(kept.getByLabel("I've kept it somewhere safe")).toBeFocused();
 	await kept.getByLabel("I've kept it somewhere safe").check();
 	await kept.getByRole('button', { name: 'Done' }).click();
 	return code;

@@ -41,11 +41,14 @@
 	let recoveryCode = $state<string>();
 	let kept = $state(false);
 	let copied = $state(false);
+	// Asked to close before the code was kept: said why it stays, and focus goes to the box.
+	let mustKeep = $state(false);
+	let keptBox: HTMLInputElement | undefined = $state();
 
 	$effect(() => {
 		if (!identifier && !newName) return;
 		passphrase = again = '';
-		show = deleteCopies = kept = copied = busy = false;
+		show = deleteCopies = kept = copied = busy = mustKeep = false;
 		problem = recoveryCode = undefined;
 	});
 
@@ -82,7 +85,16 @@
 	}
 </script>
 
-<Sheet {open} title={recoveryCode ? 'Keep the recovery code' : `Lock ${name}`} {onclose}>
+<Sheet
+	{open}
+	title={recoveryCode ? 'Keep the recovery code' : `Lock ${name}`}
+	{onclose}
+	held={!!recoveryCode && !kept}
+	onheld={() => {
+		mustKeep = true;
+		keptBox?.focus();
+	}}
+>
 	{#if recoveryCode}
 		<p class="text-sm">
 			{name} is locked. If you forget its passphrase, this code opens it instead. Nobody else can open
@@ -100,9 +112,17 @@
 		</div>
 		<p class="sr-only" role="status">{copied ? 'Recovery code copied' : ''}</p>
 		<label class="flex min-h-10 items-center gap-2 text-sm pointer-coarse:min-h-11">
-			<input type="checkbox" class="size-4 accent-accent-edge" bind:checked={kept} />
+			<input
+				type="checkbox"
+				class="size-4 accent-accent-edge"
+				bind:this={keptBox}
+				bind:checked={kept}
+			/>
 			I've kept it somewhere safe
 		</label>
+		{#if mustKeep && !kept}
+			<p class="text-sm" role="alert">Keep the code before closing: it's shown only this once.</p>
+		{/if}
 		<button type="button" class={primaryButton} disabled={!kept} onclick={onclose}>Done</button>
 	{:else}
 		<form class="space-y-4" onsubmit={lock}>
