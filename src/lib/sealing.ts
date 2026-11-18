@@ -55,6 +55,8 @@ function isWrapped(value: unknown): value is Wrapped {
 		typeof wrapped.salt === 'string' &&
 		Number.isInteger(wrapped.iterations) &&
 		wrapped.iterations >= 100_000 &&
+		// A file or link brought in could ask for billions, and hang the page as it opens.
+		wrapped.iterations <= 10_000_000 &&
 		isSealed(wrapped.key)
 	);
 }
@@ -168,6 +170,16 @@ export async function changePassphrase(
 	const changed = { passphrase: await wrap(raw, next), recovery: lock.recovery };
 	raw.fill(0);
 	return changed;
+}
+
+/**
+ * Whether this is the list's passphrase. Making a new recovery code needs it, rather than the
+ * code: a lost code is what that's for.
+ */
+export async function checksPassphrase(lock: Lock, passphrase: string): Promise<boolean> {
+	const raw = await unwrap(lock.passphrase, passphrase);
+	raw?.fill(0);
+	return !!raw;
 }
 
 /**
