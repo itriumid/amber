@@ -75,11 +75,14 @@
 	aria-label="Selected tasks"
 	class="fixed inset-x-0 bottom-4 z-20 mx-auto flex w-[min(40rem,calc(100%-2rem))] flex-wrap items-center gap-2 rounded-lg border border-control-border bg-surface p-2 pl-4 text-sm shadow-lg"
 >
+	<!-- On a phone, two rows on purpose: the count, Select all and Cancel, then the three actions
+	     sharing the second row evenly. At 390px a count and five actions don't fit one row. -->
 	<p class="mr-auto font-medium" role="status">{tasks.length} selected</p>
 	<button type="button" class={smallButton} onclick={onselectall}>Select all</button>
+	<span class="h-0 basis-full max-sm:order-1 sm:hidden" aria-hidden="true"></span>
 	<button
 		type="button"
-		class={smallButton}
+		class="{smallButton} max-sm:order-2 max-sm:flex-1"
 		disabled={!tasks.length}
 		onclick={() =>
 			act(
@@ -90,7 +93,7 @@
 	<label for="{prefix}-move" class="sr-only">Move to a category</label>
 	<select
 		id="{prefix}-move"
-		class="{smallButton} cursor-pointer bg-surface"
+		class="{smallButton} cursor-pointer bg-surface max-sm:order-2 max-sm:flex-1"
 		disabled={!tasks.length}
 		value=""
 		onchange={(event) => moveTo(event.currentTarget.value)}
@@ -112,8 +115,11 @@
 			{/each}
 		{/each}
 	</select>
-	<button type="button" class={smallButton} disabled={!tasks.length} onclick={() => void remove()}
-		>Delete</button
+	<button
+		type="button"
+		class="{smallButton} max-sm:order-2 max-sm:flex-1"
+		disabled={!tasks.length}
+		onclick={() => void remove()}>Delete</button
 	>
 	<button type="button" class={smallButton} onclick={onfinish}>Cancel</button>
 </div>

@@ -6,8 +6,6 @@
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT, PLATE } from '#lib/colors.js';
 	import CategoryEditor from '#lib/components/CategoryEditor.svelte';
-	import LockSheet from '#lib/components/LockSheet.svelte';
-	import UnlockSheet from '#lib/components/UnlockSheet.svelte';
 	import { locks } from '#lib/locks.svelte.js';
 	import Icon from '#lib/components/Icon.svelte';
 	import Notice from '#lib/components/Notice.svelte';
@@ -85,12 +83,22 @@
 	// The sheets for syncing, backing up, bringing in and installing load the first time they're opened:
 	// most visits never need them, or the code they bring (compression, encryption). Once loaded
 	// they stay, so closing one returns focus where it was, as a dialog should.
-	let loaded = $state({ sync: false, backup: false, bringIn: false, install: false });
+	let loaded = $state({
+		sync: false,
+		backup: false,
+		bringIn: false,
+		install: false,
+		lock: false,
+		unlock: false
+	});
 	$effect(() => {
 		if (syncOpen) loaded.sync = true;
 		if (backupOpen) loaded.backup = true;
 		if (bringing) loaded.bringIn = true;
 		if (installSteps) loaded.install = true;
+		// Locked lists' sheets too: most people never lock a list.
+		if (locking || lockingNew) loaded.lock = true;
+		if (unlocking) loaded.unlock = true;
 	});
 	let newTask = $state('');
 	let quickAdd: HTMLInputElement | undefined = $state();
@@ -935,13 +943,21 @@
 		unlocking = identifier;
 	}}
 />
-<LockSheet
-	identifier={locking}
-	newName={lockingNew}
-	onclose={() => (locking = lockingNew = undefined)}
-	onlocked={(identifier) => (view = { kind: 'category', identifier })}
-/>
-<UnlockSheet identifier={unlocking} onclose={() => (unlocking = undefined)} />
+{#if loaded.lock}
+	{#await import('#lib/components/LockSheet.svelte') then { default: LockSheet }}
+		<LockSheet
+			identifier={locking}
+			newName={lockingNew}
+			onclose={() => (locking = lockingNew = undefined)}
+			onlocked={(identifier) => (view = { kind: 'category', identifier })}
+		/>
+	{/await}
+{/if}
+{#if loaded.unlock}
+	{#await import('#lib/components/UnlockSheet.svelte') then { default: UnlockSheet }}
+		<UnlockSheet identifier={unlocking} onclose={() => (unlocking = undefined)} />
+	{/await}
+{/if}
 <TagEditor identifier={openTag} onclose={() => (openTag = undefined)} />
 {#if loaded.sync}
 	{#await import('#lib/components/SyncSheet.svelte') then { default: SyncSheet }}
