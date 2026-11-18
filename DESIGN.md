@@ -236,7 +236,9 @@ mode). Coral is saved as `rose` in existing lists, so the key stays; it moved of
 can't be taken for the accent. Each reaches 4.5:1 on the page and on cards in both modes. A list's
 color names it: a small dot (8–10px) beside a tag or category and on its drawer; its section's
 framed label in that color, words, frame and dot ("· Bucket list" added for a bucket list, and a
-small star on its drawer, from the start; "· Locked list" and a small lock for a locked list); and the edge of each of its tasks' empty
+small star on its drawer, from the start; "· Locked list" and a small lock for a locked list); the
+framed "Done (n)" that folds its done tasks away, and its Achieved shelf's label, in the same
+color, since both are still that list's; and the edge of each of its tasks' empty
 checkboxes, so a task shows which list it's in. Ticked, a box is pink whatever its list. New
 categories start with the next color not in use; "No color" stays a choice. Never as fills behind
 text, and never as a thick edge on a row or card.
@@ -385,7 +387,7 @@ from slip to slip, Enter opens, Space ticks, Delete deletes with Undo.
 ### Achieved Shelf (signature)
 
 On a bucket list, achieved dreams leave the tray for a shelf set in under it with a hairline on
-its left, so it reads as that list's shelf: framed "Achieved (n)", or "Achieved in Someday (n)"
+its left, so it reads as that list's shelf: framed in the list's color, "Achieved (n)", or "Achieved in Someday (n)"
 where a page shows several lists. Specimens sit in a grid (two across from 640px): a surface block
 with a control edge and 16px padding, the dream in semibold at 1.125rem and a collection label
 framed beneath, "Achieved" and the date. A dream ticked in the tray is carried onto the shelf over
