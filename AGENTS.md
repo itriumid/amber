@@ -94,6 +94,8 @@ Cloudflare's Workers Builds deploys `main`, so **anything merged ships.**
   600,000 iterations). Without one, a file is scrambled (deflate, then AES-GCM under a key anyone
   can make from `SCRAMBLE` in the source): not readable at a glance, and never called a lock. Its
   outside says `format: 3` with no records, so an Amber from before scrambled files asks to update.
+  A link without one is scrambled the same way, as `#list=.` and the scrambled bytes; the dot can't
+  start an older, only compressed `#list=` link, which still opens.
   `src/lib/fixtures/files/` holds a file and link of every kind and format, never edited, and
   `files.test.ts` opens every one. Links keep the list after the `#` and are taken out of the address at once.
   Bringing a list in always merges, shows a preview first, keeps a copy before, and can be undone.

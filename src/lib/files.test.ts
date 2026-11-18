@@ -17,6 +17,7 @@ describe('files and links Amber has made', () => {
 			'locked-format-2.json',
 			'scrambled-format-2.json',
 			'link-open-format-2.txt',
+			'link-scrambled-format-2.txt',
 			'link-locked-format-2.txt'
 		])
 			expect(fixtures).toContain(kind);

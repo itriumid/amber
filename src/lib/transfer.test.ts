@@ -98,6 +98,16 @@ describe('links', () => {
 		expect(unlocked.kind === 'list' && unlocked.records.length).toBe(Object.keys(records).length);
 	});
 
+	it('are scrambled without a passphrase, so nothing in them reads at a glance', async () => {
+		const { records } = list();
+		const link = await toLink(records);
+		expect(link.startsWith(`${LINK_PREFIX.open}.`)).toBe(true);
+		expect(link).not.toContain('Paint');
+		const reading = await readLink(link);
+		expect(reading.kind === 'list' && reading.records.length).toBe(Object.keys(records).length);
+		expect((await readLink(link.slice(0, -6))).kind).toBe('not-amber');
+	});
+
 	it('refuse a damaged link', async () => {
 		expect((await readLink('#list=garbage!!')).kind).toBe('not-amber');
 		expect((await readLink('#locked=abc')).kind).toBe('not-amber');

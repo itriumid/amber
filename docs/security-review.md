@@ -83,9 +83,9 @@ all are fixed and tested unless they're under the next heading.
   delete this device's copies that hold the list in plain text.
 - **Names while open.** An open locked list shows its entries' names, so the right one can be
   found; their notes, where the secret goes, stay hidden until revealed. Closed, nothing shows.
-- **Scrambled files aren't locked.** A file without a passphrase is encrypted under a key anyone
-  can make from Amber's source, so it isn't readable at a glance. It's described that way, never
-  as locked.
+- **Scrambled files and links aren't locked.** A file or link without a passphrase is encrypted
+  under a key anyone can make from Amber's source, so it isn't readable at a glance. It's
+  described that way, never as locked. A link made before links were scrambled is only compressed, and still opens.
 
 ## What we'd most like to hear
 

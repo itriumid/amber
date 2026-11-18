@@ -269,7 +269,9 @@
 			use Sync with another device.
 		</p>
 		{#if !passphrase}
-			<p class="mt-2 text-sm">Anyone with the link can read the list, unless you lock it.</p>
+			<p class="mt-2 text-sm">
+				It's scrambled, so it can't be read at a glance; lock it to keep it private.
+			</p>
 		{/if}
 		<div class="mt-3 flex flex-wrap gap-2">
 			<button type="button" class={smallButton} disabled={busy} onclick={makeLink}>
