@@ -46,8 +46,9 @@ account.**
 | A permanent encrypted copy, with earlier versions, restorable on a new device                  | Paid                  |
 
 - **Everything we keep is encrypted on the device**, with a key we never see. Accounts use
-  passkeys. Lose the passphrase and its recovery code, and the kept copy can't be opened by
-  anyone.
+  passkeys, with no email or password; the key comes from the passkey where it can give one,
+  from a passphrase where it can't, and a recovery code always. Lose every way in, and the kept
+  copy can't be opened by anyone. The design is in `docs/accounts.md`.
 - **Locked lists** are a kind of list a person chooses, beside To-do list and Bucket list, for
   passwords and other things that shouldn't sit in plain text. Never the default: an ordinary
   list stays as it is. Encrypted with their own passphrase, closed unless opened, hidden until
