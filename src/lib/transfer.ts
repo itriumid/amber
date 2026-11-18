@@ -6,7 +6,6 @@
 // the list to Amber in the browser, and nowhere else.
 
 import {
-	compressToEncodedURIComponent,
 	compressToUint8Array,
 	decompressFromEncodedURIComponent,
 	decompressFromUint8Array
@@ -174,7 +173,8 @@ async function through(
 	return new Uint8Array(await out.arrayBuffer());
 }
 
-async function scramble(plain: string): Promise<string> {
+/** The list, deflated and scrambled: 12 bytes of nonce, then the encrypted bytes. */
+async function scrambleBytes(plain: string): Promise<Uint8Array<ArrayBuffer>> {
 	const iv = crypto.getRandomValues(new Uint8Array(12));
 	const data = new Uint8Array(
 		await crypto.subtle.encrypt(
@@ -186,17 +186,20 @@ async function scramble(plain: string): Promise<string> {
 	const joined = new Uint8Array(iv.length + data.length);
 	joined.set(iv);
 	joined.set(data, iv.length);
+	return joined;
+}
+
+async function scramble(plain: string): Promise<string> {
 	return JSON.stringify({
 		amber: 1,
 		format: SCRAMBLED_FILES,
 		records: [],
-		scrambled: bytesToBase64Url(joined)
+		scrambled: bytesToBase64Url(await scrambleBytes(plain))
 	});
 }
 
-async function unscramble(scrambled: string): Promise<Reading> {
+async function unscrambleBytes(joined: Uint8Array<ArrayBuffer>): Promise<Reading> {
 	try {
-		const joined = fromBase64Url(scrambled);
 		const packed = await crypto.subtle.decrypt(
 			{ name: 'AES-GCM', iv: joined.slice(0, 12) },
 			await scrambleKey(),
@@ -206,6 +209,14 @@ async function unscramble(scrambled: string): Promise<Reading> {
 		return readContents(parseJson(new TextDecoder().decode(bytes)));
 	} catch {
 		// Damaged, or cut short on the way.
+		return { kind: 'not-amber' };
+	}
+}
+
+async function unscramble(scrambled: string): Promise<Reading> {
+	try {
+		return await unscrambleBytes(fromBase64Url(scrambled));
+	} catch {
 		return { kind: 'not-amber' };
 	}
 }
@@ -263,10 +274,19 @@ export function fileName(now = new Date()): string {
 
 /* ─── Links ─── */
 
-/** The part of a link after the address: `#list=…`, or `#locked=…` with a passphrase. */
+/**
+ * A link without a passphrase is scrambled, as a file is: `#list=.` and the scrambled list. The dot
+ * can't start an older link (lz-string's alphabet has none), so those still open, and an Amber from
+ * before scrambled links reads this one as damaged rather than ignoring it, while its Update banner
+ * offers the version that reads it.
+ */
+const SCRAMBLED_LINK = '.';
+
+/** The part of a link after the address: `#list=.…`, or `#locked=…` with a passphrase. */
 export async function toLink(records: Records, passphrase?: string): Promise<string> {
 	const plain = JSON.stringify(contents(records));
-	if (!passphrase) return LINK_PREFIX.open + compressToEncodedURIComponent(plain);
+	if (!passphrase)
+		return LINK_PREFIX.open + SCRAMBLED_LINK + bytesToBase64Url(await scrambleBytes(plain));
 	const { salt, iv, data } = await lock(new Uint8Array(compressToUint8Array(plain)), passphrase);
 	const joined = new Uint8Array(salt.length + iv.length + data.length);
 	joined.set(salt);
@@ -277,7 +297,16 @@ export async function toLink(records: Records, passphrase?: string): Promise<str
 
 export async function readLink(hash: string, passphrase?: string): Promise<Reading> {
 	if (hash.startsWith(LINK_PREFIX.open)) {
-		const plain = decompressFromEncodedURIComponent(hash.slice(LINK_PREFIX.open.length));
+		const rest = hash.slice(LINK_PREFIX.open.length);
+		if (rest.startsWith(SCRAMBLED_LINK)) {
+			try {
+				return await unscrambleBytes(fromBase64Url(rest.slice(SCRAMBLED_LINK.length)));
+			} catch {
+				return { kind: 'not-amber' };
+			}
+		}
+		// Made before links were scrambled: only compressed.
+		const plain = decompressFromEncodedURIComponent(rest);
 		return plain ? readContents(parseJson(plain)) : { kind: 'not-amber' };
 	}
 	if (!hash.startsWith(LINK_PREFIX.locked)) return { kind: 'not-amber' };
