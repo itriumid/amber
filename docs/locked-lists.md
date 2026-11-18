@@ -38,6 +38,11 @@ compromised (a keylogger, malware), and a malicious browser extension, which can
   storage. Amber says so when it happens, and offers to delete this device's kept copies.
 - **The clipboard.** Copy tries to clear the clipboard 30 seconds later, but a page can only do
   that while it has focus, and clipboard managers keep their own history.
+- **An older value brought back.** A sealed value is bound to its record and field, not to when it
+  was written, so a file or link made earlier could bring back an entry's older notes, stamped as
+  newer by someone who edited the file. Accepted, after the security review of 18 November 2026:
+  binding each value to its write would make every Undo of a locked entry look like an attack.
+  Bringing a list in shows what it changes first ("Changes 1 task"), and can be undone.
 
 ## How it's stored
 

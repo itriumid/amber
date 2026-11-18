@@ -62,7 +62,8 @@ with a file or a link.
   `@Category`; tasks drag to a new place; several can be ticked, moved or deleted at once.
 - **Search** across titles, notes, steps, tags and categories, ignoring case and accents; `#tags`
   and Open or Done narrow it.
-- **Back up and move**, daily and before-risky-action copies on the device, **sync** through a
+- **Back up and move** (files scrambled so they aren't read at a glance, or locked with a
+  passphrase), daily and before-risky-action copies on the device, **sync** through a
   mailbox that keeps nothing (empties after ten minutes, at most 1 MB), **undo** for everything.
 - **Never lose a user's data** outranks everything: versioned format, migrations only added,
   newer-format data opens read-only, merges per field, never overwrites.

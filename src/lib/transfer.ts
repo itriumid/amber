@@ -146,9 +146,73 @@ export function parseJson(text: string): unknown {
 
 /* ─── Files ─── */
 
+/*
+ * A file without a passphrase is scrambled: compressed, then encrypted with a key anyone can make
+ * from SCRAMBLE, which is in Amber's own source. It isn't a lock and isn't called one. It keeps a
+ * list from being read at a glance: in a text editor, a search, or a cloud drive's preview. A
+ * passphrase is what locks it. Scrambling also means a damaged file is caught as damaged.
+ *
+ * The outside says `format: 3` with no records, so an Amber from before scrambled files (which
+ * knew formats 1 and 2) says the file is from a newer Amber and asks to update, rather than
+ * finding nothing in it. It never changes, and later Ambers read `scrambled` before `format`: the
+ * format of the list itself is inside.
+ */
+const SCRAMBLE = 'Amber scrambles a file so it is not read at a glance. This is not a lock.';
+const SCRAMBLED_FILES = 3;
+
+async function scrambleKey() {
+	const raw = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SCRAMBLE));
+	return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+/** Through the browser's own compression (deflate), as bytes. */
+async function through(
+	bytes: Uint8Array<ArrayBuffer>,
+	stream: CompressionStream | DecompressionStream
+) {
+	const out = new Response(new Blob([bytes]).stream().pipeThrough(stream));
+	return new Uint8Array(await out.arrayBuffer());
+}
+
+async function scramble(plain: string): Promise<string> {
+	const iv = crypto.getRandomValues(new Uint8Array(12));
+	const data = new Uint8Array(
+		await crypto.subtle.encrypt(
+			{ name: 'AES-GCM', iv },
+			await scrambleKey(),
+			await through(new TextEncoder().encode(plain), new CompressionStream('deflate-raw'))
+		)
+	);
+	const joined = new Uint8Array(iv.length + data.length);
+	joined.set(iv);
+	joined.set(data, iv.length);
+	return JSON.stringify({
+		amber: 1,
+		format: SCRAMBLED_FILES,
+		records: [],
+		scrambled: bytesToBase64Url(joined)
+	});
+}
+
+async function unscramble(scrambled: string): Promise<Reading> {
+	try {
+		const joined = fromBase64Url(scrambled);
+		const packed = await crypto.subtle.decrypt(
+			{ name: 'AES-GCM', iv: joined.slice(0, 12) },
+			await scrambleKey(),
+			joined.slice(12)
+		);
+		const bytes = await through(new Uint8Array(packed), new DecompressionStream('deflate-raw'));
+		return readContents(parseJson(new TextDecoder().decode(bytes)));
+	} catch {
+		// Damaged, or cut short on the way.
+		return { kind: 'not-amber' };
+	}
+}
+
 export async function toFile(records: Records, passphrase?: string): Promise<string> {
 	const plain = JSON.stringify(contents(records));
-	if (!passphrase) return plain;
+	if (!passphrase) return scramble(plain);
 	const { salt, iv, data } = await lock(new TextEncoder().encode(plain), passphrase);
 	const locked: Locked = {
 		amber: 1,
@@ -164,6 +228,8 @@ export async function toFile(records: Records, passphrase?: string): Promise<str
 
 export async function readFile(text: string, passphrase?: string): Promise<Reading> {
 	const value = parseJson(text);
+	if (isObject(value) && value.amber === 1 && typeof value.scrambled === 'string')
+		return unscramble(value.scrambled);
 	if (isObject(value) && value.amber === 1 && isObject(value.locked)) {
 		const { salt, iv, data, iterations } = value.locked;
 		if (

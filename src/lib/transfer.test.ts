@@ -13,7 +13,8 @@ import {
 	readLink,
 	summarize,
 	toFile,
-	toLink
+	toLink,
+	contents
 } from './transfer';
 
 function list() {
@@ -36,7 +37,20 @@ describe('files', () => {
 		if (reading.kind !== 'list') return;
 		expect(reading.records.map((record) => record.identifier).sort()).toEqual(ids(records));
 		expect(reading.unreadable).toBe(0);
-		expect(JSON.parse(await toFile(records)).format).toBe(FORMAT_VERSION);
+		// Scrambled outside; the list inside says its format.
+		expect(JSON.parse(await toFile(records))).toMatchObject({
+			amber: 1,
+			scrambled: expect.any(String)
+		});
+		expect(contents(records).format).toBe(FORMAT_VERSION);
+	});
+
+	it('are scrambled without a passphrase, so nothing in them reads at a glance', async () => {
+		const file = await toFile(list().records);
+		expect(file).not.toContain('Paint');
+		const damaged = JSON.parse(file);
+		damaged.scrambled = damaged.scrambled.slice(0, -4) + 'AAAA';
+		expect((await readFile(JSON.stringify(damaged))).kind).toBe('not-amber');
 	});
 
 	it('lock with a passphrase, and need the right one', async () => {
@@ -57,7 +71,7 @@ describe('files', () => {
 	});
 
 	it('count records they had to leave out', async () => {
-		const file = JSON.parse(await toFile(list().records));
+		const file = contents(list().records);
 		file.records.push({ identifier: 'broken', kind: 'task', fields: {} });
 		const reading = await readFile(JSON.stringify(file));
 		expect(reading.kind === 'list' && reading.unreadable).toBe(1);
