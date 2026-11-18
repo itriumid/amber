@@ -1,6 +1,6 @@
 # 0003. Accounts: passkeys to sign in, PRF or a passphrase for the key
 
-Status: proposed
+Status: superseded by [0004](0004-amber-stays-free.md)
 
 ## Context
 

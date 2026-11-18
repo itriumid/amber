@@ -27,33 +27,21 @@ Privacy and simplicity, with smooth performance. Against Todoist, Apple Reminder
   domain. Lists live in the browser's storage; the only network traffic is a sync the person
   starts, encrypted with a key derived from a code the server never sees.
 - **Simple.** Deliberately modest features: categories, steps, tags, search, undo. No
-  collaboration or reminders service, and no account (an optional one is planned: see Plans).
+  collaboration or reminders service, and no account.
 - **Smooth.** One prerendered page, offline-first, every change saved at once.
 
 ## Plans
 
-Decided, not built yet. The decisions and their reasons are in `docs/decisions/`.
+**Amber is a free tool, and stays one: no accounts, no paid tier, nothing kept on our servers**
+([0004](docs/decisions/0004-amber-stays-free.md)). Everything it does happens in the browser,
+for everyone. Devices stay in step when a person syncs them once with a code, or moves the list
+with a file or a link.
 
-**What's free stays free and complete. We charge only where we keep something for you on our
-servers, because that costs us money. No ads, no nagging, and nothing free ever moves behind an
-account.**
-
-| What                                                                                           | Who gets it           |
-| ---------------------------------------------------------------------------------------------- | --------------------- |
-| Everything Amber does in the browser, now and later, including customizations and locked lists | Everyone, no account  |
-| Syncing once with a code                                                                       | Everyone, no account  |
-| Devices kept in step, changes relayed encrypted for about a week                               | Free, with an account |
-| A permanent encrypted copy, with earlier versions, restorable on a new device                  | Paid                  |
-
-- **Everything we keep is encrypted on the device**, with a key we never see. Accounts use
-  passkeys, with no email or password; the key comes from the passkey where it can give one,
-  from a passphrase where it can't, and a recovery code always. Lose every way in, and the kept
-  copy can't be opened by anyone. The design is in `docs/accounts.md`.
 - **Locked lists** are a kind of list a person chooses, beside To-do list and Bucket list, for
   passwords and other things that shouldn't sit in plain text. Never the default: an ordinary
   list stays as it is. Encrypted with their own passphrase, closed unless opened, hidden until
-  revealed. Not a password manager: no autofill, extension or breach alerts.
-- Order: locked lists first (no server needed), then accounts and the relay, then the paid copy.
+  revealed. Not a password manager: no autofill, extension or breach alerts. Built; an outside
+  security review comes before Amber calls them safe for passwords.
 
 ## Operating Context
 
