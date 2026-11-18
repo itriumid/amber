@@ -41,7 +41,16 @@
 	import Icon from './Icon.svelte';
 	import Sheet from './Sheet.svelte';
 
-	let { identifier, onclose }: { identifier: string | undefined; onclose: () => void } = $props();
+	let {
+		identifier,
+		startRevealed = false,
+		onclose
+	}: {
+		identifier: string | undefined;
+		/** A locked entry just added: opened revealed, on its notes, where its secret goes. */
+		startRevealed?: boolean;
+		onclose: () => void;
+	} = $props();
 
 	const task = $derived(identifier ? get(amber.records, identifier, 'task') : undefined);
 	// In a bucket list, a task is achieved, not done: the same words as on its shelf.
@@ -67,10 +76,12 @@
 	let newStep = $state('');
 	let untitled = $state(false);
 	let moveProblem = $state<string>();
-	// A different task, or the same one opened again, starts without the message, and hidden.
-	$effect(() => {
+	// A different task, or the same one opened again, starts without the message, and hidden,
+	// unless it's an entry just added. Before the page is drawn, so the sheet opens on its notes.
+	$effect.pre(() => {
 		void identifier;
-		untitled = revealed = false;
+		untitled = false;
+		revealed = startRevealed;
 		moveProblem = undefined;
 	});
 
@@ -135,7 +146,7 @@
 					type="button"
 					class={secondaryButton}
 					aria-pressed={revealed}
-					data-autofocus
+					data-autofocus={startRevealed ? undefined : true}
 					onclick={() => (revealed = !revealed)}
 					><Icon name={revealed ? 'eyeOff' : 'eye'} class="size-4" />{revealed
 						? 'Hide'
@@ -179,7 +190,8 @@
 			{/if}
 		</div>
 
-		<div>
+		<!-- An entry in a locked list isn't ticked off. -->
+		<div class={lockedIn ? 'hidden' : ''}>
 			<Check
 				checked={value(task, 'done')}
 				label={bucket ? 'Achieved' : 'Done'}
@@ -204,6 +216,7 @@
 				<label for="task-notes" class={label}>Notes</label>
 				<textarea
 					id="task-notes"
+					data-autofocus={startRevealed && lockedIn ? true : undefined}
 					class="{field} field-sizing-content max-h-80 min-h-20 resize-y"
 					value={lockedIn ? locks.notes(task) : value(task, 'notes')}
 					maxlength={LIMITS.notes}

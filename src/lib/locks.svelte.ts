@@ -424,16 +424,17 @@ class Locks {
 		return this.rekey(category, passphrase, 'New recovery code made');
 	}
 
-	async addTask(categoryIdentifier: string, title: string): Promise<boolean> {
+	/** Adds an entry, sealed; its identifier, or undefined when it couldn't be added. */
+	async addTask(categoryIdentifier: string, title: string): Promise<string | undefined> {
 		const key = this.keyFor(categoryIdentifier);
 		const category = get(amber.records, categoryIdentifier, 'category');
-		if (!key || !category || !title.trim()) return false;
+		if (!key || !category || !title.trim()) return undefined;
 		const identifier = newIdentifier();
 		const sealed = await this.sealTask(key, identifier, title.trim(), '');
 		amber.act(`Added to ${value(category, 'name')}`, (context) =>
 			addSealedTask(context, identifier, categoryIdentifier, sealed)
 		);
-		return true;
+		return identifier;
 	}
 
 	async setTitle(task: Task, title: string) {

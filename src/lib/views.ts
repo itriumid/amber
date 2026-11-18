@@ -88,7 +88,8 @@ export function sectionsFor(records: Records, view: View, search?: Search): Sect
 			prefix + value(category, 'name'),
 			value(category, 'color'),
 			identifier,
-			searching,
+			// A locked list's entries aren't ticked off, so none fold away as done.
+			searching || locked,
 			value(category, 'keepDone'),
 			// A locked list's tasks are sealed, and never searched, open or not.
 			locked && searching ? [] : found(tasksShownIn(records, identifier)),

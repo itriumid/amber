@@ -80,7 +80,8 @@
 		amber.notice = { message: 'Copied. Cleared from the clipboard in 30 seconds.', changes: [] };
 		setTimeout(() => (copied = false), 2000);
 	}
-	const done = $derived(value(task, 'done'));
+	// An entry in a locked list isn't something to tick off: no box, and never drawn as done.
+	const done = $derived(!lockedIn && value(task, 'done'));
 	const doneAt = $derived(value(task, 'doneAt'));
 	const isAchieved = $derived(achieved || (bucket && done));
 	// Looked up in the index made once per change: searching the records here, in every row, would
@@ -235,7 +236,7 @@
 	<!-- In a locked list the name gives up some room, so Reveal, Copy and More fit beside it on a
 	     phone; with large text they still move to a line of their own, together. -->
 	<div class="flex min-w-0 {lockedIn ? 'flex-[1_1_8rem]' : 'flex-[1_1_12rem]'} items-start gap-3">
-		<div>
+		<div class={lockedIn ? 'hidden' : ''}>
 			{#if selecting && !lockedIn}
 				<!-- Square, and filled in the text color when chosen: a choice, not a task ticked off. -->
 				<label
@@ -253,7 +254,7 @@
 						class="pointer-events-none col-start-1 row-start-1 size-3.5 text-bg opacity-0 peer-checked:opacity-100"
 					/>
 				</label>
-			{:else}
+			{:else if !lockedIn}
 				<Check
 					ring={color ? EDGE[color] : undefined}
 					checked={done}
