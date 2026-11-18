@@ -736,7 +736,12 @@
 										class="mt-4 ml-3 border-l border-border pt-1 pl-4 sm:ml-4"
 										aria-labelledby="achieved-{section.key}"
 									>
-										<h3 id="achieved-{section.key}" class="mb-2 {labelPlate}">
+										<h3
+											id="achieved-{section.key}"
+											class="mb-2 {section.color
+												? `${labelShape} ${PLATE[section.color]}`
+												: labelPlate}"
+										>
 											{sections.length > 1 ? `Achieved in ${section.title}` : 'Achieved'} ({section
 												.done.length})
 										</h3>
@@ -762,13 +767,17 @@
 								{:else if section.done.length}
 									<details class="group mt-2">
 										<summary
-											class="relative flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text {touchTarget}"
+											class="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text pointer-coarse:min-h-11"
 										>
 											<Icon
 												name="down"
 												class="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
 											/>
-											Done ({section.done.length})
+											<!-- Framed in its list's color, as the list's own label is: the fold is still that list's. -->
+											<span
+												class={section.color ? `${labelShape} ${PLATE[section.color]}` : labelPlate}
+												>Done ({section.done.length})</span
+											>
 										</summary>
 										<ul class="mt-1 {tray}">
 											{#each section.done as task, index (task.identifier)}
