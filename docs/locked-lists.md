@@ -114,8 +114,10 @@ list is opened.
   recovery code, merging sealed fields from two devices, the migration and the new fixture.
 - Browser tests: nothing of a closed list's tasks is in the page (text, search, Undo), it closes
   when hidden and when idle, and backups, links and sync carry only ciphertext.
-- A review of this design and of the code by someone other than its author, then an outside
-  security review before Amber says it's safe for passwords.
+- A review of this design and of the code by someone other than its author (done on 18 November
+  2026; what it found is in [`security-review.md`](security-review.md)), then an outside security
+  review before Amber says it's safe for passwords. That brief is written for the outside
+  reviewer.
 
 ## Decided with the owner
 
