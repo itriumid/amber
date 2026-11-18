@@ -1,6 +1,7 @@
 <!-- A locked list's recovery code, shown once (docs/locked-lists.md): the code, Copy, and the box to
      tick once it's kept. Its sheet holds itself open until then; asked to close, it says why here. -->
 <script lang="ts">
+	import { locks } from '#lib/locks.svelte.js';
 	import { smallButton } from '#lib/styles.js';
 
 	let {
@@ -20,7 +21,9 @@
 	let copied = $state(false);
 
 	async function copy() {
-		await navigator.clipboard.writeText(code);
+		// Cleared from the clipboard 30 seconds later, as an entry's notes are: it's to be kept
+		// somewhere apart from this device, not in its clipboard history.
+		await locks.copy(code);
 		copied = true;
 	}
 </script>
