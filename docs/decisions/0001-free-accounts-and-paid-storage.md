@@ -1,6 +1,6 @@
 # 0001. Free stays free; accounts for relaying, payment for keeping
 
-Status: proposed
+Status: superseded by [0004](0004-amber-stays-free.md)
 
 ## Context
 
