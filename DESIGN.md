@@ -447,6 +447,8 @@ one, filled in the text color when chosen (a choice, not a task ticked off), and
 too. A bar floats at the bottom of the screen, 8px corners, the surface tone with a control edge
 and `shadow-lg`: the count, then Select all, Mark done, Move to (a native select of categories),
 Delete and Cancel, all small buttons; the bar has the one Cancel, and Select hides while choosing.
+On a phone it's two rows on purpose: the count, Select all and Cancel, then Mark done, Move to and
+Delete sharing the second row evenly; the list leaves room for it at the end.
 Select all chooses the open tasks that show a box, never done ones folded away or dreams on the
 shelf. Each action is one change with one Undo, said when the bar has gone; deleting several keeps
 a copy of the list first. Mark done reads Mark achieved when every chosen task is in a bucket list.
