@@ -5,14 +5,15 @@
 
 	const name = $props.id();
 	const themes: { theme: Theme; label: string }[] = [
-		{ theme: 'device', label: 'Device' },
+		// The brand's names for the setting: System, Light, Dark.
+		{ theme: 'device', label: 'System' },
 		{ theme: 'light', label: 'Light' },
 		{ theme: 'dark', label: 'Dark' }
 	];
 </script>
 
-<fieldset class="px-3">
-	<legend class="mb-1.5 text-sm text-muted">Theme</legend>
+<fieldset>
+	<legend class="mb-1.5 text-sm font-medium">Theme</legend>
 	<div class="inline-flex flex-wrap gap-1 rounded-md border border-control-border p-1">
 		{#each themes as each (each.theme)}
 			<label class="relative cursor-pointer">

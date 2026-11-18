@@ -635,10 +635,21 @@ test('opens a sheet on its first field with a mouse, and on Close on a touch scr
 	else await expect(details.getByLabel('Task', { exact: true })).toBeFocused();
 });
 
-test('offers keyboard shortcuts only where there is a keyboard', async ({ page }) => {
-	await lists(page);
-	const shown = page.getByRole('button', { name: 'Keyboard shortcuts' }).filter({ visible: true });
+/** Settings, from the sidebar or, on a phone, its sheet. */
+async function settingsSheet(page: Page) {
+	const sidebar = await lists(page);
+	await sidebar.page().getByRole('button', { name: 'Settings' }).filter({ visible: true }).click();
+	return page.getByRole('dialog', { name: 'Settings' });
+}
+
+test('offers keyboard shortcuts only where there is a keyboard, and settings everywhere', async ({
+	page
+}) => {
+	const sheet = await settingsSheet(page);
+	await expect(sheet.getByRole('checkbox', { name: 'Single-key shortcuts' })).toBeVisible();
+	const shown = sheet.getByRole('button', { name: 'Keyboard shortcuts' }).filter({ visible: true });
 	await expect(shown).toHaveCount(isPhone(page) ? 0 : 1);
+	expect(await axeViolations(page)).toEqual([]);
 });
 
 test('keeps focus on a task as it moves, and moves nothing past the ends', async ({ page }) => {
@@ -1262,8 +1273,10 @@ test('lists the keyboard shortcuts, and turns the single-key ones off', async ({
 	await expect(sheet.getByText('Move a task up or down')).toBeVisible();
 	await expect(sheet.getByText('Alt with the up or down arrow')).toBeAttached();
 	expect(await axeViolations(page)).toEqual([]);
-	await sheet.getByRole('checkbox', { name: 'Single-key shortcuts' }).uncheck();
 	await sheet.getByRole('button', { name: 'Close' }).click();
+	const settings = await settingsSheet(page);
+	await settings.getByRole('checkbox', { name: 'Single-key shortcuts' }).uncheck();
+	await settings.getByRole('button', { name: 'Close' }).click();
 	await expect(quickAdd).not.toHaveAttribute('aria-keyshortcuts');
 
 	// Off stays off after a reload, and none of the single keys does anything.
@@ -1277,13 +1290,12 @@ test('lists the keyboard shortcuts, and turns the single-key ones off', async ({
 	await expect(search).not.toBeFocused();
 	await expect(sheet).toHaveCount(0);
 
-	// The sheet is in the sidebar too, where they're turned back on.
-	const sidebar = await lists(page);
-	await sidebar.page().getByRole('button', { name: 'Keyboard shortcuts' }).last().click();
-	const setting = sheet.getByRole('checkbox', { name: 'Single-key shortcuts' });
+	// Settings is in the sidebar on any screen, where they're turned back on.
+	const again = await settingsSheet(page);
+	const setting = again.getByRole('checkbox', { name: 'Single-key shortcuts' });
 	await expect(setting).not.toBeChecked();
 	await setting.check();
-	await sheet.getByRole('button', { name: 'Close' }).click();
+	await again.getByRole('button', { name: 'Close' }).click();
 	await page.getByRole('heading', { level: 1 }).click();
 	await page.keyboard.press('n');
 	await expect(quickAdd).toBeFocused();
@@ -1605,10 +1617,8 @@ test('gives every control a 44px target on a touch screen, without overlapping',
 	await expect(await backup(page)).toBeVisible();
 	await expectTargets(page, ['Download a file', 'Make a link', 'Open a file']);
 	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
-	await page.getByRole('heading', { level: 1 }).click();
-	await page.keyboard.press('?');
-	await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
-	await expectTargets(page, ['Single-key shortcuts']);
+	await settingsSheet(page);
+	await expectTargets(page, ['Single-key shortcuts', 'System', 'Light', 'Dark']);
 	await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
 
 	// A tap beside the circle, not on it, still ticks the box.
@@ -2154,18 +2164,18 @@ test('follows the device, or the theme chosen, and keeps it after a reload', asy
 		);
 	await page.emulateMedia({ colorScheme: 'dark' });
 	expect(await background()).toBe('#2b2b2b');
-	// Below the lists, in the sidebar, or in its sheet on a phone.
+	// In Settings.
 	const theme = (name: string) =>
 		page.locator('label:visible', { has: page.getByRole('radio', { name }) });
-	await lists(page);
+	await settingsSheet(page);
 	await theme('Light').click();
 	expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('light');
 	await page.reload();
 	await expect(page.getByLabel('New task')).toBeEnabled();
 	expect(await background()).toBe('#fafafa');
-	await lists(page);
+	await settingsSheet(page);
 	await expect(theme('Light').getByRole('radio')).toBeChecked();
-	await theme('Device').click();
+	await theme('System').click();
 	expect(await background()).toBe('#2b2b2b');
 });
 
