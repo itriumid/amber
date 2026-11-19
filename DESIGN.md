@@ -15,6 +15,7 @@ colors:
   paper-surface: '#ffffff'
   paper-cabinet: '#f0f0f0'
   paper-border: '#e4e4e4'
+  paper-tray-edge: '#e4e4e4'
   muted-gray-light: '#6b6b6b'
   control-edge-light: '#767676'
   deep-rose: '#c46475'
@@ -125,8 +126,7 @@ components:
     padding: '12px 0 12px 10px'
     width: '15rem'
   drawer:
-    backgroundColor: '{colors.graphite-surface}'
-    textColor: '{colors.off-white}'
+    textColor: '{colors.muted-gray}'
     typography: '{typography.body-small}'
     rounded: '{rounded.sm}'
     padding: '0 12px'
@@ -134,6 +134,7 @@ components:
   drawer-open:
     backgroundColor: '{colors.graphite-surface}'
     textColor: '{colors.off-white}'
+    typography: '{typography.body-small}'
   tray:
     backgroundColor: '{colors.graphite-surface}'
     rounded: '{rounded.md}'
@@ -201,8 +202,8 @@ thing that has focus.
 The stone is kept the way minerals are, in a specimen cabinet, after the stones Amber and Rhodonite
 are named for. The sidebar is the cabinet's body, one step under the page, with a drawer front for
 each place. The drawer you choose slides out and becomes the tray you work in: on a wide screen the
-open drawer and the main area are one outlined surface with no seam between them, and on a phone
-the open place's name is a tab on top of that outlined tray. Inside the tray, a list's tasks are
+open drawer and the main area are one surface in one tone with no seam between them, and on a phone
+the open place's name is a tab on top of that tray. Inside the tray, a list's tasks are
 label slips ruled in smaller trays, names of sections are framed labels, and an achieved dream sits
 on a shelf as a specimen with its collection label. The cabinet lends type, density, shape and one
 move; navigation and controls stay the ones people already know, and the search bar is the familiar
@@ -215,14 +216,16 @@ from the tray onto the Achieved shelf, an Undo message that slides up from the b
 has a reduced-motion version that simply appears.
 
 Light is entirely light and dark is entirely dark. Dark is the default (the `:root` values); light
-mode, chosen by the system or in Settings, is the same cabinet in daylight: pale body, white fronts
-and tray, graphite outlines, the pink line deepened to deep rose and focus drawn in graphite so both
-stay visible on white. Neither mode borrows a surface from the other.
+mode, chosen by the system or in Settings, is the same cabinet in daylight: pale body, white open
+drawer and tray with a pale hairline round the tray, graphite words, the pink line deepened to deep
+rose and focus drawn in graphite so both stay visible on white. Neither mode borrows a surface from
+the other.
 
 **Key Characteristics:**
 
 - One continuous world per mode: no dark panel in light mode, no light panel in dark mode.
-- The open drawer and the tray are one surface, outlined 2px in the text color.
+- The open drawer and the tray are one surface in the surface tone, joined with no seam and no
+  outline; closed drawers are plain labels on the cabinet.
 - Graphite and off-white, with a single pink accent that always means something.
 - Flat surfaces separated by tone and hairline borders; shadows only on what floats.
 - Small corners (6px and 8px, 4px on labels): drawers, trays and plates, not pills. Round only for
@@ -246,16 +249,20 @@ muted category colors that help people sort, never decorate.
 ### Neutral
 
 - **Graphite** (`graphite`): the dark page, and the text color in light mode and on pink.
-- **Graphite Surface** (`graphite-surface`, light `paper-surface`): drawer fronts, the tray, the
-  smaller trays inside it, specimens, notices, sheets and the Undo message.
+- **Graphite Surface** (`graphite-surface`, light `paper-surface`): the open drawer (and a closed
+  one under the pointer), the tray, the smaller trays inside it, specimens, notices, sheets and the
+  Undo message.
 - **Graphite Cabinet** (`graphite-cabinet`, light `paper-cabinet`): the cabinet's body only, one
-  step under the page, so the drawer fronts stand out of it.
+  step under the page, so the open drawer stands out of it.
 - **Graphite Border** (`graphite-border`, light `paper-border`): hairlines that divide and that
-  nothing depends on (drawer fronts, the cabinet, trays, the footer rule, the sheet header).
+  nothing depends on (the cabinet, the smaller trays, the footer rule, the sheet header).
+- **Paper Tray Edge** (`paper-tray-edge`, `--tray-edge`): the tray's and the phone tab's 1px edge in
+  light mode, so the white tray doesn't melt into the near-white page. In dark mode it is
+  `transparent`: the tone step alone separates the tray. Never the text color.
 - **Control Edge** (`control-edge`, light `control-edge-light`): the edge of a field or button,
   which people need to see to find it; 3:1 against both the page and a surface.
-- **Off-White** (`off-white`): text on graphite, and the outline of the open drawer and the tray in
-  dark mode.
+- **Off-White** (`off-white`): text on graphite, the open drawer's words, and the frame of its
+  count in dark mode.
 - **Muted Gray** (`muted-gray`, light `muted-gray-light`): secondary text, counts, hints, idle icon
   buttons.
 - **Paper** (`paper`): the light mode's page.
@@ -288,10 +295,11 @@ background.
 main action.
 
 **The Light Is Light Rule.** Light mode is entirely light and dark mode entirely dark (the owner's
-rule, 18 November 2026). No surface, drawer or chosen option is filled with the text color; the
-open drawer, the tray and anything chosen are marked by an outline in the text color on the surface
-tone. That includes a square box that's on: its edge and tick turn the text color, and it isn't
-filled.
+rule, 18 November 2026). No surface, drawer or chosen option is filled with the text color. The
+open drawer is told by the surface tone, semibold words in the text color and its join with the
+tray, not by an outline (the owner's decision, 19 November 2026); anything chosen is marked by an
+outline in the text color on the surface tone. That includes a square box that's on: its edge and
+tick turn the text color, and it isn't filled.
 
 **The Outlined Chosen Rule.** Something chosen (a segment of the Any/Open/Done switch, the kind of
 list or the theme, a tag on a task) keeps the surface tone and takes an outline in the text color
@@ -342,10 +350,11 @@ on the right, and on a phone the search bar on a line of its own, full width. No
 the header; the link to Itrium is in the footer's last line.
 
 From 768px the cabinet (15rem) and the tray sit side by side with no gap: the cabinet has no right
-edge, the open drawer runs on into the tray, and the tray's own 2px outline closes the cabinet's
-side. The tray is at least 70% of the screen's height, with 32px inside at the sides, 28px at the
-top, and 40px of page below it. Below 768px the cabinet moves into the Lists sheet, opened from the
-menu button in the header, and the tray fills the column under its tab, with 16px inside.
+edge, and the open drawer runs 1px over the cabinet's side straight into the tray, whose hairline
+(in light mode) closes that side. The tray is at least 70% of the screen's height, with 32px inside
+at the sides, 28px at the top, and 40px of page below it. Below 768px the cabinet moves into the
+Lists sheet, opened from the menu button in the header, and the tray fills the column under its tab,
+with 16px inside.
 
 Inside the tray: the heading row (the place's name, its pencil, and Select), notices, the
 Any/Open/Done switch while searching, quick add, then sections 24px apart, each a framed label over
@@ -362,9 +371,11 @@ around the control, so the drawing and the layout stay the same size. Drawer fro
 
 ## Elevation & Depth
 
-Flat by default. Depth at rest is tonal: the cabinet's body sits one step under the page, drawer
-fronts and the tray are the surface tone, and hairline borders separate them. The open drawer and
-the tray are told apart from the rest by a 2px outline in the text color, not by height. A slip
+Flat by default. Depth at rest is tonal: the cabinet's body sits one step under the page, the open
+drawer and the tray are the surface tone, and hairlines separate them (the tray's only in light
+mode). The open drawer is told apart from the closed ones by tone, weight, the text color and its
+join with the tray, not by an outline or by height. The tone step alone is under 3:1; the weight and
+the text color carry it. A slip
 under the pointer takes a half-tone of the hairline color. Shadows are reserved for things that
 float above the page and will go away.
 
@@ -392,9 +403,9 @@ are only for sheets (16px), which round the corners that face the page (top on a
 wide screen), and the standard search bar (12px).
 
 Where the open drawer meets the tray, the corners give way: the drawer loses its right corners and
-edge, the tray keeps its top-left corner square, and on a phone the tab loses its bottom edge and
-the tray its top-left corner, so the join reads as one outline. Focus outlines are 2px, 3px away,
-with a 4px corner.
+runs 1px over the tray's edge, the tray keeps its top-left corner square, and on a phone the tab
+loses its bottom edge and the tray its top-left corner, so the join reads as one surface with no
+seam. Focus outlines are 2px, 3px away, with a 4px corner.
 
 ## Components
 
@@ -450,18 +461,19 @@ edge and a tick in the text color on the surface, never a fill.
 The cabinet is the sidebar: a body in the cabinet tone with a hairline edge and 8px corners, 12px
 inside at top and bottom and 10px at the left. Group names are framed labels, not headings, so the
 page's own heading comes first in the outline. Each place is a drawer front, 40px tall (44px on
-touch), in the surface tone with a hairline edge and 6px corners, holding the place's button (its
+touch) with 6px corners, holding the place's button (its
 color dot, its name, a star for a bucket list or a lock for a locked list), its open count framed in
 tabular figures, and its pencil. Places that can't be edited keep the pencil's room, so every count
-lines up. Closed drawers stop 10px short of the cabinet's right side; hover strengthens the edge to
-the control edge.
+lines up. Closed drawers are plain labels on the cabinet: no edge, no fill, muted words and a count
+framed in the hairline color; under the pointer a front appears, the surface tone and the text
+color. They stop 10px short of the cabinet's right side.
 
-The open drawer is outlined 2px in the text color, semibold, its count framed in the text color,
-with no fill. Beside the list it slides out over the cabinet's side and 2px into the tray's outline,
-dropping its right edge and corners so the two are one surface: the move is its margin, corners and
-edge changing together over 200ms, `cubic-bezier(0.16, 1, 0.3, 1)`, and at once under reduced
-motion. In the Lists sheet on a phone, the cabinet has all four edges and corners, and the open
-drawer is outlined but has nothing to join.
+The open drawer alone takes the tray's surface tone, semibold in the text color, its count framed in
+the text color; no outline, in either mode. Beside the list it slides out 1px over the cabinet's
+side straight into the tray, its right corners square, so the two are one surface with no seam: the
+move is its margin, corners and colors changing together over 200ms, `cubic-bezier(0.16, 1, 0.3,
+1)`, and at once under reduced motion. In the Lists sheet on a phone, the cabinet has all four edges
+and corners, and the open drawer has the surface tone and semibold but nothing to join.
 
 Below the cabinet, outside it, quiet actions (install, sync, back up, settings) sit in muted text
 and take the surface tone on hover. Settings holds the theme and the single-key shortcuts setting,
@@ -469,11 +481,13 @@ and, with a mouse or a trackpad, the list of keyboard shortcuts.
 
 ### The Tray (signature)
 
-The main area is the open drawer's tray: the surface tone, outlined 2px in the text color, 8px
-corners except where the drawer joins it. On a wide screen the drawer meets its top-left edge. On a
-phone the open place's color dot, its name, its count framed in the text color and its pencil form a
-tab on top of the tray, outlined the same way with no bottom edge, overlapping the tray's outline
-by 2px; Select sits beside the tab, on the page. Everything about the open place is inside the tray.
+The main area is the open drawer's tray: the surface tone with a 1px `tray-edge` (a pale hairline
+in light mode, none in dark, where the tone step alone sets it off the page), 8px corners except
+where the drawer joins it. No outline in the text color. On a wide screen the drawer meets its
+top-left edge. On a phone the open place's color dot, its name, its count framed in the text color
+and its pencil form a tab on top of the tray, edged the same way with no bottom edge, overlapping
+the tray's edge by 1px; Select sits beside the tab, on the page. Everything about the open place is
+inside the tray.
 
 ### Task Row (signature)
 
@@ -612,9 +626,9 @@ while searching.
 
 - **Do** take every color from the tokens in `src/app.css`; both modes are defined there.
 - **Do** keep each mode one world: light surfaces in light mode, graphite surfaces in dark mode.
-- **Do** mark what's open or chosen with an outline in the text color (2px for the open drawer and
-  the tray, 1.5px for a chosen option), semibold, on the surface tone.
-- **Do** keep the open drawer and the tray one outline, with no seam where they meet.
+- **Do** mark a chosen option with a 1.5px outline in the text color, semibold, on the surface tone.
+- **Do** mark the open drawer by the surface tone, semibold and the text color, and keep it and the
+  tray one surface, with no seam and no outline where they meet.
 - **Do** keep the cabinet to type, density, shape and its one move; controls stay standard.
 - **Do** keep pink to one meaning per moment, with graphite text on it and deep rose for pink lines
   in light mode.
@@ -627,6 +641,8 @@ while searching.
 ### Don't:
 
 - **Don't** fill a drawer, a chosen option or any surface with the text color, in either mode.
+- **Don't** outline the open drawer, the tray or the phone's tab in the text color, or give closed
+  drawers an edge or fill at rest.
 - **Don't** split the page into a dark sidebar beside a light page, or the reverse.
 - **Don't** use pink as text on a light background, as decoration, or as a category color.
 - **Don't** use black (`#000000`) for text or surfaces; graphite is `#2b2b2b`.
