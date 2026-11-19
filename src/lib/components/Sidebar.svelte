@@ -1,6 +1,6 @@
 <!-- The places to look at: everything, no category, each category and subcategory, each tag. Drawn
      as the drawers of a cabinet: each place a drawer front, its count framed on it, and the open one
-     pulled out in graphite. -->
+     pulled out into the tray. -->
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
 	import { DOT } from '#lib/colors.js';
@@ -53,15 +53,15 @@
 			? 'identifier' in view && candidate.identifier === view.identifier
 			: true);
 
-	// A drawer front: the place, its count and, where it can be edited, its pencil, in one outlined
-	// front. The open one is outlined in the text color; beside the list it runs on into the tray.
-	// The open drawer slides out into the tray (its margin and corners move with the colors), over
-	// 200ms easing out; at once under reduced motion.
+	// Closed drawers are plain labels on the cabinet, a front showing only on hover; the open one
+	// alone takes the tray's tone, semibold in the text color, and beside the list it runs on into
+	// the tray (covering the tray's edge where they meet), so it reads as the drawer pulled out. No
+	// outline, in either mode. It slides out over 200ms, at once under reduced motion.
 	const front =
-		'group flex min-w-0 items-center rounded-md border border-border bg-surface transition-[margin,border-color,border-radius,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-control-border motion-reduce:transition-none';
-	const open = 'border-2 border-text font-semibold hover:border-text';
-	const joined = 'md:relative md:z-10 md:-mr-[2px] md:rounded-r-none md:border-r-0';
-	const place_ =
+		'group flex min-w-0 items-center rounded-md text-muted transition-[margin,background-color,color,border-radius] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-surface hover:text-text motion-reduce:transition-none';
+	const open = 'bg-surface font-semibold text-text';
+	const joined = 'md:relative md:z-10 md:-mr-px md:rounded-r-none';
+	const placeButton =
 		'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 text-left text-sm pointer-coarse:min-h-11';
 	const quiet =
 		'flex min-h-10 w-full items-center pointer-coarse:min-h-11 gap-2.5 rounded-md px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
@@ -92,7 +92,7 @@
 	>
 		<button
 			type="button"
-			class={place_}
+			class={placeButton}
 			aria-current={here ? 'page' : undefined}
 			onclick={() => onselect(target)}
 		>

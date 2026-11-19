@@ -95,6 +95,10 @@
 				"role": "neutral",
 				"displayName": "Paper Border"
 			},
+			"paper-tray-edge": {
+				"role": "neutral",
+				"displayName": "Paper Tray Edge (light mode; transparent in dark)"
+			},
 			"muted-gray-light": {
 				"role": "neutral",
 				"displayName": "Muted Gray (light mode)"
@@ -240,7 +244,7 @@
 		},
 		"themes": {
 			"default": "dark",
-			"light": "Chosen by prefers-color-scheme or in Settings (data-theme); paper, paper-surface, paper-cabinet, paper-border and the *-light tokens replace their dark counterparts, accent-edge becomes deep-rose and focus becomes graphite.",
+			"light": "Chosen by prefers-color-scheme or in Settings (data-theme); paper, paper-surface, paper-cabinet, paper-border, paper-tray-edge (transparent in dark) and the *-light tokens replace their dark counterparts, accent-edge becomes deep-rose and focus becomes graphite.",
 			"rule": "Light is entirely light and dark entirely dark: no surface, drawer or chosen option is filled with the text color in either mode."
 		},
 		"shadows": [
@@ -272,7 +276,7 @@
 			},
 			{
 				"name": "drawer-slide",
-				"value": "margin, border-color, border-radius, background-color 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+				"value": "margin, background-color, color, border-radius 200ms cubic-bezier(0.16, 1, 0.3, 1)",
 				"purpose": "The open drawer sliding out of the cabinet into the tray."
 			},
 			{
@@ -330,9 +334,9 @@
 		],
 		"outlines": [
 			{
-				"name": "open",
-				"value": "2px solid var(--text)",
-				"purpose": "The open drawer, the tray and the phone's tab."
+				"name": "tray-edge",
+				"value": "1px solid var(--tray-edge)",
+				"purpose": "The tray and the phone's tab (no bottom edge on the tab): a pale hairline in light mode, transparent in dark. The open drawer has no outline; nothing open is outlined in the text color."
 			},
 			{
 				"name": "chosen",
@@ -402,9 +406,9 @@
 			"name": "Cabinet and Tray",
 			"kind": "nav",
 			"refersTo": "drawer-open",
-			"description": "The sidebar as a cabinet one step under the page, a drawer front per place; the open drawer, outlined 2px in the text color, runs on into the outlined tray with no seam.",
+			"description": "The sidebar as a cabinet one step under the page, a drawer per place: closed drawers are plain muted labels that show a front on hover; the open drawer alone takes the surface tone, semibold in the text color, and runs 1px over the cabinet's side into the tray as one surface, with no seam and no outline. The tray has a hairline tray-edge in light mode only.",
 			"html": "<div class=\"ds-cab-wrap\"><nav class=\"ds-cabinet\"><span class=\"ds-plate\">Categories</span><div class=\"ds-drawer\"><button class=\"ds-place\"><span class=\"ds-dot\"></span>Home<span class=\"ds-count\">3</span></button></div><div class=\"ds-drawer ds-drawer-open\"><button class=\"ds-place\" aria-current=\"page\"><span class=\"ds-dot ds-dot-lav\"></span>Someday<span class=\"ds-count\">2</span></button></div><div class=\"ds-drawer\"><button class=\"ds-place\">Work<span class=\"ds-count\">5</span></button></div></nav><main class=\"ds-tray-main\"><h1>Someday</h1></main></div>",
-			"css": ".ds-cab-wrap{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:200px 260px;align-items:start;color:var(--text)}.ds-cabinet{display:flex;flex-direction:column;gap:6px;padding:12px 0 12px 10px;background:var(--cabinet);border:1px solid var(--border);border-right:0;border-radius:8px 0 0 8px}.ds-plate{align-self:flex-start;display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-drawer{display:flex;margin-right:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:margin 200ms cubic-bezier(.16,1,.3,1),border-color 200ms cubic-bezier(.16,1,.3,1),border-radius 200ms cubic-bezier(.16,1,.3,1)}.ds-drawer:hover{border-color:var(--control-border)}.ds-drawer-open,.ds-drawer-open:hover{position:relative;z-index:1;margin-right:-2px;border:2px solid var(--text);border-right:0;border-radius:6px 0 0 6px;font-weight:600}.ds-place{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;flex:1;display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border:0;background:none;color:var(--text);font-size:14px;font-weight:inherit;text-align:left;cursor:pointer}.ds-place:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}.ds-dot{width:10px;height:10px;border-radius:9999px;background:var(--cat-teal)}.ds-dot-lav{background:var(--cat-lavender)}.ds-count{margin-left:auto;padding:0 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--muted)}.ds-drawer-open .ds-count{border-color:var(--text);color:var(--text)}.ds-tray-main{min-height:220px;padding:28px 32px;border:2px solid var(--text);border-radius:0 8px 8px 8px;background:var(--surface)}.ds-tray-main h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.2}@media (prefers-reduced-motion:reduce){.ds-drawer{transition:none}}"
+			"css": ".ds-cab-wrap{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:200px 260px;align-items:start;color:var(--text)}.ds-cabinet{display:flex;flex-direction:column;gap:6px;padding:12px 0 12px 10px;background:var(--cabinet);border:1px solid var(--border);border-right:0;border-radius:8px 0 0 8px}.ds-plate{align-self:flex-start;display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-drawer{display:flex;margin-right:10px;border-radius:6px;color:var(--muted);transition:margin 200ms cubic-bezier(.16,1,.3,1),background-color 200ms cubic-bezier(.16,1,.3,1),color 200ms cubic-bezier(.16,1,.3,1),border-radius 200ms cubic-bezier(.16,1,.3,1)}.ds-drawer:hover{background:var(--surface);color:var(--text)}.ds-drawer-open,.ds-drawer-open:hover{position:relative;z-index:1;margin-right:-1px;border-radius:6px 0 0 6px;background:var(--surface);color:var(--text);font-weight:600}.ds-place{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;flex:1;display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border:0;background:none;color:inherit;font-size:14px;font-weight:inherit;text-align:left;cursor:pointer}.ds-place:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}.ds-dot{width:10px;height:10px;border-radius:9999px;background:var(--cat-teal)}.ds-dot-lav{background:var(--cat-lavender)}.ds-count{margin-left:auto;padding:0 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--muted)}.ds-drawer-open .ds-count{border-color:var(--text);color:var(--text)}.ds-tray-main{min-height:220px;padding:28px 32px;border:1px solid var(--tray-edge);border-radius:0 8px 8px 8px;background:var(--surface)}.ds-tray-main h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.2}@media (prefers-reduced-motion:reduce){.ds-drawer{transition:none}}"
 		},
 		{
 			"name": "Undo Message",
@@ -433,10 +437,10 @@
 	],
 	"narrative": {
 		"northStar": "Rhodonite in Hand, kept in a specimen cabinet whose open drawer is the list",
-		"overview": "Amber is a piece of rhodonite: dense graphite stone with one pink vein running through it. In the stone's own colors, everything at rest is quiet: the page, a surface one step off it, gray words. The vein is pastel pink, and it only shows where something matters right now: the one main action, the box you just ticked (in its list's color, when it has one), the words your search found, the thing that has focus.\n\nThe stone is kept the way minerals are, in a specimen cabinet, after the stones Amber and Rhodonite are named for. The sidebar is the cabinet's body, one step under the page, with a drawer front for each place. The drawer you choose slides out and becomes the tray you work in: on a wide screen the open drawer and the main area are one outlined surface with no seam between them, and on a phone the open place's name is a tab on top of that outlined tray. Inside the tray, a list's tasks are label slips ruled in smaller trays, names of sections are framed labels, and an achieved dream sits on a shelf as a specimen with its collection label. The cabinet lends type, density, shape and one move; navigation and controls stay the ones people already know, and the search bar is the familiar one from every list app.\n\nIt is a working surface, used daily and quickly, so density is moderate and the hierarchy is plain: a page heading, framed section labels, trays of slips. Personality lives in small tactile moments: the drawer sliding out into its tray, a round checkbox whose tick draws itself in, a dream carried from the tray onto the Achieved shelf, an Undo message that slides up from the bottom. Everything has a reduced-motion version that simply appears.\n\nLight is entirely light and dark is entirely dark. Dark is the default (the `:root` values); light mode, chosen by the system or in Settings, is the same cabinet in daylight: pale body, white fronts and tray, graphite outlines, the pink line deepened to deep rose and focus drawn in graphite so both stay visible on white. Neither mode borrows a surface from the other.",
+		"overview": "Amber is a piece of rhodonite: dense graphite stone with one pink vein running through it. In the stone's own colors, everything at rest is quiet: the page, a surface one step off it, gray words. The vein is pastel pink, and it only shows where something matters right now: the one main action, the box you just ticked (in its list's color, when it has one), the words your search found, the thing that has focus.\n\nThe stone is kept the way minerals are, in a specimen cabinet, after the stones Amber and Rhodonite are named for. The sidebar is the cabinet's body, one step under the page, with a drawer front for each place. The drawer you choose slides out and becomes the tray you work in: on a wide screen the open drawer and the main area are one surface in one tone with no seam between them, and on a phone the open place's name is a tab on top of that tray. Inside the tray, a list's tasks are label slips ruled in smaller trays, names of sections are framed labels, and an achieved dream sits on a shelf as a specimen with its collection label. The cabinet lends type, density, shape and one move; navigation and controls stay the ones people already know, and the search bar is the familiar one from every list app.\n\nIt is a working surface, used daily and quickly, so density is moderate and the hierarchy is plain: a page heading, framed section labels, trays of slips. Personality lives in small tactile moments: the drawer sliding out into its tray, a round checkbox whose tick draws itself in, a dream carried from the tray onto the Achieved shelf, an Undo message that slides up from the bottom. Everything has a reduced-motion version that simply appears.\n\nLight is entirely light and dark is entirely dark. Dark is the default (the `:root` values); light mode, chosen by the system or in Settings, is the same cabinet in daylight: pale body, white open drawer and tray with a pale hairline round the tray, graphite words, the pink line deepened to deep rose and focus drawn in graphite so both stay visible on white. Neither mode borrows a surface from the other.",
 		"keyCharacteristics": [
 			"One continuous world per mode: no dark panel in light mode, no light panel in dark mode.",
-			"The open drawer and the tray are one surface, outlined 2px in the text color.",
+			"The open drawer and the tray are one surface in the surface tone, joined with no seam and no outline; closed drawers are plain labels on the cabinet.",
 			"Graphite and off-white, with a single pink accent that always means something.",
 			"Flat surfaces separated by tone and hairline borders; shadows only on what floats.",
 			"Small corners (6px and 8px, 4px on labels): drawers, trays and plates, not pills. Round only for what's ticked.",
@@ -461,7 +465,7 @@
 			},
 			{
 				"name": "The Light Is Light Rule",
-				"body": "Light mode is entirely light and dark mode entirely dark (the owner's rule, 18 November 2026). No surface, drawer or chosen option is filled with the text color; the open drawer, the tray and anything chosen are marked by an outline in the text color on the surface tone.",
+				"body": "Light mode is entirely light and dark mode entirely dark (the owner's rule, 18 November 2026). No surface, drawer or chosen option is filled with the text color. The open drawer is told by the surface tone, semibold words in the text color and its join with the tray, not by an outline (the owner's decision, 19 November 2026); anything chosen is marked by an outline in the text color on the surface tone.",
 				"section": "colors"
 			},
 			{
@@ -503,8 +507,8 @@
 		"dos": [
 			"Do take every color from the tokens in `src/app.css`; both modes are defined there.",
 			"Do keep each mode one world: light surfaces in light mode, graphite surfaces in dark mode.",
-			"Do mark what's open or chosen with an outline in the text color (2px for the open drawer and the tray, 1.5px for a chosen option), semibold, on the surface tone.",
-			"Do keep the open drawer and the tray one outline, with no seam where they meet.",
+			"Do mark a chosen option with a 1.5px outline in the text color, semibold, on the surface tone.",
+			"Do mark the open drawer by the surface tone, semibold and the text color, and keep it and the tray one surface, with no seam and no outline where they meet.",
 			"Do keep the cabinet to type, density, shape and its one move; controls stay standard.",
 			"Do keep pink to one meaning per moment, with graphite text on it and deep rose for pink lines in light mode.",
 			"Do give every control a 3:1 edge (`control-edge`) and every target 44px on touch.",
@@ -514,6 +518,7 @@
 		],
 		"donts": [
 			"Don't fill a drawer, a chosen option or any surface with the text color, in either mode.",
+			"Don't outline the open drawer, the tray or the phone's tab in the text color, or give closed drawers an edge or fill at rest.",
 			"Don't split the page into a dark sidebar beside a light page, or the reverse.",
 			"Don't use pink as text on a light background, as decoration, or as a category color.",
 			"Don't use black (`#000000`) for text or surfaces; graphite is `#2b2b2b`.",
