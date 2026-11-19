@@ -21,7 +21,8 @@
 		onsync,
 		oninstall,
 		onsettings,
-		onlocknew
+		onlocknew,
+		beside = false
 	}: {
 		view: View;
 		onselect: (view: View) => void;
@@ -33,6 +34,12 @@
 		onsettings: () => void;
 		/** A new locked list, made only once its passphrase is set. */
 		onlocknew: (name: string) => void;
+		/**
+		 * Drawn beside the list, on a wide screen: the open drawer then slides out of the cabinet
+		 * into the list's tray, one outlined surface (+page.svelte draws the tray). In the Lists
+		 * sheet on a phone it's outlined, but there's no tray beside it to join.
+		 */
+		beside?: boolean;
 	} = $props();
 
 	const tree = $derived(categoryTree(amber.records));
@@ -46,13 +53,20 @@
 			? 'identifier' in view && candidate.identifier === view.identifier
 			: true);
 
-	const item =
-		'flex min-h-10 min-w-0 flex-1 items-center pointer-coarse:min-h-11 gap-2.5 rounded-md border border-border bg-surface px-3 text-left text-sm transition-colors hover:border-control-border motion-reduce:transition-none';
-	const current = 'border-text bg-text font-semibold text-bg hover:border-text';
+	// A drawer front: the place, its count and, where it can be edited, its pencil, in one outlined
+	// front. The open one is outlined in the text color; beside the list it runs on into the tray.
+	// The open drawer slides out into the tray (its margin and corners move with the colors), over
+	// 200ms easing out; at once under reduced motion.
+	const front =
+		'group flex min-w-0 items-center rounded-md border border-border bg-surface transition-[margin,border-color,border-radius,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-control-border motion-reduce:transition-none';
+	const open = 'border-2 border-text font-semibold hover:border-text';
+	const joined = 'md:relative md:z-10 md:-mr-[2px] md:rounded-r-none md:border-r-0';
+	const place_ =
+		'flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-md px-3 text-left text-sm pointer-coarse:min-h-11';
 	const quiet =
 		'flex min-h-10 w-full items-center pointer-coarse:min-h-11 gap-2.5 rounded-md px-3 text-left text-sm text-muted transition-colors hover:bg-surface hover:text-text motion-reduce:transition-none';
 	const editButton =
-		'inline-flex size-9 shrink-0 items-center pointer-coarse:size-11 justify-center rounded-md text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-surface hover:text-text';
+		'inline-flex size-9 shrink-0 items-center pointer-coarse:size-11 justify-center rounded-md text-muted opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 hover:bg-bg hover:text-text';
 	// All tasks and No category can't be edited; a gap the edit button's size keeps their counts in
 	// line with the others'.
 	const editSpace = 'size-9 shrink-0 pointer-coarse:size-11';
@@ -68,46 +82,60 @@
 	name: string,
 	color: string | null,
 	indent = false,
-	kind: ListKindName = 'todo'
+	kind: ListKindName = 'todo',
+	edit?: { label: string; onclick: () => void }
 )}
 	{@const count = openCount(amber.records, target)}
-	<button
-		type="button"
-		class="{item} {isCurrent(target) ? current : ''} {indent ? 'pl-8' : ''}"
-		aria-current={isCurrent(target) ? 'page' : undefined}
-		onclick={() => onselect(target)}
+	{@const here = isCurrent(target)}
+	<div
+		class="{front} {here ? open : ''} {here && beside ? joined : 'mr-2.5'} {indent ? 'ml-6' : ''}"
 	>
-		{#if color}<span class="size-2.5 shrink-0 rounded-full {color}" aria-hidden="true"></span>{/if}
-		<span class="min-w-0 flex-1 truncate">{name}</span>
-		<!-- A bucket list says so from the start, before anything on it is achieved. -->
-		{#if kind === 'bucket'}<Icon name="star" class="size-3.5 shrink-0 opacity-70" /><span
-				class="sr-only">bucket list</span
-			>{:else if kind === 'locked'}<Icon name="lock" class="size-3.5 shrink-0 opacity-70" /><span
-				class="sr-only">locked list</span
-			>{/if}
-		<!-- Every category and tag says how many are left, 0 too: a drawer with nothing on it, rather
-		     than one that looks broken. All tasks and No category say it only when there are some. -->
-		{#if count || target.kind === 'category' || target.kind === 'tag'}<span
-				class="rounded-sm border px-1.5 text-xs tabular-nums {isCurrent(target)
-					? 'border-bg/40'
-					: 'border-border text-muted'}"
-				aria-hidden="true">{count}</span
-			><span class="sr-only">{count} to do</span>{/if}
-	</button>
+		<button
+			type="button"
+			class={place_}
+			aria-current={here ? 'page' : undefined}
+			onclick={() => onselect(target)}
+		>
+			{#if color}<span class="size-2.5 shrink-0 rounded-full {color}" aria-hidden="true"
+				></span>{/if}
+			<span class="min-w-0 flex-1 truncate">{name}</span>
+			<!-- A bucket list says so from the start, before anything on it is achieved. -->
+			{#if kind === 'bucket'}<Icon name="star" class="size-3.5 shrink-0 opacity-70" /><span
+					class="sr-only">bucket list</span
+				>{:else if kind === 'locked'}<Icon name="lock" class="size-3.5 shrink-0 opacity-70" /><span
+					class="sr-only">locked list</span
+				>{/if}
+			<!-- Every category and tag says how many are left, 0 too: a drawer with nothing on it, rather
+			     than one that looks broken. All tasks and No category say it only when there are some. -->
+			{#if count || target.kind === 'category' || target.kind === 'tag'}<span
+					class="rounded-sm border px-1.5 text-xs tabular-nums {here
+						? 'border-text'
+						: 'border-border text-muted'}"
+					aria-hidden="true">{count}</span
+				><span class="sr-only">{count} to do</span>{/if}
+		</button>
+		{#if edit}
+			<button type="button" class={editButton} aria-label={edit.label} onclick={edit.onclick}
+				><Icon name="edit" /></button
+			>
+		{:else}
+			<!-- The pencil's room, so every count lines up. -->
+			<span class={editSpace} aria-hidden="true"></span>
+		{/if}
+	</div>
 {/snippet}
 
-<nav aria-label="Lists" class="space-y-6">
+<!-- The cabinet: a body one step under the page, its drawers along it. Beside the list it has no
+     right edge, so the open drawer can run straight on into the tray. -->
+<nav
+	aria-label="Lists"
+	class="space-y-6 border border-border bg-cabinet py-3 pl-2.5 {beside
+		? 'rounded-l-lg border-r-0'
+		: 'rounded-lg'}"
+>
 	<ul class="space-y-1.5">
-		<li class="flex gap-1">
-			{@render place({ kind: 'all' }, 'All tasks', null)}<span class={editSpace} aria-hidden="true"
-			></span>
-		</li>
-		<li class="flex gap-1">
-			{@render place({ kind: 'uncategorized' }, 'No category', null)}<span
-				class={editSpace}
-				aria-hidden="true"
-			></span>
-		</li>
+		<li>{@render place({ kind: 'all' }, 'All tasks', null)}</li>
+		<li>{@render place({ kind: 'uncategorized' }, 'No category', null)}</li>
 	</ul>
 
 	<!-- Groups with a name, not headings: the page's own heading comes first in the outline. -->
@@ -117,39 +145,33 @@
 			{#each tree as { category, children } (category.identifier)}
 				{@const color = value(category, 'color')}
 				<li>
-					<div class="group flex items-center gap-1">
-						{@render place(
-							{ kind: 'category', identifier: category.identifier },
-							value(category, 'name'),
-							color ? DOT[color] : null,
-							false,
-							kindOf(category)
-						)}
-						<button
-							type="button"
-							class={editButton}
-							aria-label="Edit {value(category, 'name')}"
-							onclick={() => oneditcategory(category.identifier)}><Icon name="edit" /></button
-						>
-					</div>
+					{@render place(
+						{ kind: 'category', identifier: category.identifier },
+						value(category, 'name'),
+						color ? DOT[color] : null,
+						false,
+						kindOf(category),
+						{
+							label: `Edit ${value(category, 'name')}`,
+							onclick: () => oneditcategory(category.identifier)
+						}
+					)}
 					{#if children.length}
 						<ul class="mt-1.5 space-y-1.5">
 							{#each children as child (child.identifier)}
 								{@const childColor = value(child, 'color')}
-								<li class="group flex items-center gap-1">
+								<li>
 									{@render place(
 										{ kind: 'category', identifier: child.identifier },
 										value(child, 'name'),
 										childColor ? DOT[childColor] : null,
 										true,
-										kindOf(child)
+										kindOf(child),
+										{
+											label: `Edit ${value(child, 'name')}`,
+											onclick: () => oneditcategory(child.identifier)
+										}
 									)}
-									<button
-										type="button"
-										class={editButton}
-										aria-label="Edit {value(child, 'name')}"
-										onclick={() => oneditcategory(child.identifier)}><Icon name="edit" /></button
-									>
 								</li>
 							{/each}
 						</ul>
@@ -158,7 +180,7 @@
 			{/each}
 		</ul>
 		<form
-			class="group/new mt-2"
+			class="group/new mt-2 mr-2.5"
 			onsubmit={(event) => {
 				event.preventDefault();
 				if (newKind === 'locked') {
@@ -209,18 +231,15 @@
 			<ul class="space-y-1.5">
 				{#each tags as tag (tag.identifier)}
 					{@const color = value(tag, 'color')}
-					<li class="group flex items-center gap-1">
+					<li>
 						{@render place(
 							{ kind: 'tag', identifier: tag.identifier },
 							`#${value(tag, 'name')}`,
-							color ? DOT[color] : null
+							color ? DOT[color] : null,
+							false,
+							'todo',
+							{ label: `Edit #${value(tag, 'name')}`, onclick: () => onedittag(tag.identifier) }
 						)}
-						<button
-							type="button"
-							class={editButton}
-							aria-label="Edit #{value(tag, 'name')}"
-							onclick={() => onedittag(tag.identifier)}><Icon name="edit" /></button
-						>
 					</li>
 				{/each}
 			</ul>
@@ -228,7 +247,7 @@
 	{/if}
 </nav>
 
-<div class="mt-6 space-y-0.5">
+<div class="mt-6 mr-2.5 space-y-0.5">
 	{#if install.offered}
 		<button type="button" class={quiet} onclick={oninstall}>
 			<Icon name="install" />

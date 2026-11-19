@@ -58,7 +58,7 @@
 	import { updates } from '#lib/updates.svelte.js';
 	import { isSearching, parseSearch, STATUSES, type Status } from '#lib/search.js';
 	import { isLink, SYNC_PREFIX, type Source } from '#lib/links.js';
-	import { foundCount, sectionsFor, type View } from '#lib/views.js';
+	import { foundCount, openCount, sectionsFor, type View } from '#lib/views.js';
 
 	let view = $state<View>({ kind: 'all' });
 	let openTask = $state<string | undefined>();
@@ -174,6 +174,18 @@
 		return category ? value(category, 'name') : 'All tasks';
 	});
 	const target = $derived(view.kind === 'category' ? view.identifier : null);
+	// The color of the place in view, for the phone's tab: a category's or a tag's.
+	const headingColor = $derived.by(() => {
+		if (view.kind === 'category') {
+			const category = get(amber.records, view.identifier, 'category');
+			return category ? value(category, 'color') : null;
+		}
+		if (view.kind === 'tag') {
+			const tag = get(amber.records, view.identifier, 'tag');
+			return tag ? value(tag, 'color') : null;
+		}
+		return null;
+	});
 	// In a locked list, quick add seals what it adds, and needs the list open.
 	const targetLocked = $derived(amber.ready && isLockedList(amber.records, target));
 	const targetOpen = $derived(targetLocked && locks.isOpen(target));
@@ -476,7 +488,7 @@
 				{#if query}
 					<button
 						type="button"
-						class="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-surface hover:text-text pointer-coarse:right-px pointer-coarse:size-11"
+						class="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-cabinet hover:text-text pointer-coarse:right-px pointer-coarse:size-11"
 						aria-label="Clear search"
 						onclick={() => {
 							query = '';
@@ -488,10 +500,13 @@
 		</search>
 	</header>
 
-	<div class="grid flex-1 gap-8 md:grid-cols-[15rem_1fr]">
+	<!-- The cabinet and its open drawer: no gap between them on a wide screen, so the open drawer
+	     runs straight on into the tray (the main area, outlined). -->
+	<div class="grid flex-1 gap-8 md:grid-cols-[15rem_1fr] md:items-start md:gap-0">
 		<aside class="hidden md:block">
 			{#if amber.ready}
 				<Sidebar
+					beside
 					{view}
 					onselect={select}
 					oneditcategory={(identifier) => (openCategory = identifier)}
@@ -507,356 +522,382 @@
 
 		<!-- More room at the end while choosing, so the bar floating over the bottom never covers the
 		     last task. -->
+		<!-- The tray: on a wide screen the main area itself, outlined, with the open drawer running into
+		     its left edge. On a phone the drawers are in the Lists sheet, so the open place's name is a
+		     tab on top of the tray instead (the heading row below), and the tray is the part under it. -->
 		<main
 			id="main"
-			class="min-w-0 {selecting ? 'pb-48' : 'pb-32'} outline-none"
+			class="min-w-0 {selecting
+				? 'pb-48'
+				: 'pb-32'} outline-none md:mb-10 md:min-h-[70vh] md:rounded-r-lg md:rounded-bl-lg md:border-2 md:border-text md:bg-surface md:px-8 md:pt-7"
 			tabindex="-1"
 			{@attach roving}
 		>
 			<p id="task-open-hint" hidden>Opens the task's details.</p>
-			<div class="flex items-center gap-3">
-				<h1 class="min-w-0 text-3xl font-bold tracking-tight break-words">{heading}</h1>
-				{#if view.kind === 'category'}
-					<button
-						type="button"
-						class="relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-text {touchTarget}"
-						aria-label="Edit {heading}"
-						onclick={() => view.kind === 'category' && (openCategory = view.identifier)}
+			<div class="flex items-end gap-3 md:items-center">
+				<div
+					class="flex min-w-0 items-center gap-2 max-md:relative max-md:z-10 max-md:-mb-[2px] max-md:rounded-t-lg max-md:border-2 max-md:border-b-0 max-md:border-text max-md:bg-surface max-md:px-4 max-md:pt-2 max-md:pb-[calc(0.5rem+2px)]"
+				>
+					<!-- On the phone's tab, the list's color, as its drawer has it. -->
+					{#if headingColor}<span
+							class="size-2.5 shrink-0 rounded-full md:hidden {DOT[headingColor]}"
+							aria-hidden="true"
+						></span>{/if}
+					<h1 class="min-w-0 text-3xl font-bold tracking-tight break-words max-md:text-xl">
+						{heading}
+					</h1>
+					<!-- The drawer's count, on the tab: on a wide screen it's on the drawer beside. -->
+					<span
+						class="rounded-sm border border-text px-1.5 text-xs font-semibold tabular-nums md:hidden"
+						aria-hidden="true">{openCount(amber.records, view)}</span
 					>
-						<Icon name="edit" />
-					</button>
-				{/if}
+					{#if view.kind === 'category'}
+						<button
+							type="button"
+							class="relative inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-cabinet hover:text-text {touchTarget}"
+							aria-label="Edit {heading}"
+							onclick={() => view.kind === 'category' && (openCategory = view.identifier)}
+						>
+							<Icon name="edit" />
+						</button>
+					{/if}
+				</div>
 				<!-- Not in a locked list: its entries are never chosen with others. -->
 				{#if !isEmpty && !amber.readOnly && !selecting && !targetLocked}
 					<!-- Choosing several tasks to tick, move or delete at once (SelectionBar), which has the one
 					     Cancel while choosing. -->
-					<button type="button" class="ml-auto {smallButton}" onclick={startSelecting}
+					<button type="button" class="ml-auto max-md:mb-2 {smallButton}" onclick={startSelecting}
 						>Select</button
 					>
 				{/if}
 			</div>
-
-			<!-- Always there, so screen readers hear the offer when it appears. -->
-			<div role="status">
-				{#if updates.ready}
-					<div
-						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
-						transition:slide={{ duration }}
-					>
-						<p>A new version of Amber is ready.</p>
-						<button
-							type="button"
-							class="relative min-h-9 rounded-md border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85 {touchTarget}"
-							onclick={() => updates.apply()}>Update</button
+			<div
+				class="max-md:rounded-tr-lg max-md:rounded-b-lg max-md:border-2 max-md:border-text max-md:bg-surface max-md:px-4 max-md:pt-1 max-md:pb-5"
+			>
+				<!-- Always there, so screen readers hear the offer when it appears. -->
+				<div role="status">
+					{#if updates.ready}
+						<div
+							class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
+							transition:slide={{ duration }}
 						>
-					</div>
-				{/if}
-			</div>
-
-			{#if amber.problem}
-				<!-- A problem gets the stronger control edge and a sign, apart from the calmer notes. -->
-				<div class="mt-4 flex gap-3 rounded-lg border border-control-border bg-surface p-3 text-sm">
-					<Icon name="alert" class="mt-0.5 size-4 shrink-0" />
-					<div class="min-w-0">
-						<p role="alert">{amber.problem}</p>
-						{#if amber.unsaved}
+							<p>A new version of Amber is ready.</p>
 							<button
 								type="button"
-								class="mt-3 {smallButton}"
-								onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
+								class="relative min-h-9 rounded-md border border-accent-edge bg-accent px-4 font-semibold text-on-accent hover:opacity-85 {touchTarget}"
+								onclick={() => updates.apply()}>Update</button
 							>
-						{/if}
-					</div>
-				</div>
-			{/if}
-
-			{#if backupDue}
-				<div
-					class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
-				>
-					<p class="min-w-0 flex-[1_1_16rem]">{backupReminder(lastDownloaded)}</p>
-					<div class="flex flex-wrap gap-2">
-						<button type="button" class={smallButton} onclick={() => void answerReminder(true)}
-							>{DOWNLOAD_COPY}</button
-						>
-						<button type="button" class={smallButton} onclick={() => void answerReminder(false)}
-							>{NOT_NOW}</button
-						>
-					</div>
-				</div>
-			{/if}
-
-			{#if searching}
-				<div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-					<fieldset class="flex rounded-md border border-control-border p-0.5">
-						<legend class="sr-only">Show</legend>
-						{#each STATUSES as choice (choice.status)}
-							<label class="relative cursor-pointer {touchTarget}">
-								<input
-									type="radio"
-									name="status"
-									value={choice.status}
-									bind:group={status}
-									class="peer sr-only"
-								/>
-								<span
-									class="flex min-h-9 items-center rounded-sm px-4 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
-									>{choice.label}</span
-								>
-							</label>
-						{/each}
-					</fieldset>
-					<!-- How many were found, seen as well as heard (the status below says it aloud). -->
-					<p class="text-sm text-muted" aria-hidden="true">{found} {tasksWord(found)} found</p>
-					{#if elsewhere > 0}
-						<button
-							type="button"
-							class="relative min-h-9 rounded-md px-3 text-sm underline underline-offset-4 hover:bg-surface {touchTarget}"
-							onclick={() => select({ kind: 'all' })}>{elsewhere} more in all tasks</button
-						>
+						</div>
 					{/if}
 				</div>
-			{:else if !targetLocked || targetOpen}
-				<!-- Not over a closed locked list: its Open button is the way in, not a field that's off. -->
-				<form class="group/quick mt-5" onsubmit={add}>
-					<label for="quick-add" class="sr-only">{targetLocked ? 'New entry' : 'New task'}</label>
-					<div class="flex flex-wrap gap-2">
-						<input
-							id="quick-add"
-							bind:this={quickAdd}
-							bind:value={newTask}
-							class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
-							placeholder={targetLocked ? 'Add an entry' : 'Add a task'}
-							aria-describedby="quick-add-hint"
-							aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
-							maxlength={LIMITS.title + 200}
-							autocomplete="off"
-							disabled={!amber.ready || amber.readOnly}
-						/>
-						<button
-							type="submit"
-							class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-accent-edge bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:border-control-border disabled:bg-transparent disabled:text-muted disabled:hover:opacity-100 motion-reduce:transition-none"
-							disabled={!newTask.trim()}
-						>
-							<Icon name="plus" /> Add
-						</button>
-					</div>
-					<!-- Shown until the list has a tag, and after that whenever quick add has focus, so # and @
-					     stay something to read, not to remember. Its line is kept either way: if it folded
-					     away, leaving quick add would move the list under the pointer mid-click. -->
-					<p
-						id="quick-add-hint"
-						class="mt-1.5 text-xs text-muted {hasTags && !targetLocked
-							? 'invisible group-focus-within/quick:visible'
-							: ''}"
-					>
-						{#if targetLocked}
-							Name it here, and keep its secret in its notes. # and @ are off in a locked list.
-						{:else}
-							<span class="font-medium">#weekend</span> makes a tag, and
-							<span class="font-medium">@Home</span> puts the task in that category.
-						{/if}
-					</p>
-				</form>
-			{/if}
-			<!-- Said aloud as results change; empty while not searching. -->
-			<p class="sr-only" role="status">
-				{searching ? `${found} ${tasksWord(found)} found` : ''}
-			</p>
 
-			{#if amber.ready}
-				{#if isEmpty}
-					<p class="mt-10 text-center text-muted" in:fade={{ duration }}>
-						{#if searching}
-							No {status === 'any' ? '' : `${status} `}tasks match “{query.trim()}”{view.kind ===
-							'all'
-								? ''
-								: ` in ${heading}`}.
-						{:else if view.kind === 'all'}
-							Nothing here yet. Add your first task above.
-							<!-- Only before there are categories: after deleting everything, it isn't news. -->
-							{#if !categoryTree(amber.records).length}
-								<span class="mt-2 block text-sm">
-									Keeping a bucket list?
-									<!-- Takes you there: on a phone the categories are behind Show lists. -->
-									<button
-										type="button"
-										class="relative inline underline underline-offset-4 hover:text-text {touchTarget}"
-										onclick={makeCategory}>Make a category</button
-									> and choose Bucket list: what you achieve stays, with the date.
-								</span>
+				{#if amber.problem}
+					<!-- A problem gets the stronger control edge and a sign, apart from the calmer notes. -->
+					<div
+						class="mt-4 flex gap-3 rounded-lg border border-control-border bg-surface p-3 text-sm"
+					>
+						<Icon name="alert" class="mt-0.5 size-4 shrink-0" />
+						<div class="min-w-0">
+							<p role="alert">{amber.problem}</p>
+							{#if amber.unsaved}
+								<button
+									type="button"
+									class="mt-3 {smallButton}"
+									onclick={() => void amber.downloadCopy()}>{DOWNLOAD_COPY}</button
+								>
 							{/if}
-							{#if install.installed && install.apple}
-								<span class="mt-2 block text-sm">
-									Have a list in Safari? Make a link there in Back up and move, and paste it in
-									here.
-								</span>
-							{/if}
-						{:else}
-							Nothing here yet.
-						{/if}
-					</p>
+						</div>
+					</div>
 				{/if}
 
-				{#each sections as section (section.key)}
-					{#if isShownSection(section)}
-						{@const open = section.locked && locks.isOpen(section.categoryIdentifier)}
-						{@const closed = section.locked && !open}
-						{@const inside = section.shown.length + section.done.length}
-						<section class="mt-8" aria-labelledby="section-{section.key}">
-							<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
-							<h2
-								id="section-{section.key}"
-								class="mb-2 {section.color
-									? `${labelShape} ${PLATE[section.color]}`
-									: labelPlate} {sections.length > 1 || searching ? '' : 'sr-only'}"
+				{#if backupDue}
+					<div
+						class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
+					>
+						<p class="min-w-0 flex-[1_1_16rem]">{backupReminder(lastDownloaded)}</p>
+						<div class="flex flex-wrap gap-2">
+							<button type="button" class={smallButton} onclick={() => void answerReminder(true)}
+								>{DOWNLOAD_COPY}</button
 							>
-								{#if section.color}<span
-										class="size-2.5 rounded-full {DOT[section.color]}"
-										aria-hidden="true"
-									></span>{/if}
-								{section.title}
-								{#if section.bucket}<span aria-hidden="true">·</span> Bucket list{/if}
-								{#if section.locked}<span aria-hidden="true">·</span> Locked list{/if}
-								{#if searching}<span class="font-normal tabular-nums" aria-hidden="true"
-										>{section.shown.length}</span
-									><span class="sr-only">, {section.shown.length} found</span>{/if}
-							</h2>
-							{#if section.locked}
-								<!-- Its state and the one button that changes it, seen whether or not the label
-								     above is: on its own page, a list's label is for screen readers only. -->
-								<div
-									class="mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
-								>
-									<Icon name={open ? 'unlock' : 'lock'} class="size-4 shrink-0" />
-									<p class="min-w-0 flex-[1_1_14rem]">
-										{open
-											? 'Open. It locks again when Amber is hidden, and after five minutes without use.'
-											: inside
-												? `Locked, with ${inside} ${inside === 1 ? 'entry' : 'entries'} inside.`
-												: 'Locked, and empty so far.'}
-									</p>
-									<button
-										type="button"
-										class={smallButton}
-										aria-label="{open ? 'Lock' : 'Open'} {section.title}"
-										onclick={() => {
-											if (!section.categoryIdentifier) return;
-											if (open) locks.close(section.categoryIdentifier);
-											else unlocking = section.categoryIdentifier;
-										}}>{open ? 'Lock' : 'Open'}</button
+							<button type="button" class={smallButton} onclick={() => void answerReminder(false)}
+								>{NOT_NOW}</button
+							>
+						</div>
+					</div>
+				{/if}
+
+				{#if searching}
+					<div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+						<fieldset class="flex rounded-md border border-control-border p-0.5">
+							<legend class="sr-only">Show</legend>
+							{#each STATUSES as choice (choice.status)}
+								<label class="relative cursor-pointer {touchTarget}">
+									<input
+										type="radio"
+										name="status"
+										value={choice.status}
+										bind:group={status}
+										class="peer sr-only"
+									/>
+									<span
+										class="flex min-h-9 items-center rounded-sm px-4 text-sm transition-colors peer-checked:bg-surface peer-checked:font-semibold peer-checked:ring-[1.5px] peer-checked:ring-text peer-checked:ring-inset peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none"
+										>{choice.label}</span
 									>
-								</div>
+								</label>
+							{/each}
+						</fieldset>
+						<!-- How many were found, seen as well as heard (the status below says it aloud). -->
+						<p class="text-sm text-muted" aria-hidden="true">{found} {tasksWord(found)} found</p>
+						{#if elsewhere > 0}
+							<button
+								type="button"
+								class="relative min-h-9 rounded-md px-3 text-sm underline underline-offset-4 hover:bg-cabinet {touchTarget}"
+								onclick={() => select({ kind: 'all' })}>{elsewhere} more in all tasks</button
+							>
+						{/if}
+					</div>
+				{:else if !targetLocked || targetOpen}
+					<!-- Not over a closed locked list: its Open button is the way in, not a field that's off. -->
+					<form class="group/quick mt-5" onsubmit={add}>
+						<label for="quick-add" class="sr-only">{targetLocked ? 'New entry' : 'New task'}</label>
+						<div class="flex flex-wrap gap-2">
+							<input
+								id="quick-add"
+								bind:this={quickAdd}
+								bind:value={newTask}
+								class="{field} min-w-0 flex-[1_1_12rem] py-3 text-base"
+								placeholder={targetLocked ? 'Add an entry' : 'Add a task'}
+								aria-describedby="quick-add-hint"
+								aria-keyshortcuts={settings.singleKeyShortcuts ? 'N' : undefined}
+								maxlength={LIMITS.title + 200}
+								autocomplete="off"
+								disabled={!amber.ready || amber.readOnly}
+							/>
+							<button
+								type="submit"
+								class="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-accent-edge bg-accent px-4 font-semibold text-on-accent transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:border-control-border disabled:bg-transparent disabled:text-muted disabled:hover:opacity-100 motion-reduce:transition-none"
+								disabled={!newTask.trim()}
+							>
+								<Icon name="plus" /> Add
+							</button>
+						</div>
+						<!-- Shown until the list has a tag, and after that whenever quick add has focus, so # and @
+					     stay something to read, not to remember. Its line is kept either way: if it folded
+					     away, leaving quick add would move the list under the pointer (or finger) mid-tap. -->
+						<p
+							id="quick-add-hint"
+							class="mt-1.5 text-xs text-muted {hasTags && !targetLocked
+								? 'invisible group-focus-within/quick:visible'
+								: ''}"
+						>
+							{#if targetLocked}
+								Name it here, and keep its secret in its notes. # and @ are off in a locked list.
+							{:else}
+								<span class="font-medium">#weekend</span> makes a tag, and
+								<span class="font-medium">@Home</span> puts the task in that category.
 							{/if}
-							{#if !closed}
-								<ul
-									class={section.shown.length ? tray : ''}
-									{@attach sortable({
-										onplace: (identifier, index) => void place(identifier, index),
-										enabled: () => !searching && !selecting
-									})}
+						</p>
+					</form>
+				{/if}
+				<!-- Said aloud as results change; empty while not searching. -->
+				<p class="sr-only" role="status">
+					{searching ? `${found} ${tasksWord(found)} found` : ''}
+				</p>
+
+				{#if amber.ready}
+					{#if isEmpty}
+						<p class="mt-10 text-center text-muted" in:fade={{ duration }}>
+							{#if searching}
+								No {status === 'any' ? '' : `${status} `}tasks match “{query.trim()}”{view.kind ===
+								'all'
+									? ''
+									: ` in ${heading}`}.
+							{:else if view.kind === 'all'}
+								Nothing here yet. Add your first task above.
+								<!-- Only before there are categories: after deleting everything, it isn't news. -->
+								{#if !categoryTree(amber.records).length}
+									<span class="mt-2 block text-sm">
+										Keeping a bucket list?
+										<!-- Takes you there: on a phone the categories are behind Show lists. -->
+										<button
+											type="button"
+											class="relative inline underline underline-offset-4 hover:text-text {touchTarget}"
+											onclick={makeCategory}>Make a category</button
+										> and choose Bucket list: what you achieve stays, with the date.
+									</span>
+								{/if}
+								{#if install.installed && install.apple}
+									<span class="mt-2 block text-sm">
+										Have a list in Safari? Make a link there in Back up and move, and paste it in
+										here.
+									</span>
+								{/if}
+							{:else}
+								Nothing here yet.
+							{/if}
+						</p>
+					{/if}
+
+					{#each sections as section (section.key)}
+						{#if isShownSection(section)}
+							{@const open = section.locked && locks.isOpen(section.categoryIdentifier)}
+							{@const closed = section.locked && !open}
+							{@const inside = section.shown.length + section.done.length}
+							<section class="mt-6" aria-labelledby="section-{section.key}">
+								<!-- Each section is a drawer's tray: a framed label, then its tasks as ruled slips. -->
+								<h2
+									id="section-{section.key}"
+									class="mb-2 {section.color
+										? `${labelShape} ${PLATE[section.color]}`
+										: labelPlate} {sections.length > 1 || searching ? '' : 'sr-only'}"
 								>
-									{#each section.shown as task, index (task.identifier)}
-										<li
-											class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:rounded-md data-dragging:bg-surface data-dragging:shadow-xl data-dragging:outline data-dragging:outline-control-border"
-											animate:flip={{ duration: placing ? 0 : duration }}
-											in:arrive={{ key: task.identifier, bucket: section.bucket }}
-											out:leave={{ key: task.identifier, bucket: section.bucket }}
+									{#if section.color}<span
+											class="size-2.5 rounded-full {DOT[section.color]}"
+											aria-hidden="true"
+										></span>{/if}
+									{section.title}
+									{#if section.bucket}<span aria-hidden="true">·</span> Bucket list{/if}
+									{#if section.locked}<span aria-hidden="true">·</span> Locked list{/if}
+									{#if searching}<span class="font-normal tabular-nums" aria-hidden="true"
+											>{section.shown.length}</span
+										><span class="sr-only">, {section.shown.length} found</span>{/if}
+								</h2>
+								{#if section.locked}
+									<!-- Its state and the one button that changes it, seen whether or not the label
+								     above is: on its own page, a list's label is for screen readers only. -->
+									<div
+										class="mb-2 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
+									>
+										<Icon name={open ? 'unlock' : 'lock'} class="size-4 shrink-0" />
+										<p class="min-w-0 flex-[1_1_14rem]">
+											{open
+												? 'Open. It locks again when Amber is hidden, and after five minutes without use.'
+												: inside
+													? `Locked, with ${inside} ${inside === 1 ? 'entry' : 'entries'} inside.`
+													: 'Locked, and empty so far.'}
+										</p>
+										<button
+											type="button"
+											class={smallButton}
+											aria-label="{open ? 'Lock' : 'Open'} {section.title}"
+											onclick={() => {
+												if (!section.categoryIdentifier) return;
+												if (open) locks.close(section.categoryIdentifier);
+												else unlocking = section.categoryIdentifier;
+											}}>{open ? 'Lock' : 'Open'}</button
 										>
-											<TaskRow
-												{task}
-												showCategory={view.kind === 'tag'}
-												words={search.words}
-												movable={!searching && !selecting}
-												selecting={selecting && !section.locked}
-												selected={selected.includes(task.identifier)}
-												onselect={toggleSelected}
-												lockedIn={section.locked ? section.title : undefined}
-												first={index === 0}
-												last={index === section.shown.length - 1}
-												bucket={section.bucket}
-												color={section.color}
-												hideTag={view.kind === 'tag' ? view.identifier : undefined}
-												onopen={openDetails}
-											/>
-										</li>
-									{/each}
-								</ul>
-								{#if section.done.length && section.bucket}
-									<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
+									</div>
+								{/if}
+								{#if !closed}
+									<ul
+										class={section.shown.length ? tray : ''}
+										{@attach sortable({
+											onplace: (identifier, index) => void place(identifier, index),
+											enabled: () => !searching && !selecting
+										})}
+									>
+										{#each section.shown as task, index (task.identifier)}
+											<li
+												class="[-webkit-touch-callout:none] data-dragging:relative data-dragging:z-10 data-dragging:rounded-md data-dragging:bg-surface data-dragging:shadow-xl data-dragging:outline data-dragging:outline-control-border"
+												animate:flip={{ duration: placing ? 0 : duration }}
+												in:arrive={{ key: task.identifier, bucket: section.bucket }}
+												out:leave={{ key: task.identifier, bucket: section.bucket }}
+											>
+												<TaskRow
+													{task}
+													showCategory={view.kind === 'tag'}
+													words={search.words}
+													movable={!searching && !selecting}
+													selecting={selecting && !section.locked}
+													selected={selected.includes(task.identifier)}
+													onselect={toggleSelected}
+													lockedIn={section.locked ? section.title : undefined}
+													first={index === 0}
+													last={index === section.shown.length - 1}
+													bucket={section.bucket}
+													color={section.color}
+													hideTag={view.kind === 'tag' ? view.identifier : undefined}
+													onopen={openDetails}
+												/>
+											</li>
+										{/each}
+									</ul>
+									{#if section.done.length && section.bucket}
+										<!-- A bucket list's done tasks are achieved dreams: kept on a shelf of their own,
 								     newest first, each with its collection label, never folded away. A dream ticked in
 								     the tray is carried onto the shelf, and back if it's unticked. -->
-									<!-- Set in under its own list's tray, with a hairline, so it reads as that list's shelf,
+										<!-- Set in under its own list's tray, with a hairline, so it reads as that list's shelf,
 								     not a section of its own. -->
-									<section
-										class="mt-4 ml-3 border-l border-border pt-1 pl-4 sm:ml-4"
-										aria-labelledby="achieved-{section.key}"
-									>
-										<h3
-											id="achieved-{section.key}"
-											class="mb-2 {section.color
-												? `${labelShape} ${PLATE[section.color]}`
-												: labelPlate}"
+										<section
+											class="mt-4 ml-3 border-l border-border pt-1 pl-4 sm:ml-4"
+											aria-labelledby="achieved-{section.key}"
 										>
-											{sections.length > 1 ? `Achieved in ${section.title}` : 'Achieved'} ({section
-												.done.length})
-										</h3>
-										<ul class="grid gap-2 sm:grid-cols-2">
-											{#each section.done as task (task.identifier)}
-												<li
-													animate:flip={{ duration }}
-													in:arrive={{ key: task.identifier, bucket: true }}
-													out:leave={{ key: task.identifier, bucket: true }}
-												>
-													<TaskRow
-														{task}
-														bucket
-														achieved
-														movable={false}
-														lockedIn={section.locked ? section.title : undefined}
-														onopen={openDetails}
-													/>
-												</li>
-											{/each}
-										</ul>
-									</section>
-								{:else if section.done.length}
-									<details class="group mt-2">
-										<summary
-											class="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-surface hover:text-text pointer-coarse:min-h-11"
-										>
-											<Icon
-												name="down"
-												class="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
-											/>
-											<!-- In its list's color, as the list's own label is: the fold is still that list's. Not
-											     framed, so it doesn't read as a list of its own beside the label above. -->
-											<span
-												class="{labelInk} {section.color
-													? PLATE[section.color].split(' ')[1]
-													: 'text-muted'}">Done ({section.done.length})</span
+											<h3
+												id="achieved-{section.key}"
+												class="mb-2 {section.color
+													? `${labelShape} ${PLATE[section.color]}`
+													: labelPlate}"
 											>
-										</summary>
-										<ul class="mt-1 {tray}">
-											{#each section.done as task (task.identifier)}
-												<li transition:slide={{ duration }}>
-													<TaskRow
-														{task}
-														movable={false}
-														lockedIn={section.locked ? section.title : undefined}
-														hideTag={view.kind === 'tag' ? view.identifier : undefined}
-														onopen={openDetails}
-													/>
-												</li>
-											{/each}
-										</ul>
-									</details>
+												{sections.length > 1 ? `Achieved in ${section.title}` : 'Achieved'} ({section
+													.done.length})
+											</h3>
+											<ul class="grid gap-2 sm:grid-cols-2">
+												{#each section.done as task (task.identifier)}
+													<li
+														animate:flip={{ duration }}
+														in:arrive={{ key: task.identifier, bucket: true }}
+														out:leave={{ key: task.identifier, bucket: true }}
+													>
+														<TaskRow
+															{task}
+															bucket
+															achieved
+															movable={false}
+															lockedIn={section.locked ? section.title : undefined}
+															onopen={openDetails}
+														/>
+													</li>
+												{/each}
+											</ul>
+										</section>
+									{:else if section.done.length}
+										<details class="group mt-2">
+											<summary
+												class="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg px-2 text-sm text-muted hover:bg-cabinet hover:text-text pointer-coarse:min-h-11"
+											>
+												<Icon
+													name="down"
+													class="size-4 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+												/>
+												<!-- In its list's color, as the list's own label is: the fold is still that list's. Not
+											     framed, so it doesn't read as a list of its own beside the label above. -->
+												<span
+													class="{labelInk} {section.color
+														? PLATE[section.color].split(' ')[1]
+														: 'text-muted'}">Done ({section.done.length})</span
+												>
+											</summary>
+											<ul class="mt-1 {tray}">
+												{#each section.done as task (task.identifier)}
+													<li transition:slide={{ duration }}>
+														<TaskRow
+															{task}
+															movable={false}
+															lockedIn={section.locked ? section.title : undefined}
+															hideTag={view.kind === 'tag' ? view.identifier : undefined}
+															onopen={openDetails}
+														/>
+													</li>
+												{/each}
+											</ul>
+										</details>
+									{/if}
 								{/if}
-							{/if}
-						</section>
-					{/if}
-				{/each}
-			{/if}
+							</section>
+						{/if}
+					{/each}
+				{/if}
+			</div>
 		</main>
 		{#if selecting}
 			<SelectionBar {selected} onselectall={selectAll} onfinish={finishSelecting} />
