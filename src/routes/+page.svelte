@@ -529,14 +529,14 @@
 			id="main"
 			class="min-w-0 {selecting
 				? 'pb-48'
-				: 'pb-32'} outline-none md:mb-10 md:min-h-[70vh] md:rounded-r-lg md:rounded-bl-lg md:border-2 md:border-text md:bg-surface md:px-8 md:pt-7"
+				: 'pb-32'} outline-none md:mb-10 md:min-h-[70vh] md:rounded-r-lg md:rounded-bl-lg md:border md:border-tray-edge md:bg-surface md:px-8 md:pt-7"
 			tabindex="-1"
 			{@attach roving}
 		>
 			<p id="task-open-hint" hidden>Opens the task's details.</p>
 			<div class="flex items-end gap-3 md:items-center">
 				<div
-					class="flex min-w-0 items-center gap-2 max-md:relative max-md:z-10 max-md:-mb-[2px] max-md:rounded-t-lg max-md:border-2 max-md:border-b-0 max-md:border-text max-md:bg-surface max-md:px-4 max-md:pt-2 max-md:pb-[calc(0.5rem+2px)]"
+					class="flex min-w-0 items-center gap-2 max-md:relative max-md:z-10 max-md:-mb-px max-md:rounded-t-lg max-md:border max-md:border-b-0 max-md:border-tray-edge max-md:bg-surface max-md:px-4 max-md:pt-2 max-md:pb-[calc(0.5rem+1px)]"
 				>
 					<!-- On the phone's tab, the list's color, as its drawer has it. -->
 					{#if headingColor}<span
@@ -572,7 +572,7 @@
 				{/if}
 			</div>
 			<div
-				class="max-md:rounded-tr-lg max-md:rounded-b-lg max-md:border-2 max-md:border-text max-md:bg-surface max-md:px-4 max-md:pt-1 max-md:pb-5"
+				class="max-md:rounded-tr-lg max-md:rounded-b-lg max-md:border max-md:border-tray-edge max-md:bg-surface max-md:px-4 max-md:pt-1 max-md:pb-5"
 			>
 				<!-- Always there, so screen readers hear the offer when it appears. -->
 				<div role="status">

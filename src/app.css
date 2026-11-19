@@ -12,6 +12,9 @@
 	--surface: #343434;
 	/* The cabinet's body, one step under the page, that the drawers sit along. */
 	--cabinet: #262626;
+	/* The tray's edge: none on graphite, where its tone stands off the page; a hairline on paper,
+	   where white on the page's near-white would vanish. Never an outline in the text color. */
+	--tray-edge: transparent;
 	--border: #474747;
 	--text: #f2f2f2;
 	--muted: #aaaaaa;
@@ -42,6 +45,7 @@
 		--bg: #fafafa;
 		--surface: #ffffff;
 		--cabinet: #f0f0f0;
+		--tray-edge: #e4e4e4;
 		--border: #e4e4e4;
 		--text: #2b2b2b;
 		/* #AAAAAA is too faint to read on white, so light mode uses a darker gray. */
@@ -64,6 +68,7 @@
 	--bg: #fafafa;
 	--surface: #ffffff;
 	--cabinet: #f0f0f0;
+	--tray-edge: #e4e4e4;
 	--border: #e4e4e4;
 	--text: #2b2b2b;
 	/* #AAAAAA is too faint to read on white, so light mode uses a darker gray. */
@@ -85,6 +90,7 @@
 	--color-bg: var(--bg);
 	--color-surface: var(--surface);
 	--color-cabinet: var(--cabinet);
+	--color-tray-edge: var(--tray-edge);
 	--color-border: var(--border);
 	--color-text: var(--text);
 	--color-muted: var(--muted);
