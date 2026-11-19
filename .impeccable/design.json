@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 2,
-	"generatedAt": "2026-11-17T04:31:46+00:00",
+	"generatedAt": "2026-11-18T10:30:39+00:00",
 	"title": "Design System: Amber",
 	"extensions": {
 		"colorMeta": {
@@ -53,6 +53,11 @@
 				"role": "neutral",
 				"displayName": "Graphite Surface"
 			},
+			"graphite-cabinet": {
+				"role": "neutral",
+				"displayName": "Graphite Cabinet",
+				"canonical": "oklch(26.9% 0 0)"
+			},
 			"graphite-border": {
 				"role": "neutral",
 				"displayName": "Graphite Border"
@@ -80,6 +85,11 @@
 			"paper-surface": {
 				"role": "neutral",
 				"displayName": "Paper Surface"
+			},
+			"paper-cabinet": {
+				"role": "neutral",
+				"displayName": "Paper Cabinet (light mode)",
+				"canonical": "oklch(95.6% 0 0)"
 			},
 			"paper-border": {
 				"role": "neutral",
@@ -201,7 +211,7 @@
 		"typographyMeta": {
 			"headline": {
 				"displayName": "Headline",
-				"purpose": "The current list's name; one per page."
+				"purpose": "The open place's name at the top of the tray; 1.25rem on the phone's tab. One per page."
 			},
 			"wordmark": {
 				"displayName": "Wordmark",
@@ -209,7 +219,7 @@
 			},
 			"title": {
 				"displayName": "Title",
-				"purpose": "Sheet titles; card headings at 1.125rem."
+				"purpose": "Sheet titles; a specimen's dream at 1.125rem."
 			},
 			"body": {
 				"displayName": "Body",
@@ -217,11 +227,11 @@
 			},
 			"body-small": {
 				"displayName": "Body Small",
-				"purpose": "Buttons, fields, sidebar, section headings (600), notices, footer."
+				"purpose": "Buttons, fields, drawers, notices, footer; semibold for the open drawer and chosen options."
 			},
 			"meta": {
 				"displayName": "Meta",
-				"purpose": "The muted line under a task, and hints."
+				"purpose": "The muted line under a task, counts on drawers, and hints."
 			},
 			"label": {
 				"displayName": "Label",
@@ -230,13 +240,19 @@
 		},
 		"themes": {
 			"default": "dark",
-			"light": "Chosen by prefers-color-scheme; *-light tokens replace their dark counterparts, accent-edge becomes deep-rose and focus becomes graphite."
+			"light": "Chosen by prefers-color-scheme or in Settings (data-theme); paper, paper-surface, paper-cabinet, paper-border and the *-light tokens replace their dark counterparts, accent-edge becomes deep-rose and focus becomes graphite.",
+			"rule": "Light is entirely light and dark entirely dark: no surface, drawer or chosen option is filled with the text color in either mode."
 		},
 		"shadows": [
 			{
 				"name": "floating-message",
 				"value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-				"purpose": "The Undo message."
+				"purpose": "The Undo message and the selection bar."
+			},
+			{
+				"name": "lifted-task",
+				"value": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+				"purpose": "A task while it's being dragged, with a control-edge outline."
 			},
 			{
 				"name": "sheet",
@@ -255,6 +271,11 @@
 				"purpose": "Color and opacity changes on hover (Tailwind default)."
 			},
 			{
+				"name": "drawer-slide",
+				"value": "margin, border-color, border-radius, background-color 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+				"purpose": "The open drawer sliding out of the cabinet into the tray."
+			},
+			{
 				"name": "tick-draw",
 				"value": "stroke-dashoffset 300ms ease-out",
 				"purpose": "The checkbox's tick drawing in."
@@ -271,7 +292,7 @@
 			},
 			{
 				"name": "list-reorder",
-				"value": "Svelte flip and slide",
+				"value": "Svelte flip and slide, 200ms",
 				"purpose": "Rows moving, arriving and leaving."
 			},
 			{
@@ -280,14 +301,9 @@
 				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
 			},
 			{
-				"name": "carry",
-				"value": "crossfade 450ms cubic-out",
-				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
-			},
-			{
-				"name": "carry",
-				"value": "crossfade 450ms cubic-out",
-				"purpose": "A dream ticked on a bucket list carried from the tray onto the Achieved shelf, and back when unticked."
+				"name": "achieved",
+				"value": "border-color from accent-edge, 1.6s ease-out",
+				"purpose": "A dream just achieved arriving on the shelf edged in deep rose."
 			},
 			{
 				"name": "drag-make-room",
@@ -304,12 +320,24 @@
 			{
 				"name": "sm",
 				"value": "640px",
-				"purpose": "Wider gutters; sheets become a right-hand panel."
+				"purpose": "Wider gutters; search moves into the header row; sheets become a right-hand panel."
 			},
 			{
 				"name": "md",
 				"value": "768px",
-				"purpose": "Sidebar appears beside the list."
+				"purpose": "The cabinet sits beside the tray and the open drawer joins it; below, the cabinet is in the Lists sheet and the tray has a tab."
+			}
+		],
+		"outlines": [
+			{
+				"name": "open",
+				"value": "2px solid var(--text)",
+				"purpose": "The open drawer, the tray and the phone's tab."
+			},
+			{
+				"name": "chosen",
+				"value": "1.5px var(--text), inset ring or border",
+				"purpose": "A chosen segment (status, kind of list, theme) or a tag on a task."
 			}
 		]
 	},
@@ -371,37 +399,47 @@
 			"css": ".ds-shelf{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;width:520px}.ds-plate{display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-specimens{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ds-specimen{display:flex;gap:12px;padding:16px;border:1px solid var(--control-border);border-radius:6px;background:var(--surface)}.ds-box{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;margin-top:2px;box-sizing:border-box;border:2px solid var(--control-border);border-radius:9999px;color:var(--on-accent)}.ds-box-on{border-color:var(--accent-edge);background:var(--accent)}.ds-specimen-name{font-size:18px;font-weight:600;line-height:1.75;color:var(--text)}.ds-collection{display:inline-block;padding:2px 6px;border:1px solid var(--control-border);border-radius:4px;font-size:12px;color:var(--text)}"
 		},
 		{
-			"name": "Drawers",
+			"name": "Cabinet and Tray",
 			"kind": "nav",
-			"refersTo": "drawer",
-			"description": "The sidebar as a cabinet: each place a drawer front with its count framed on it; the open one pulled out in graphite.",
-			"html": "<nav class=\"ds-drawers\"><span class=\"ds-plate\">Categories</span><button class=\"ds-drawer\">Home<span class=\"ds-count\">3</span></button><button class=\"ds-drawer ds-drawer-open\" aria-current=\"page\">Someday<span class=\"ds-count\">2</span></button></nav>",
-			"css": ".ds-drawers{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:200px}.ds-plate{display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-drawer{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:0 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:14px;text-align:left;cursor:pointer;transition:border-color 150ms}.ds-drawer:hover{border-color:var(--control-border)}.ds-drawer:focus-visible{outline:2px solid var(--focus);outline-offset:3px}.ds-drawer-open{border-color:var(--text);background:var(--text);color:var(--bg);font-weight:600}.ds-drawer-open:hover{border-color:var(--text)}.ds-count{margin-left:auto;padding:0 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}.ds-drawer-open .ds-count{border-color:color-mix(in srgb,var(--bg) 40%,transparent);color:inherit}"
+			"refersTo": "drawer-open",
+			"description": "The sidebar as a cabinet one step under the page, a drawer front per place; the open drawer, outlined 2px in the text color, runs on into the outlined tray with no seam.",
+			"html": "<div class=\"ds-cab-wrap\"><nav class=\"ds-cabinet\"><span class=\"ds-plate\">Categories</span><div class=\"ds-drawer\"><button class=\"ds-place\"><span class=\"ds-dot\"></span>Home<span class=\"ds-count\">3</span></button></div><div class=\"ds-drawer ds-drawer-open\"><button class=\"ds-place\" aria-current=\"page\"><span class=\"ds-dot ds-dot-lav\"></span>Someday<span class=\"ds-count\">2</span></button></div><div class=\"ds-drawer\"><button class=\"ds-place\">Work<span class=\"ds-count\">5</span></button></div></nav><main class=\"ds-tray-main\"><h1>Someday</h1></main></div>",
+			"css": ".ds-cab-wrap{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:grid;grid-template-columns:200px 260px;align-items:start;color:var(--text)}.ds-cabinet{display:flex;flex-direction:column;gap:6px;padding:12px 0 12px 10px;background:var(--cabinet);border:1px solid var(--border);border-right:0;border-radius:8px 0 0 8px}.ds-plate{align-self:flex-start;display:inline-flex;margin-bottom:8px;padding:2px 8px;border:1px solid var(--control-border);border-radius:4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}.ds-drawer{display:flex;margin-right:10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);transition:margin 200ms cubic-bezier(.16,1,.3,1),border-color 200ms cubic-bezier(.16,1,.3,1),border-radius 200ms cubic-bezier(.16,1,.3,1)}.ds-drawer:hover{border-color:var(--control-border)}.ds-drawer-open,.ds-drawer-open:hover{position:relative;z-index:1;margin-right:-2px;border:2px solid var(--text);border-right:0;border-radius:6px 0 0 6px;font-weight:600}.ds-place{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;flex:1;display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border:0;background:none;color:var(--text);font-size:14px;font-weight:inherit;text-align:left;cursor:pointer}.ds-place:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}.ds-dot{width:10px;height:10px;border-radius:9999px;background:var(--cat-teal)}.ds-dot-lav{background:var(--cat-lavender)}.ds-count{margin-left:auto;padding:0 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-weight:400;font-variant-numeric:tabular-nums;color:var(--muted)}.ds-drawer-open .ds-count{border-color:var(--text);color:var(--text)}.ds-tray-main{min-height:220px;padding:28px 32px;border:2px solid var(--text);border-radius:0 8px 8px 8px;background:var(--surface)}.ds-tray-main h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.2}@media (prefers-reduced-motion:reduce){.ds-drawer{transition:none}}"
 		},
 		{
 			"name": "Undo Message",
 			"kind": "custom",
 			"refersTo": "toast",
-			"description": "Floating pill after an action, with Undo; the one in-flow shadow exception because it floats.",
+			"description": "A floating message after an action, with Undo: 8px corners, surface fill, control edge; it floats, so it may cast a shadow.",
 			"html": "<div class=\"ds-toast\" role=\"status\"><span>Done: Water the plants</span><button class=\"ds-toast-undo\">Undo</button><button class=\"ds-btn-icon-t\" aria-label=\"Dismiss\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button></div>",
 			"css": ".ds-toast{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 20px;border-radius:8px;border:1px solid var(--control-border);background:var(--surface);color:var(--text);font-size:14px;line-height:20px;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}.ds-toast-undo{all:unset;min-height:32px;padding:0 12px;border-radius:8px;font-weight:600;text-decoration:underline;text-underline-offset:4px;cursor:pointer}.ds-toast-undo:hover{background:var(--bg)}.ds-toast-undo:focus-visible{outline:2px solid var(--focus);outline-offset:3px;}.ds-btn-icon-t{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}.ds-btn-icon-t:hover{background:var(--bg);color:var(--text)}"
 		},
 		{
 			"name": "Kind of List Switch",
 			"kind": "chip",
+			"refersTo": "segment-chosen",
+			"description": "A segmented choice drawn as one control: the chosen option keeps the surface tone and takes a 1.5px ring in the text color, semibold, never a fill. The same shape as the Any/Open/Done switch and the theme.",
+			"html": "<fieldset class=\"ds-switch\"><label><input type=\"radio\" name=\"ds-kind\"><span>To-do list</span></label><label><input type=\"radio\" name=\"ds-kind\" checked><span>Bucket list</span></label><label><input type=\"radio\" name=\"ds-kind\"><span>Locked list</span></label></fieldset>",
+			"css": ".ds-switch{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;gap:4px;margin:0;padding:4px;border:1px solid var(--control-border);border-radius:6px}.ds-switch label{position:relative;cursor:pointer}.ds-switch input{position:absolute;opacity:0;width:1px;height:1px}.ds-switch span{display:flex;align-items:center;min-height:36px;padding:0 16px;border-radius:4px;color:var(--text);font-size:14px;transition:background-color 150ms,color 150ms}.ds-switch input:checked+span{background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--text);font-weight:600}.ds-switch input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}"
+		},
+		{
+			"name": "Tag Chip",
+			"kind": "chip",
 			"refersTo": "chip-chosen",
-			"description": "A two-way choice drawn as one control: the chosen side fills with the text color. The same shape as the Any/Open/Done switch.",
-			"html": "<fieldset class=\"ds-switch\"><label><input type=\"radio\" name=\"ds-kind\"><span>To-do list</span></label><label><input type=\"radio\" name=\"ds-kind\" checked><span>Bucket list</span></label></fieldset>",
-			"css": ".ds-switch{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;gap:4px;margin:0;padding:4px;border:1px solid var(--control-border);border-radius:6px}.ds-switch label{position:relative;cursor:pointer}.ds-switch input{position:absolute;opacity:0;width:1px;height:1px}.ds-switch span{display:flex;align-items:center;min-height:36px;padding:0 16px;border-radius:4px;color:var(--text);font-size:14px;transition:background-color 150ms,color 150ms}.ds-switch input:checked+span{background:var(--text);color:var(--bg);font-weight:600}.ds-switch input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}"
+			"description": "A task's tags in its details: chosen keeps the surface tone with a 2px outline in the text color (its edge plus a 1px ring inside), semibold, and a check in place of the dot.",
+			"html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-chip-on\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12l5 5L19 7\"/></svg>#weekend</button><button class=\"ds-chip\" aria-pressed=\"false\"><span class=\"ds-chip-dot\"></span>#bills</button></div>",
+			"css": ".ds-chips{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:flex;gap:8px}.ds-chip{font-family:'Plus Jakarta Sans Variable',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--control-border);border-radius:6px;background:transparent;color:var(--text);font-size:14px;cursor:pointer;transition:background-color 150ms}.ds-chip:hover{background:var(--bg)}.ds-chip:focus-visible{outline:2px solid var(--focus);outline-offset:3px}.ds-chip-on,.ds-chip-on:hover{border:1px solid var(--text);box-shadow:inset 0 0 0 1px var(--text);background:var(--surface);font-weight:600}.ds-chip-dot{width:10px;height:10px;border-radius:9999px;background:var(--cat-sand)}"
 		}
 	],
 	"narrative": {
-		"northStar": "Rhodonite in Hand, kept in a specimen cabinet",
-		"overview": "Amber is a piece of rhodonite: dense graphite stone with one pink vein running through it. The stone is everything you see at rest: graphite page, a slightly lighter graphite surface, quiet gray words. The vein is pastel pink, and it only shows where something matters right now: the one main action, the box you just ticked, the words your search found, the thing that has focus.\n\nThe stone is kept the way minerals are, in a specimen cabinet, after the stones Amber and Rhodonite are named for. Places are drawers, a list's tasks are label slips ruled in a tray, names of sections are framed labels, and an achieved dream sits on a shelf as a specimen with its collection label. The cabinet lends type, density, shape and one move; navigation and controls stay the ones people already know, and the search bar is the familiar one from every list app.\n\nIt is a working surface, used daily and quickly, so density is moderate and the hierarchy is plain: a page heading, framed section labels, trays of slips. Personality lives in small tactile moments: a round checkbox whose tick draws itself in, a dream carried from the tray onto the Achieved shelf, an Undo message that slides up from the bottom. Everything has a reduced-motion version that simply appears.\n\nDark is the default stone (the `:root` values); light mode is the same stone in daylight, chosen by the system, with the pink line deepened to deep rose and focus drawn in graphite so both stay visible on white.",
+		"northStar": "Rhodonite in Hand, kept in a specimen cabinet whose open drawer is the list",
+		"overview": "Amber is a piece of rhodonite: dense graphite stone with one pink vein running through it. In the stone's own colors, everything at rest is quiet: the page, a surface one step off it, gray words. The vein is pastel pink, and it only shows where something matters right now: the one main action, the box you just ticked, the words your search found, the thing that has focus.\n\nThe stone is kept the way minerals are, in a specimen cabinet, after the stones Amber and Rhodonite are named for. The sidebar is the cabinet's body, one step under the page, with a drawer front for each place. The drawer you choose slides out and becomes the tray you work in: on a wide screen the open drawer and the main area are one outlined surface with no seam between them, and on a phone the open place's name is a tab on top of that outlined tray. Inside the tray, a list's tasks are label slips ruled in smaller trays, names of sections are framed labels, and an achieved dream sits on a shelf as a specimen with its collection label. The cabinet lends type, density, shape and one move; navigation and controls stay the ones people already know, and the search bar is the familiar one from every list app.\n\nIt is a working surface, used daily and quickly, so density is moderate and the hierarchy is plain: a page heading, framed section labels, trays of slips. Personality lives in small tactile moments: the drawer sliding out into its tray, a round checkbox whose tick draws itself in, a dream carried from the tray onto the Achieved shelf, an Undo message that slides up from the bottom. Everything has a reduced-motion version that simply appears.\n\nLight is entirely light and dark is entirely dark. Dark is the default (the `:root` values); light mode, chosen by the system or in Settings, is the same cabinet in daylight: pale body, white fronts and tray, graphite outlines, the pink line deepened to deep rose and focus drawn in graphite so both stay visible on white. Neither mode borrows a surface from the other.",
 		"keyCharacteristics": [
+			"One continuous world per mode: no dark panel in light mode, no light panel in dark mode.",
+			"The open drawer and the tray are one surface, outlined 2px in the text color.",
 			"Graphite and off-white, with a single pink accent that always means something.",
 			"Flat surfaces separated by tone and hairline borders; shadows only on what floats.",
-			"Small corners (6px, 4px on labels): drawers, trays and plates, not pills. Round only for what's ticked.",
+			"Small corners (6px and 8px, 4px on labels): drawers, trays and plates, not pills. Round only for what's ticked.",
 			"One typeface, Plus Jakarta Sans, at a small set of sizes and weights.",
 			"Every control has an edge people can find (3:1), and every color meets level AA in both modes."
 		],
@@ -422,8 +460,13 @@
 				"section": "colors"
 			},
 			{
-				"name": "The Graphite Chosen Rule",
-				"body": "Something chosen (a tag on a task, the Any/Open/Done switch) fills with the text color and shows a check. Pink stays for ticked, found, focused and the main action.",
+				"name": "The Light Is Light Rule",
+				"body": "Light mode is entirely light and dark mode entirely dark (the owner's rule, 18 November 2026). No surface, drawer or chosen option is filled with the text color; the open drawer, the tray and anything chosen are marked by an outline in the text color on the surface tone.",
+				"section": "colors"
+			},
+			{
+				"name": "The Outlined Chosen Rule",
+				"body": "Something chosen (a segment of the Any/Open/Done switch, the kind of list or the theme, a tag on a task) keeps the surface tone and takes an outline in the text color (a 1.5px ring inside a segment; on a tag, its 1px edge plus a 1px ring inside, 2px in all and no jump in size), with semibold words; a tag also swaps its dot for a check. Pink stays for ticked, found, focused and the main action.",
 				"section": "colors"
 			},
 			{
@@ -433,12 +476,12 @@
 			},
 			{
 				"name": "The One Exception Rule",
-				"body": "A sync code, and a link to the list, are set in the system's monospace font, where telling a 0 from an O matters more than the typeface. Nothing else uses it.",
+				"body": "A sync code, a recovery code and a link to the list are set in the system's monospace font, where telling a 0 from an O matters more than the typeface. Nothing else uses it.",
 				"section": "typography"
 			},
 			{
 				"name": "The Weight Not Size Rule",
-				"body": "Hierarchy inside the list comes from weight and muted color, not new sizes: a section heading is 0.875rem semibold, not a bigger font.",
+				"body": "Hierarchy inside the tray comes from weight, framed labels and muted color, not new sizes: a section's name is a small framed label, not a bigger heading.",
 				"section": "typography"
 			},
 			{
@@ -448,33 +491,38 @@
 			},
 			{
 				"name": "The 44px Finger Rule",
-				"body": "On a coarse pointer every target reaches 44px, through an invisible layer around the control, so the drawing and the layout stay the same size.",
+				"body": "On a coarse pointer every target reaches 44px, through an invisible layer around the control, so the drawing and the layout stay the same size. Drawer fronts grow to 44px.",
 				"section": "layout"
 			},
 			{
 				"name": "The Shadow Means Floating Rule",
-				"body": "Nothing that stays in the page's flow casts a shadow. If it has a shadow, it is modal or transient.",
+				"body": "Nothing that stays in the page's flow casts a shadow: not the cabinet, a drawer, the tray or a slip. If it has a shadow, it is modal, transient or in the hand.",
 				"section": "elevation"
 			}
 		],
 		"dos": [
-			"**Do** take every color from the tokens in `src/app.css`; both modes are defined there.",
-			"**Do** keep the cabinet to type, density, shape and its one move; controls stay standard.",
-			"**Do** keep pink to one meaning per moment, with graphite text on it and deep rose for pink lines in light mode.",
-			"**Do** give every control a 3:1 edge (`control-edge`) and every target 44px on touch.",
-			"**Do** separate surfaces by tone and hairline; add a shadow only to something that floats.",
-			"**Do** pair every transition with `motion-reduce` so it appears instantly instead.",
-			"**Do** use Tailwind classes; inline styles and `data:` URLs are blocked by the Content-Security-Policy."
+			"Do take every color from the tokens in `src/app.css`; both modes are defined there.",
+			"Do keep each mode one world: light surfaces in light mode, graphite surfaces in dark mode.",
+			"Do mark what's open or chosen with an outline in the text color (2px for the open drawer and the tray, 1.5px for a chosen option), semibold, on the surface tone.",
+			"Do keep the open drawer and the tray one outline, with no seam where they meet.",
+			"Do keep the cabinet to type, density, shape and its one move; controls stay standard.",
+			"Do keep pink to one meaning per moment, with graphite text on it and deep rose for pink lines in light mode.",
+			"Do give every control a 3:1 edge (`control-edge`) and every target 44px on touch.",
+			"Do separate surfaces by tone and hairline; add a shadow only to something that floats.",
+			"Do pair every transition with `motion-reduce` so it appears instantly instead.",
+			"Do use Tailwind classes; inline styles and `data:` URLs are blocked by the Content-Security-Policy."
 		],
 		"donts": [
-			"**Don't** use pink as text on a light background, as decoration, or as a category color.",
-			"**Don't** use black (`#000000`) for text or surfaces; graphite is `#2b2b2b`.",
-			"**Don't** add a second typeface or load fonts from another domain.",
-			"**Don't** put shadows on drawers, trays, slips or anything in the page's flow.",
-			"**Don't** reach for pills; the cabinet's corners are small.",
-			"**Don't** squeeze rows at large text; let them wrap.",
-			"**Don't** use category colors as fills behind text.",
-			"**Don't** redraw, recolor or stretch the Itrium logo files; they are copies from the brand assets."
+			"Don't fill a drawer, a chosen option or any surface with the text color, in either mode.",
+			"Don't split the page into a dark sidebar beside a light page, or the reverse.",
+			"Don't use pink as text on a light background, as decoration, or as a category color.",
+			"Don't use black (`#000000`) for text or surfaces; graphite is `#2b2b2b`.",
+			"Don't add a second typeface or load fonts from another domain.",
+			"Don't put shadows on the cabinet, drawers, the tray, slips or anything in the page's flow.",
+			"Don't reach for pills; the cabinet's corners are small.",
+			"Don't squeeze rows at large text; let them wrap.",
+			"Don't use category colors as fills behind text, or as a thick edge on a row or card.",
+			"Don't redraw, recolor or stretch the Itrium logo files; they are copies from the brand assets."
 		]
 	}
 }

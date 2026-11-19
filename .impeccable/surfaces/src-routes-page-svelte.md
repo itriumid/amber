@@ -11,20 +11,20 @@ Scope: the one page at `/` and its sheets. Mode: Operate. Audience: the general 
 
 Job: add, tick and find tasks in seconds; keep dreams, and see the ones achieved.
 
-Constraints: Rhodonite colors only (graphite, one pastel pink for the primary action and focus); Plus Jakarta Sans; WCAG 2.2 AA; 44px touch targets; no inline styles; nothing loaded from another domain. Standard web controls throughout.
+Constraints: Rhodonite colors only (graphite, one pastel pink for the primary action and focus); Plus Jakarta Sans, Itrium's brand face; WCAG 2.2 AA; 44px touch targets; no inline styles; nothing loaded from another domain. Standard web controls throughout. Light is entirely light and dark entirely dark: no dark-filled surface in light mode (the owner's rule, 18 November 2026).
 
 ## Direction contract
 
-THESIS: Amber is a specimen cabinet for a life: categories are labelled drawers, tasks are label slips in a tray, and an achieved dream is kept like a specimen with its collection label. It refuses the category default of rounded cards floating in a sidebar app.
+THESIS: Amber is a specimen cabinet whose open drawer is the list: the drawer you choose slides out of the cabinet and becomes the tray you work in, one continuous surface. It refuses the category default of a sidebar of links beside a floating page, and the two-tone dark-sidebar shell.
 
-OWN-WORLD: Graphite cabinet ground; drawer fronts in the surface gray with a small framed label (name and count) and a hairline edge; slips as ruled rows on a tray, not cards; collection labels as a hairline-framed block with the name in weight and the date in muted text; pink only on the primary Add and focus. Plus Jakarta Sans, label text small and tracked, slips in regular weight. Square-ish 4–6px corners, not pills.
+OWN-WORLD: Light: a pale cabinet body (one step under the page) holding white drawer fronts with hairline edges and framed counts; the open drawer and the tray one white surface outlined in graphite at 2px, joined with no seam. Dark: the same shapes in graphite tones, outlined in off-white. Slips are ruled rows in hairline trays inside the drawer; framed labels in list colors; the Achieved shelf of specimens; pink only on Add and focus. Plus Jakarta Sans; 6–8px corners; no shadows at rest.
 
-STORY: The visitor opens a drawer, adds a slip, ticks it. On a bucket-list drawer a ticked dream moves to the Achieved shelf as a specimen with its date, never into a plain Done fold.
+STORY: The visitor pulls out a drawer, sees it open into its tray, adds a slip, ticks it; a dream achieved is filed on the shelf as a specimen with its date.
 
-FIRST VIEWPORT: Header with Amber's icon, the wordmark, and the category standard's search bar (wide, rounded, its own full-width line on a phone); beside the list on a wide screen, a column of drawer fronts for places, with the open drawer pulled out in graphite (in a sheet from the menu button on a phone, since Operate surfaces keep standard navigation); the page heading; quick add at the head of the list, not at the bottom on a phone, because the Undo message owns the bottom edge; the open drawer's sections as framed labels over trays of slips; on a bucket list, the Achieved shelf of specimens below its tray.
+FIRST VIEWPORT: Header with Amber's icon, wordmark and the wide search bar. On a wide screen, the cabinet body at left with a drawer per place; the open one runs level into the outlined tray filling the rest: the place's heading, quick add, then its sections. On a phone, the drawers sit in the Lists sheet, and the open place's name is a tab on top of the outlined tray, carrying its count.
 
-FORM: Specimen cabinet, position 1 on the ordered list (taken over the roll's assignment, the tear-off calendar at 5), fused with the category standard's search bar at the user's request. seed:f20dd845d64617e1
+FORM: Graphite cabinet (Impeccable's pick, position 1 on the ordered list; the roll assigned the herbarium sheet at 3), steered by the owner to one continuous light or dark world with no two-tone split. seed:132707f1f825a01a
 
-SIGNATURE MOVE: Achieving a dream files it: the slip lifts out of the tray and lands on the Achieved shelf as a specimen with a collection label stamped with the date, under reduced motion it simply appears there.
+SIGNATURE MOVE: The open drawer is the tray: choosing a place pulls its drawer out into the work area, the join drawn as one outline. Achieving a dream still files it on the Achieved shelf as a specimen.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

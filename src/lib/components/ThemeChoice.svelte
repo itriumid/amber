@@ -26,7 +26,7 @@
 					onchange={() => settings.setTheme(each.theme)}
 				/>
 				<span
-					class="flex min-h-9 items-center rounded-sm px-3 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
+					class="flex min-h-9 items-center rounded-sm px-3 text-sm transition-colors peer-checked:bg-surface peer-checked:font-semibold peer-checked:ring-[1.5px] peer-checked:ring-text peer-checked:ring-inset peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
 					>{each.label}</span
 				>
 			</label>

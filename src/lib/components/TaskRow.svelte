@@ -238,20 +238,21 @@
 	<div class="flex min-w-0 {lockedIn ? 'flex-[1_1_8rem]' : 'flex-[1_1_12rem]'} items-start gap-3">
 		<div class={lockedIn ? 'hidden' : ''}>
 			{#if selecting && !lockedIn}
-				<!-- Square, and filled in the text color when chosen: a choice, not a task ticked off. -->
+				<!-- Square, edged and ticked in the text color when chosen, never filled: a choice, not a task
+				     ticked off. -->
 				<label
 					class="inline-grid size-7 cursor-pointer place-items-center pointer-coarse:-m-2 pointer-coarse:p-2"
 				>
 					<input
 						type="checkbox"
-						class="peer col-start-1 row-start-1 size-5 cursor-pointer appearance-none rounded-sm border-2 border-control-border checked:border-text checked:bg-text"
+						class="peer col-start-1 row-start-1 size-5 cursor-pointer appearance-none rounded-sm border-2 border-control-border checked:border-text"
 						checked={selected}
 						aria-label="Select: {title}"
 						onchange={() => onselect?.(task)}
 					/>
 					<Icon
 						name="check"
-						class="pointer-events-none col-start-1 row-start-1 size-3.5 text-bg opacity-0 peer-checked:opacity-100"
+						class="pointer-events-none col-start-1 row-start-1 size-3.5 text-text opacity-0 peer-checked:opacity-100"
 					/>
 				</label>
 			{:else if !lockedIn}
