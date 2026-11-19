@@ -853,6 +853,7 @@
 															bucket
 															achieved
 															movable={false}
+															color={section.color}
 															lockedIn={section.locked ? section.title : undefined}
 															onopen={openDetails}
 														/>
@@ -883,6 +884,7 @@
 														<TaskRow
 															{task}
 															movable={false}
+															color={section.color}
 															lockedIn={section.locked ? section.title : undefined}
 															hideTag={view.kind === 'tag' ? view.identifier : undefined}
 															onopen={openDetails}

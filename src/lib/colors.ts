@@ -29,6 +29,24 @@ export const EDGE: Record<Color, string> = {
 	lavender: 'border-cat-lavender'
 };
 
+/**
+ * A ticked box in its list's color: a pale wash of the color inside an edge of it, and the tick in
+ * it too, never a solid fill (light is light, dark is dark). Every category color reaches 4.5:1 on
+ * both surfaces, and still more than 3:1 on its own wash, as a tick needs. A task with no category
+ * keeps the pink one.
+ */
+export const TICKED: Record<Color, { box: string; tick: string }> = {
+	rose: { box: 'checked:border-cat-rose checked:bg-cat-rose/20', tick: 'text-cat-rose' },
+	sage: { box: 'checked:border-cat-sage checked:bg-cat-sage/20', tick: 'text-cat-sage' },
+	sand: { box: 'checked:border-cat-sand checked:bg-cat-sand/20', tick: 'text-cat-sand' },
+	blue: { box: 'checked:border-cat-blue checked:bg-cat-blue/20', tick: 'text-cat-blue' },
+	teal: { box: 'checked:border-cat-teal checked:bg-cat-teal/20', tick: 'text-cat-teal' },
+	lavender: {
+		box: 'checked:border-cat-lavender checked:bg-cat-lavender/20',
+		tick: 'text-cat-lavender'
+	}
+};
+
 /** A section's framed label in its category's color: the words, the frame and the dot. */
 export const PLATE: Record<Color, string> = {
 	rose: 'border-cat-rose text-cat-rose',

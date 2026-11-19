@@ -195,7 +195,8 @@ components:
 Amber is a piece of rhodonite: dense graphite stone with one pink vein running through it. In the
 stone's own colors, everything at rest is quiet: the page, a surface one step off it, gray words.
 The vein is pastel pink, and it only shows where something matters right now: the one main action,
-the box you just ticked, the words your search found, the thing that has focus.
+the box you just ticked (in its list's color, when it has one), the words your search found, the
+thing that has focus.
 
 The stone is kept the way minerals are, in a specimen cabinet, after the stones Amber and Rhodonite
 are named for. The sidebar is the cabinet's body, one step under the page, with a drawer front for
@@ -270,13 +271,14 @@ a bucket list, and a small star on its drawer, from the start; "· Locked list" 
 a locked list); the "Done (n)" that folds its done tasks away, in its words alone, unframed, so it
 reads as part of the list rather than a list beside it; its Achieved shelf's framed label, in the
 same color; and the edge of each of its tasks' empty checkboxes, so a task shows which list it's
-in. Ticked, a box is pink whatever its list. New categories start with the next color not in use;
+in. Ticked, a box takes a pale wash of its list's color, never a solid fill; with no color, pink. New categories start with the next color not in use;
 "No color" stays a choice.
 
 ### Named Rules
 
-**The One Vein Rule.** Pink marks one kind of thing at a time: the primary action, the ticked state,
-the found words, or focus. It is never decoration, never a background wash, never a heading color.
+**The One Vein Rule.** Pink marks one kind of thing at a time: the primary action, the ticked state
+of a task with no list color (one in a colored list is ticked in that color), the found words, or
+focus. It is never decoration, never a background wash, never a heading color.
 If a screen has two pink buttons, one of them is wrong.
 
 **The Graphite-on-Pink Rule.** Text on pink is graphite. Pastel pink is never text on a light
@@ -430,10 +432,13 @@ fill.
 
 ### Checkbox (signature)
 
-A real checkbox drawn as a 24px circle (20px small) with a 2px control edge. Ticked, it fills
-pastel pink with a deep-rose edge and a graphite tick that draws itself in over 300ms (stroke dash),
-with the fill fading in over 200ms. Reduced motion shows it at once. The space around it ticks it
-too. Round and pink means ticked off, so it's only for tasks and steps; an entry in a locked list
+A real checkbox drawn as a 24px circle (20px small) with a 2px edge, in the list's color for a task
+in a colored list. Ticked, a task in a colored list takes a pale wash of its list's color (20%)
+inside an edge of that color, with the tick in it too (`TICKED` in colors.ts; every tick reaches at
+least 3.99:1 on its wash, in both modes); a task with no color, and a step, fills pastel pink with a
+deep-rose edge and a graphite tick. The tick draws itself in over 300ms (stroke dash), with the fill
+fading in over 200ms. Reduced motion shows it at once. The space around it ticks it too. The round
+box means ticked off, so it's only for tasks and steps; an entry in a locked list
 has none, since a secret isn't something to tick off.
 
 **Square box** (`Box.svelte`): for everything else that's on or off, a setting, an acknowledgement
