@@ -58,7 +58,7 @@
 					}}
 				/>
 				<span
-					class="flex min-h-9 items-center gap-1.5 rounded-sm px-3 text-sm transition-colors peer-checked:bg-text peer-checked:font-semibold peer-checked:text-bg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
+					class="flex min-h-9 items-center gap-1.5 rounded-sm px-3 text-sm transition-colors peer-checked:bg-surface peer-checked:font-semibold peer-checked:ring-[1.5px] peer-checked:ring-text peer-checked:ring-inset peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus motion-reduce:transition-none pointer-coarse:min-h-11"
 					>{#if each.kind === 'locked'}<Icon name="lock" class="size-3.5" />{/if}<span
 						aria-hidden="true">{each.short}</span
 					><span class="sr-only">{each.label}</span></span

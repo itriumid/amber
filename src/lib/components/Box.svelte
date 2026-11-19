@@ -1,4 +1,5 @@
-<!-- A square checkbox, filled in the text color when it's on: for a setting, an acknowledgement or a
+<!-- A square checkbox, edged and ticked in the text color when it's on, never filled (light is light,
+     dark is dark): for a setting, an acknowledgement or a
      choice, never a task ticked off, which is the round pink box (Check.svelte). The same square as
      choosing tasks. A real checkbox in a label, so the words beside it tick it too; on a touch screen
      the row is 44px high. -->
@@ -28,7 +29,7 @@
 	<span class="inline-grid shrink-0 place-items-center">
 		<input
 			type="checkbox"
-			class="peer col-start-1 row-start-1 size-5 cursor-pointer appearance-none rounded-sm border-2 border-control-border checked:border-text checked:bg-text"
+			class="peer col-start-1 row-start-1 size-5 cursor-pointer appearance-none rounded-sm border-2 border-control-border checked:border-text"
 			bind:this={box}
 			bind:checked
 			aria-describedby={describedby}
@@ -36,7 +37,7 @@
 		/>
 		<Icon
 			name="check"
-			class="pointer-events-none col-start-1 row-start-1 size-3.5 text-bg opacity-0 peer-checked:opacity-100"
+			class="pointer-events-none col-start-1 row-start-1 size-3.5 text-text opacity-0 peer-checked:opacity-100"
 		/>
 	</span>
 	<span>{@render children()}</span>

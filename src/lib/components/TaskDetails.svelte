@@ -271,7 +271,7 @@
 								type="button"
 								aria-pressed={on}
 								class="relative inline-flex min-h-9 items-center gap-1.5 rounded-md border px-3 text-sm transition-colors motion-reduce:transition-none {touchTarget} {on
-									? 'border-text bg-text font-medium text-bg'
+									? 'border-text bg-surface font-semibold ring-1 ring-text ring-inset'
 									: 'border-control-border hover:bg-bg'}"
 								onclick={() =>
 									amber.act(
