@@ -6,7 +6,7 @@
 	import { tick } from 'svelte';
 	import { amber } from '#lib/amber.svelte.js';
 	import { locks } from '#lib/locks.svelte.js';
-	import { DOT } from '#lib/colors.js';
+	import { DOT, EDGE, TICKED } from '#lib/colors.js';
 	import {
 		addStep,
 		deleteStep,
@@ -59,6 +59,13 @@
 		const place = shownCategory(amber.records, task);
 		const category = place ? get(amber.records, place, 'category') : undefined;
 		return category ? value(category, 'keepDone') : false;
+	});
+	// Its list's color, for the Done box: ticked in it, as the task's box in the list is.
+	const listColor = $derived.by(() => {
+		if (!task) return null;
+		const place = shownCategory(amber.records, task);
+		const category = place ? get(amber.records, place, 'category') : undefined;
+		return category ? value(category, 'color') : null;
 	});
 	const lockedIn = $derived(task ? lockedListOf(amber.records, task) : undefined);
 	const lockedName = $derived(lockedIn ? value(lockedIn, 'name') : '');
@@ -194,6 +201,8 @@
 		<div class={lockedIn ? 'hidden' : ''}>
 			<Check
 				checked={value(task, 'done')}
+				ring={listColor ? EDGE[listColor] : undefined}
+				ticked={listColor ? TICKED[listColor] : undefined}
 				label={bucket ? 'Achieved' : 'Done'}
 				onchange={(checked) =>
 					amber.act(

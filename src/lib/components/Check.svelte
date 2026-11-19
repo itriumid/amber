@@ -13,6 +13,7 @@
 		small = false,
 		disabled = false,
 		ring,
+		ticked,
 		describedby,
 		children
 	}: {
@@ -27,6 +28,11 @@
 		 * Ticked, the box is pink whatever the list.
 		 */
 		ring?: string;
+		/**
+		 * Ticked in its list's color (`TICKED` in colors.ts): a wash and an edge of the color, and the
+		 * tick in it. Without one, ticked is pink.
+		 */
+		ticked?: { box: string; tick: string };
 		/** The identifier of a hint, for `aria-describedby`. */
 		describedby?: string;
 		/** Text beside the box, which ticks it too. Hide it from screen readers: `label` names the box. */
@@ -56,14 +62,14 @@
 			aria-describedby={describedby}
 			onchange={(event) => onchange(event.currentTarget.checked)}
 			class="peer col-start-1 row-start-1 cursor-pointer appearance-none rounded-full border-2 {ring ??
-				'border-control-border'} transition-colors duration-200 checked:border-accent-edge checked:bg-accent disabled:cursor-not-allowed motion-reduce:transition-none {small
+				'border-control-border'} transition-colors duration-200 {ticked?.box ??
+				'checked:border-accent-edge checked:bg-accent'} disabled:cursor-not-allowed motion-reduce:transition-none {small
 				? 'size-5'
 				: 'size-6'}"
 		/>
 		<svg
-			class="pointer-events-none col-start-1 row-start-1 text-on-accent opacity-0 peer-checked:opacity-100 {small
-				? 'size-3'
-				: 'size-3.5'}"
+			class="pointer-events-none col-start-1 row-start-1 {ticked?.tick ??
+				'text-on-accent'} opacity-0 peer-checked:opacity-100 {small ? 'size-3' : 'size-3.5'}"
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"

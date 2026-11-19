@@ -8,7 +8,7 @@
 <script lang="ts">
 	import { amber } from '#lib/amber.svelte.js';
 	import { locks } from '#lib/locks.svelte.js';
-	import { DOT, EDGE } from '#lib/colors.js';
+	import { DOT, EDGE, TICKED } from '#lib/colors.js';
 	import { categoryLabel, deleteTask, moveTask, setDone } from '#lib/model/actions.js';
 	import { value, type Color, type Task } from '#lib/model/list.js';
 	import { tick, untrack } from 'svelte';
@@ -258,6 +258,7 @@
 			{:else if !lockedIn}
 				<Check
 					ring={color ? EDGE[color] : undefined}
+					ticked={color ? TICKED[color] : undefined}
 					checked={done}
 					label={bucket
 						? done
