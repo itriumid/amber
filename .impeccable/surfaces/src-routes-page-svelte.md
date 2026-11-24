@@ -21,7 +21,7 @@ OWN-WORLD: Light: a pale cabinet body (one step under the page) holding its draw
 
 STORY: The visitor pulls out a drawer, sees it open into its tray, adds a slip, ticks it; a dream achieved is filed on the shelf as a specimen with its date.
 
-FIRST VIEWPORT: Header with Amber's icon, wordmark and the wide search bar. On a wide screen, the cabinet body at left with a drawer per place; the open one, in the tray's tone, runs level into the tray filling the rest: the place's heading, quick add, then its sections. On a phone, the drawers sit in the Lists sheet, and the open place's name is a tab on top of the tray, in its tone, carrying its count.
+FIRST VIEWPORT: Header with Amber's mark (a pink drop with a graphite tick, no tile), wordmark and the wide search bar. On a wide screen, the cabinet body at left with a drawer per place; the open one, in the tray's tone, runs level into the tray filling the rest: the place's heading, quick add, then its sections. On a phone, the drawers sit in the Lists sheet, and the open place's name is a tab on top of the tray, in its tone, carrying its count.
 
 FORM: Graphite cabinet (Impeccable's pick, position 1 on the ordered list; the roll assigned the herbarium sheet at 3), steered by the owner to one continuous light or dark world with no two-tone split. seed:132707f1f825a01a
 
