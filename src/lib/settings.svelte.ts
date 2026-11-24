@@ -9,6 +9,38 @@ const THEME = 'amber-theme';
 
 export type Theme = 'device' | 'light' | 'dark';
 
+const LIGHT = '(prefers-color-scheme: light)';
+
+/** The theme the page shows for a setting: the one chosen, or the device's. */
+function shown(theme: Theme): 'light' | 'dark' {
+	if (theme !== 'device') return theme;
+	return matchMedia(LIGHT).matches ? 'light' : 'dark';
+}
+
+/**
+ * Shows a theme, the way static/theme.js does before drawing. With `fade`, the whole page fades
+ * from the old theme to the new (app.css sets how long), instead of a dark screen turning white at
+ * once. Fading every element's colors instead would also run on the first drawing and on top of
+ * the page's own transitions.
+ */
+function show(theme: 'light' | 'dark', fade: boolean) {
+	const apply = () => {
+		document.documentElement.dataset.theme = theme;
+		document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', theme);
+		// The browser's own bar takes the page's color.
+		for (const meta of document.querySelectorAll('meta[name="theme-color"]'))
+			meta.setAttribute('content', theme === 'light' ? '#FAFAFA' : '#2B2B2B');
+	};
+	if (
+		fade &&
+		document.documentElement.dataset.theme !== theme &&
+		'startViewTransition' in document &&
+		!matchMedia('(prefers-reduced-motion: reduce)').matches
+	)
+		document.startViewTransition(apply);
+	else apply();
+}
+
 class Settings {
 	/**
 	 * N, S, / and ?, which work anywhere outside a field. They can be turned off: pressed by mistake,
@@ -25,6 +57,13 @@ class Settings {
 		} catch {
 			// Storage blocked: the device's setting holds.
 		}
+		// static/theme.js pinned the device's theme before drawing, so the stylesheet doesn't
+		// switch on its own when the device does: the page fades to it here. Brought up to date
+		// first, in case the device switched while the page was loading.
+		if (this.theme === 'device') show(shown('device'), false);
+		matchMedia(LIGHT).addEventListener('change', () => {
+			if (this.theme === 'device') show(shown('device'), true);
+		});
 		try {
 			const stored = await readDetail(SINGLE_KEY_SHORTCUTS);
 			if (typeof stored === 'boolean') this.singleKeyShortcuts = stored;
@@ -35,31 +74,7 @@ class Settings {
 
 	setTheme(theme: Theme) {
 		this.theme = theme;
-		const apply = () => {
-			const root = document.documentElement;
-			if (theme === 'device') delete root.dataset.theme;
-			else root.dataset.theme = theme;
-			document
-				.querySelector('meta[name="color-scheme"]')
-				?.setAttribute('content', theme === 'device' ? 'dark light' : theme);
-			// The browser's own bar: each color for its scheme, or the chosen one for both.
-			for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-				const light =
-					theme === 'light' ||
-					(theme === 'device' && meta.getAttribute('media')?.includes('light'));
-				meta.setAttribute('content', light ? '#FAFAFA' : '#2B2B2B');
-			}
-		};
-		// The whole page fades from one theme to the other (app.css sets how long), instead of a
-		// dark screen turning white at once. Fading every element's colors instead would also run on
-		// the first drawing and on top of the page's own transitions. A device switching on its own
-		// can't be faded: its colors have changed before the page hears of it.
-		if (
-			'startViewTransition' in document &&
-			!matchMedia('(prefers-reduced-motion: reduce)').matches
-		)
-			document.startViewTransition(apply);
-		else apply();
+		show(shown(theme), true);
 		try {
 			if (theme === 'device') localStorage.removeItem(THEME);
 			else localStorage.setItem(THEME, theme);

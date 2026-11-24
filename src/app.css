@@ -39,7 +39,8 @@
 	color-scheme: dark;
 }
 
-/* Light: the device's setting, unless Dark was chosen in Amber (data-theme, set by theme.js). */
+/* Light: the device's setting, for a page whose script didn't run. static/theme.js pins the theme
+   in data-theme, the one chosen in Amber or the device's, and the rules below follow that. */
 @media (prefers-color-scheme: light) {
 	:root:not([data-theme='dark']) {
 		--bg: #fafafa;
@@ -63,7 +64,7 @@
 	}
 }
 
-/* Chosen in Amber: light whatever the device says. */
+/* Pinned by static/theme.js: light whatever the device says, until the page fades to dark. */
 :root[data-theme='light'] {
 	--bg: #fafafa;
 	--surface: #ffffff;
