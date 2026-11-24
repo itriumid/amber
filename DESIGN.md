@@ -344,10 +344,11 @@ color, not new sizes: a section's name is a small framed label, not a bigger hea
 ## Layout
 
 A centered column up to 72rem wide, with 16px gutters on phones and 24px from 640px up. The header
-wraps: Amber's mark (a drop of resin with a tick kept inside it, pink on Itrium's graphite tile, the
-family's frame, with no outline of its own) and the wordmark on the left, search taking up to 28rem
-on the right, and on a phone the search bar on a line of its own, full width. Nothing else sits in
-the header; the link to Itrium is in the footer's last line.
+wraps: Amber's mark (a drop of resin with a tick kept inside it: the drop filled pastel pink, the
+tick graphite on it, with no tile, so it reads on the light page and the graphite one alike) and the
+wordmark on the left, search taking up to 28rem on the right, and on a phone the search bar on a
+line of its own, full width. Nothing else sits in the header; the link to Itrium is in the footer's
+last line.
 
 From 768px the cabinet (15rem) and the tray sit side by side with no gap: the cabinet has no right
 edge, and the open drawer runs 1px over the cabinet's side straight into the tray, whose hairline

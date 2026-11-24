@@ -17,6 +17,7 @@
 	import TaskDetails from '#lib/components/TaskDetails.svelte';
 	import TaskRow from '#lib/components/TaskRow.svelte';
 	import Seo from '#lib/Seo.svelte';
+	import mark from '#lib/amber-mark-compact.svg';
 	import {
 		backupReminder,
 		DESCRIPTION,
@@ -451,9 +452,9 @@
 			>
 				<Icon name="menu" class="size-5" />
 			</button>
-			<!-- Amber's icon, as it is. On the graphite page its tile is the page's own color, so the mark
-			     stands alone; an outline around it drew a frame a little apart from the tile. -->
-			<img src="/favicon.svg" alt="" width="32" height="32" class="size-8" />
+			<!-- Amber's mark, the compact one for its size: a pink drop with a graphite tick, which needs
+			     no tile behind it on a light page or a dark one. -->
+			<img src={mark} alt="" width="24" height="32" class="h-8 w-auto" />
 			<p class="text-xl font-bold tracking-tight">Amber</p>
 		</div>
 		<!-- The search bar as people know it from every list app: wide, rounded, on its own line on a
