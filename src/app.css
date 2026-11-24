@@ -145,6 +145,13 @@ html {
 	}
 }
 
+/* Changing the theme fades the old page into the new (settings.svelte.ts), a little slower than
+   the browser's own quarter second, so the change in brightness is gentle. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 400ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	html {
 		scroll-behavior: auto;

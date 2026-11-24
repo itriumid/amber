@@ -2169,14 +2169,48 @@ test('follows the device, or the theme chosen, and keeps it after a reload', asy
 		page.locator('label:visible', { has: page.getByRole('radio', { name }) });
 	await settingsSheet(page);
 	await theme('Light').click();
-	expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('light');
+	// Applied as the fade between themes starts, a frame after the click.
+	await expect
+		.poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+		.toBe('light');
 	await page.reload();
 	await expect(page.getByLabel('New task')).toBeEnabled();
 	expect(await background()).toBe('#fafafa');
 	await settingsSheet(page);
 	await expect(theme('Light').getByRole('radio')).toBeChecked();
 	await theme('System').click();
-	expect(await background()).toBe('#2b2b2b');
+	await expect.poll(background).toBe('#2b2b2b');
+});
+
+test('fades between themes, and switches at once under reduced motion', async ({ browser }) => {
+	for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+		const context = await browser.newContext({ reducedMotion });
+		// Counts the page's view transitions, the fade between its old and new look.
+		await context.addInitScript(() => {
+			const start = document.startViewTransition.bind(document);
+			Object.assign(window, { fades: 0 });
+			document.startViewTransition = (update) => {
+				Object.assign(window, { fades: (window as unknown as { fades: number }).fades + 1 });
+				return start(update);
+			};
+		});
+		const page = await context.newPage();
+		await page.goto('/');
+		await expect(page.getByLabel('New task')).toBeEnabled();
+		await settingsSheet(page);
+		await page.locator('label:visible', { has: page.getByRole('radio', { name: 'Dark' }) }).click();
+		const fades = () => page.evaluate(() => (window as unknown as { fades: number }).fades);
+		if (reducedMotion === 'reduce') {
+			expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
+			expect(await fades()).toBe(0);
+		} else {
+			await expect
+				.poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+				.toBe('dark');
+			expect(await fades()).toBe(1);
+		}
+		await context.close();
+	}
 });
 
 test('offers to delete only the copies that have a locked list in plain text', async ({ page }) => {
