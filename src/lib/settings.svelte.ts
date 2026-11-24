@@ -35,18 +35,31 @@ class Settings {
 
 	setTheme(theme: Theme) {
 		this.theme = theme;
-		const root = document.documentElement;
-		if (theme === 'device') delete root.dataset.theme;
-		else root.dataset.theme = theme;
-		document
-			.querySelector('meta[name="color-scheme"]')
-			?.setAttribute('content', theme === 'device' ? 'dark light' : theme);
-		// The browser's own bar: each color for its scheme, or the chosen one for both.
-		for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
-			const light =
-				theme === 'light' || (theme === 'device' && meta.getAttribute('media')?.includes('light'));
-			meta.setAttribute('content', light ? '#FAFAFA' : '#2B2B2B');
-		}
+		const apply = () => {
+			const root = document.documentElement;
+			if (theme === 'device') delete root.dataset.theme;
+			else root.dataset.theme = theme;
+			document
+				.querySelector('meta[name="color-scheme"]')
+				?.setAttribute('content', theme === 'device' ? 'dark light' : theme);
+			// The browser's own bar: each color for its scheme, or the chosen one for both.
+			for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+				const light =
+					theme === 'light' ||
+					(theme === 'device' && meta.getAttribute('media')?.includes('light'));
+				meta.setAttribute('content', light ? '#FAFAFA' : '#2B2B2B');
+			}
+		};
+		// The whole page fades from one theme to the other (app.css sets how long), instead of a
+		// dark screen turning white at once. Fading every element's colors instead would also run on
+		// the first drawing and on top of the page's own transitions. A device switching on its own
+		// can't be faded: its colors have changed before the page hears of it.
+		if (
+			'startViewTransition' in document &&
+			!matchMedia('(prefers-reduced-motion: reduce)').matches
+		)
+			document.startViewTransition(apply);
+		else apply();
 		try {
 			if (theme === 'device') localStorage.removeItem(THEME);
 			else localStorage.setItem(THEME, theme);
