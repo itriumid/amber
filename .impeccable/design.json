@@ -315,6 +315,11 @@
 				"purpose": "Tasks sliding aside for one being dragged."
 			},
 			{
+				"name": "theme-fade",
+				"value": "view transition crossfade of the root, 400ms",
+				"purpose": "The whole page fading from one theme to the other when one is chosen in Settings."
+			},
+			{
 				"name": "reduced-motion",
 				"value": "duration 0 / transition: none",
 				"purpose": "Every motion above has an instant version."

@@ -572,7 +572,10 @@ on a box.
   color, never pink, and the problem sits right under it, after the warning sign. A passphrase
   field says when Caps Lock is on.
 - **Theme:** System, Light or Dark (the brand's names), a segmented switch in Settings. Kept in
-  this browser and applied before the page is drawn (`static/theme.js`).
+  this browser and applied before the page is drawn (`static/theme.js`). Choosing one fades the
+  whole page from the old theme to the new over 400ms (a view transition), so a dark screen never
+  turns white at once; under reduced motion it changes at once. A device switching on its own
+  changes at once too: its colors have changed before the page hears of it.
 - **Quick add:** a #word makes a tag and an @ followed by a category's name puts the task in that
   category, said in the hint under it until the list has a tag and then whenever quick add has
   focus; its line stays either way, so nothing moves. An @ that names no category stays in the
