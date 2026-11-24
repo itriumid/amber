@@ -1636,9 +1636,10 @@ test('edges the pink Add button, and shows the row under the pointer, in light m
 	await addTask(page, 'Hover over me');
 	await page.getByLabel('New task').fill('Another');
 	const add = page.getByRole('button', { name: 'Add', exact: true });
-	expect(await add.evaluate((element) => getComputedStyle(element).borderTopColor)).toBe(
-		'rgb(196, 100, 117)'
-	);
+	// The page fades to the device's new theme, a frame after it switches.
+	await expect
+		.poll(() => add.evaluate((element) => getComputedStyle(element).borderTopColor))
+		.toBe('rgb(196, 100, 117)');
 	// Touch screens have no pointer to hover with.
 	if (isPhone(page)) return;
 	// A slip in its tray is tinted under the pointer: on a white tray, white alone wouldn't show.
@@ -2163,7 +2164,7 @@ test('follows the device, or the theme chosen, and keeps it after a reload', asy
 			getComputedStyle(document.documentElement).getPropertyValue('--bg').trim().toLowerCase()
 		);
 	await page.emulateMedia({ colorScheme: 'dark' });
-	expect(await background()).toBe('#2b2b2b');
+	await expect.poll(background).toBe('#2b2b2b');
 	// In Settings.
 	const theme = (name: string) =>
 		page.locator('label:visible', { has: page.getByRole('radio', { name }) });
@@ -2182,18 +2183,21 @@ test('follows the device, or the theme chosen, and keeps it after a reload', asy
 	await expect.poll(background).toBe('#2b2b2b');
 });
 
+/** Counts a page's view transitions, the fade between its old and new look, in `fades`. */
+const countFades = (context: BrowserContext) =>
+	context.addInitScript(() => {
+		const start = document.startViewTransition.bind(document);
+		Object.assign(window, { fades: 0 });
+		document.startViewTransition = (update) => {
+			Object.assign(window, { fades: (window as unknown as { fades: number }).fades + 1 });
+			return start(update);
+		};
+	});
+
 test('fades between themes, and switches at once under reduced motion', async ({ browser }) => {
 	for (const reducedMotion of ['no-preference', 'reduce'] as const) {
 		const context = await browser.newContext({ reducedMotion });
-		// Counts the page's view transitions, the fade between its old and new look.
-		await context.addInitScript(() => {
-			const start = document.startViewTransition.bind(document);
-			Object.assign(window, { fades: 0 });
-			document.startViewTransition = (update) => {
-				Object.assign(window, { fades: (window as unknown as { fades: number }).fades + 1 });
-				return start(update);
-			};
-		});
+		await countFades(context);
 		const page = await context.newPage();
 		await page.goto('/');
 		await expect(page.getByLabel('New task')).toBeEnabled();
@@ -2211,6 +2215,30 @@ test('fades between themes, and switches at once under reduced motion', async ({
 		}
 		await context.close();
 	}
+});
+
+test('fades when the device switches theme, unless a theme was chosen', async ({ browser }) => {
+	const context = await browser.newContext({ colorScheme: 'dark' });
+	await countFades(context);
+	const page = await context.newPage();
+	await page.goto('/');
+	await expect(page.getByLabel('New task')).toBeEnabled();
+	const shown = () => page.evaluate(() => document.documentElement.dataset.theme);
+	const fades = () => page.evaluate(() => (window as unknown as { fades: number }).fades);
+	// Pinned before drawing, so the stylesheet waits for the page to fade.
+	expect(await shown()).toBe('dark');
+	await page.emulateMedia({ colorScheme: 'light' });
+	await expect.poll(shown).toBe('light');
+	expect(await fades()).toBe(1);
+	// Dark chosen in Settings stays dark when the device switches back and forth.
+	await settingsSheet(page);
+	await page.locator('label:visible', { has: page.getByRole('radio', { name: 'Dark' }) }).click();
+	await expect.poll(shown).toBe('dark');
+	await page.emulateMedia({ colorScheme: 'dark' });
+	await page.emulateMedia({ colorScheme: 'light' });
+	expect(await shown()).toBe('dark');
+	expect(await fades()).toBe(2);
+	await context.close();
 });
 
 test('offers to delete only the copies that have a locked list in plain text', async ({ page }) => {
