@@ -317,7 +317,7 @@
 			{
 				"name": "theme-fade",
 				"value": "view transition crossfade of the root, 400ms",
-				"purpose": "The whole page fading from one theme to the other when one is chosen in Settings."
+				"purpose": "The whole page fading from one theme to the other, when one is chosen in Settings or the device switches while on System."
 			},
 			{
 				"name": "reduced-motion",
